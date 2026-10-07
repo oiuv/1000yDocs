@@ -140,7 +140,7 @@
   <main>
     <section id="conclusion">
       <h2>一、执行结论</h2>
-      <p class="lead">这是一个包含 Delphi 7 客户端和主要服务端项目入口、并已通过当前全量构建脚本验证的完整源码仓库，运行基线为<strong>未修改的炎黄新章</strong>；维护工作限定在 <code>docs/</code> 和 <code>python_services/</code>，游戏 Pascal 代码只作事实依据。旧报告存在版本命名、职业等级、端口表达、成熟度判断和风险描述失真，本报告已整体重建，不沿用其宣传式结论。</p>
+      <p class="lead">这是一个包含 Delphi 7 客户端和主要服务端项目入口、并已通过当前全量构建脚本验证的完整源码仓库，运行基线为<strong>未修改的炎黄新章</strong>；维护工作限定在 <code>docs/</code> 和 <code>py1000y/</code>，游戏 Pascal 代码只作事实依据。旧报告存在版本命名、职业等级、端口表达、成熟度判断和风险描述失真，本报告已整体重建，不沿用其宣传式结论。</p>
 
       <div class="grid">
         <div class="card"><span class="number">287</span><span class="label">根仓库受控 Pascal 单元（.pas）</span></div>
@@ -261,7 +261,7 @@
             <tr><td>Login</td><td><code>loginsdb_biscuit/</code> 或 <code>loginsql/</code></td><td>监听 TCP 3050</td><td>两种替代实现；SQL 版经 BDE/ODBC 访问 SQL Server，SDB 版使用本地记录</td></tr>
             <tr><td>DB</td><td><code>db/</code></td><td>监听 TCP 3051；远程 1024、物品 1020</td><td>角色数据持久化和管理协议</td></tr>
             <tr><td>Game</td><td><code>gameserver-tgs1000/</code></td><td>监听 TCP 3052；连接 DB/Battle/Notice</td><td>地图、对象、战斗、NPC、脚本与玩家状态</td></tr>
-            <tr><td>Paid</td><td><code>python_services/paid/</code></td><td>Gate 配置决定；Python 默认 127.0.0.1:3049</td><td>正式付费状态校验服务，不保存游戏角色数据</td></tr>
+            <tr><td>Paid</td><td><code>py1000y/paid/</code></td><td>Gate 配置决定；Python 默认 127.0.0.1:3049</td><td>正式付费状态校验服务，不保存游戏角色数据</td></tr>
           </tbody>
         </table>
       </div>
@@ -348,7 +348,7 @@
 
     <section id="python">
       <h2>七、Python 服务与工具成熟度</h2>
-      <p><code>python_services/</code> 是源码分析、运维和替代服务开发区，不是对整个服务端的完成重写。应按用途分别部署，不能因同处 Python 目录而默认全部复制到服务器。</p>
+      <p><code>py1000y/</code> 是源码分析、运维和替代服务开发区，不是对整个服务端的完成重写。应按用途分别部署，不能因同处 Python 目录而默认全部复制到服务器。</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>组件</th><th>定位</th><th>状态</th><th>生产说明</th></tr></thead>
@@ -365,7 +365,7 @@
       </div>
 
       <h3>7.1 已有自动化验证</h3>
-      <pre>python -B -m unittest discover -s python_services/tests -p "test_*.py" -v</pre>
+      <pre>python -B -m unittest discover -s py1000y/tests -p "test_*.py" -v</pre>
       <p>当前两份测试文件覆盖 Paid 与 UDP Logger 的关键行为。上线仍需在服务器副本中做真实 Gate、TGS 报文和长时间轮转验证；单元测试不能证明跨进程兼容性。</p>
 
       <h3>7.2 运行约束</h3>
@@ -459,7 +459,7 @@
             <tr><td>账号与白名单</td><td><code>loginsql/</code>、<code>loginsdb_biscuit/</code>、<code>db/uIpChecker.pas</code></td></tr>
             <tr><td>炎黄当前脚本</td><td><code>gameserver-tgs1000/bin/Script/</code>、<code>Script.SDB</code></td></tr>
             <tr><td>云端神武优化版</td><td><code>docs/Script/</code>（仅作该运营版本对照）</td></tr>
-            <tr><td>Python 正式服务</td><td><code>python_services/paid/</code>、<code>python_services/udp_logger/</code>、<code>python_services/tests/</code></td></tr>
+            <tr><td>Python 正式服务</td><td><code>py1000y/paid/</code>、<code>py1000y/udp_logger/</code>、<code>py1000y/tests/</code></td></tr>
             <tr><td>全量构建</td><td><code>build_all.bat</code> 及各项目 <code>build.bat</code>；Delphi 7 DCC32 7.0.4.453 实测 7/7，Authentication 另行验证 OBJ 构建</td></tr>
           </tbody>
         </table>
@@ -468,6 +468,6 @@
     </section>
   </main>
 
-  <footer>千年炎黄新章项目技术分析基线 · 2026-08-20 · 只读分析游戏代码，维护 docs 与 python_services</footer>
+  <footer>千年炎黄新章项目技术分析基线 · 2026-08-20 · 只读分析游戏代码，维护 docs 与 py1000y</footer>
 </body>
 </html>

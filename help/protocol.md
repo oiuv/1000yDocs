@@ -1041,9 +1041,9 @@ Data:
 - [客户端连接与通信](client-communication.md) — 按客户端源码说明入口配置、重定向、登录和收发调用链
 - [消息类型常量](constants/MESSAGES.md) — 完整的 SM_*/CM_*/FM_* 常量列表
 - [数据结构定义](deftype.pas) — deftype.pas 的详细文档
-- [Balance 服务](../../python_services/balance/README.md) — 负载均衡服务说明
-- [Gate 服务](../../python_services/gate/README.md) — 网关服务说明
-- [Python CLI 客户端](../../python_services/client/README.md) — 炎黄协议联调入口与当前实现范围
+- [Balance 服务](../../py1000y/balance/README.md) — 负载均衡服务说明
+- [Gate 服务](../../py1000y/gate/README.md) — 网关服务说明
+- [Python CLI 客户端](../../py1000y/client/README.md) — 炎黄协议联调入口与当前实现范围
 
 ---
 

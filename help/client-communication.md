@@ -97,4 +97,4 @@ CM_* 业务结构
 
 进一步的字段布局、加密算法和消息编号参见[网络协议与封包结构](protocol.md)、[系统架构与登录链路](architecture.md)和[消息常量索引](constants/MESSAGES.md)。
 
-仓库还提供了[炎黄新章 Python CLI 客户端](../../python_services/client/README.md)，可用于无界面协议联调。它不内置服务器地址，线上炎黄默认版本为 39，并允许用 `--version` 显式覆盖。
+仓库还提供了[炎黄新章 Python CLI 客户端](../../py1000y/client/README.md)，可用于无界面协议联调。它不内置服务器地址，线上炎黄默认版本为 39，并允许用 `--version` 显式覆盖。
