@@ -6,6 +6,7 @@
 
 - [统一术语表](TERMINOLOGY.md)
 - [系统架构与登录链路](architecture.md)
+- [Windows 全量编译与构建日志](build.md)
 - [客户端连接与通信](client-communication.md)
 - [网络协议与封包结构](protocol.md)
 - [数据库与 SDB 文件](database.md)
