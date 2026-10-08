@@ -44,7 +44,8 @@ end else if cmd = 'getmoveablexy' then begin
 Str := callfunc('getmoveablexy 100 200');
 if Str = 'true' then begin
    print('say 该坐标可以行走');
-end else begin
+end;
+if Str = 'false' then begin
    print('say 该坐标不可行走');
 end;
 ```

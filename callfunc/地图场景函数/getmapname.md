@@ -13,7 +13,7 @@ Str := callfunc('getmapname');
 
 ## 返回值
 - **成功**：返回当前地图名称（字符串），如 '捕盗将军洞'
-- **失败**：返回空字符串
+调用上下文必须有有效的 `Self` 和地图 `Manager`；实现直接读取 `Manager.Title`，没有专门的失败返回分支。
 
 ## 源码实现
 基于 `BasicObj.pas` 中的 `SGetMapName` 函数：
@@ -37,7 +37,8 @@ end else if cmd = 'getmapname' then begin
 ```pascal
 // NPC 获取自己所在的地图名称
 MapName := callfunc('getmapname');
-print('say 我现在位于：' + MapName);
+Cmd := 'say 我现在位于：' + MapName;
+print(Cmd);
 ```
 
 ## 注意事项

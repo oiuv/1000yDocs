@@ -14,17 +14,23 @@ procedure OnHear (aStr : String);
 
 ## 触发条件
 
-动态对象收到 `FM_SAY` 消息时触发，即有玩家在该对象附近说话（发送聊天消息）时激活。对象需要具有 `DYNOBJ_EVENT_HEAR` 事件标记才能接收此回调。
+收到附近对象的 `FM_SAY` 消息时触发，当前有两条路径：
 
-源码位置：`BasicObj.pas` 第 6477-6481 行
+- DynamicObject：必须处于 `dos_Closed`。若启用 `DYNOBJ_EVENT_SAY`，代码执行内建问答分支后退出，不调用脚本 `OnHear`；未走该分支且已登记事件时才调用脚本回调。
+- NPC：排除死亡的 Sender、NPC 自身及非 HUMAN 的说话者，再执行已登记的 `OnHear`；不需要动态对象标记。
+
+`Self` 是监听说话的对象，`Sender` 是说话者。两条路径都从 `SayString` 中去掉说话者前缀，将剩余正文传入 `aStr`。
+
+源码位置：`BasicObj.pas` 第 6446-6482 行、`uNpc.pas` 第 615-637 行
 
 ## 适用对象
 
 - DynamicObject（动态对象）
+- NPC
 
 ## 示例
 
-> 当前脚本目录中未发现 OnHear 的实际使用示例。以下为基于引擎行为的参考实现：
+> 以下为按当前接口编写的参考结构，不代表随包已部署该玩法。需先确认所在地图存在名为“铁闸门”的动态对象；`selfchangedynobjstate` 分支只适用于 Self 为动态对象的事件。
 
 ```pascal
 procedure OnHear (aStr : String);

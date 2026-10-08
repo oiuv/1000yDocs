@@ -14,9 +14,11 @@ procedure OnChangeState (aStr : String);
 
 ## 触发条件
 
-NPC/Monster 收到 `FM_CHANGEFEATURE` 消息时触发，即视野内对象状态发生变化时（如从正常变为死亡）。当 NPC/Monster 的 Feature 状态改变时，会通知视野范围内所有具有 `DYNOBJ_EVENT_CHANGESTATE` 标记的对象。
+NPC/Monster 收到附近其它对象的 `FM_CHANGEFEATURE` 消息时触发。`Self` 是接收消息并执行脚本的 NPC/Monster，`Sender` 是状态变化的对象；这两条接收路径均排除自身 ID。`aStr='die'` 表示 Sender 死亡，其它状态返回 `normal`。
 
-源码位置：`uNpc.pas` 第 519-521 行
+NPC 路径还要求 `AttackSkill` 有效，并排除隐藏程度为 `hs_0` 或商店状态的 Sender；Monster 路径排除受控怪物。这两条路径不要求 `DYNOBJ_EVENT_CHANGESTATE` 标记。
+
+源码位置：`uNpc.pas` 第 508-521 行、`uMonster.pas` 第 590-602 行
 
 ## 适用对象
 
@@ -25,9 +27,9 @@ NPC/Monster 收到 `FM_CHANGEFEATURE` 消息时触发，即视野内对象状态
 
 ## 示例
 
-### 示例 1：比武 NPC 死亡状态处理（3级黑捕校.txt）
+### 示例：比武 NPC 观察玩家死亡（3级黑捕校.txt）
 
-当 NPC 死亡时，检测触发者是否为玩家，发送提示并将玩家移出比武场：
+当附近玩家死亡时，NPC 检查 Sender 的种族，发送提示并将该玩家移出比武场：
 
 ```pascal
 procedure OnChangeState (aStr : String);
@@ -49,27 +51,12 @@ begin
 end;
 ```
 
-### 示例 2：配合 OnDie 使用（比武类脚本通用模式）
+## 与 OnDie 的区别
 
-OnChangeState 在状态变化时触发（可用于检测死亡），OnDie 在确认死亡后触发。两者配合实现完整的死亡处理流程：
-
-```pascal
-procedure OnDie (aStr : String);
-begin
-   // 死亡确认后的处理：升级、传送等
-   print ('usemagicgradeup 1 2');
-end;
-
-procedure OnChangeState (aStr : String);
-begin
-   // 状态变为死亡时的即时响应
-   if aStr <> 'die' then exit;
-   print ('say 别想蒙混过关,我很严厉的.');
-end;
-```
+`OnChangeState` 观察其它对象；[OnDie](OnDie.md) 处理脚本对象自身死亡。二者不是同一对象死亡流程中固定先后执行的一对事件，脚本必须分别判断 Self 与 Sender。
 
 ## 相关事件
 
-- [OnDie](OnDie.md) — 死亡事件（OnChangeState 的 'die' 状态与之关联）
+- [OnDie](OnDie.md) — 脚本对象自身死亡
 - [OnCreate](OnCreate.md) — 创建事件
 - [OnRegen](OnRegen.md) — 重生事件

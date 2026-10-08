@@ -43,11 +43,12 @@ if cmd = 'getsysteminfo' then begin
 ```pascal
 // 获取当前最强门派名称
 BestGuild := callfunc('getsysteminfo getbestguild');
-if BestGuild <> '' then begin
-   print('say 当前最强门派是：' + BestGuild);
-end else begin
+if BestGuild = '' then begin
    print('say 暂无最强门派');
+   exit;
 end;
+Cmd := 'say 当前最强门派是：' + BestGuild;
+print(Cmd);
 ```
 
 ## 注意事项

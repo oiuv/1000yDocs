@@ -50,7 +50,8 @@ end;
 Str := callfunc('checkobjectalive 捕盗将军洞 npc 捕盗大将');
 if Str = 'true' then begin
    print('say 捕盗大将还活着');
-end else begin
+end;
+if Str = 'false' then begin
    print('say 捕盗大将已经不在了');
 end;
 ```

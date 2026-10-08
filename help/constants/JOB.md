@@ -39,7 +39,7 @@
 
 ## 职业品级 (JOB_GRADE_*)
 
-定义职业的晋升等级，对应 `TDBRecord.ExtJobKind` 字段。品级由"技能值"决定。
+定义制造职业的晋升等级。人物职业来自 `TDBRecord.JobKind`，`THaveJobClass` 以人物 `Talent` 技能值调用 `TJobClass.GetJobGrade` 计算 `FJobGrade`，不是读取 `TDBRecord.ExtJobKind`（后者属于扩展采集职业）。
 
 > 数据来源: `bin/Init/JobGrade.sdb` + `docs/help/炎黄新章游戏资料/职业技能/【职业技能】简介.txt`
 
@@ -52,6 +52,8 @@
 | `JOB_GRADE_EXPERT` | 4 | 达人 | 60.00-79.99 | 4、3品 | 能力2级 |
 | `JOB_GRADE_MASTER` | 5 | 名人 | 80.00-99.98 | 2品 | 能力1级 |
 | `JOB_GRADE_VIRTUEMAN` | 6 | 神工 | 99.99+任务 | 1品 | 最高品级，需完成神工任务 |
+
+上表的晋升要求来自游戏帮助资料；当前源码判级需另行区分：`GetJobGrade` 使用100～9998的硬编码分段，其余值（包括0～99）均返回神工，不是按 `JobGrade.SDB.StartLevel/EndLevel` 查表。数据与执行逻辑的差异见 [JobGrade.sdb](../Init_JobGrade.sdb.md)。依据：`gameserver-tgs1000/uUserSub.pas:11262-11264`、`gameserver-tgs1000/svClass.pas:7099-7110`。
 
 ### 品级上限
 
@@ -73,17 +75,20 @@
 ## 职业相关系统
 
 ### 制造系统
-- 制造材料表: `manufacture.atd`
+
+- 配方来自 `Init/Item.SDB` 的 `Material` 字段；[manufacture.md](../manufacture.md) 是整理对照表，不是服务端加载文件。当前仓库和随包程序目录未找到 `manufacture.atd` 加载文件
 - 四种职业各有独立的制造配方
 - 制造成功率与品级、技能值相关
 - 四种职业：**铸造师**（兵器）、**炼丹师**（药品）、**工匠**（附加装备）、**裁缝**（防具）
 
 ### 采矿系统
-- 仅 `JOB_KIND_MINER`(5) 可采矿
+
+- `JOB_KIND_MINER=5` 是定义常量，不能据此认定所有采矿检查均要求人物 `JobKind=5`；当前扩展采集代码独立使用 `ExtJobKind`，采集经验更新分支检查 `ExtJobKind=1`（`UUser.pas:4142-4146`）
 - 需要曲柄 (`ITEM_KIND_PICKAX`) 或高级曲柄 (`ITEM_KIND_HIGHPICKAX`)
 - 采矿点通过 `CreateMineObject.SDB` 配置
 
 ### 冶炼系统
+
 - `JOB_KIND_SMELT`(99) 为冶炼专用常量
 - 通过 `SmeltItem.sdb` / `SmeltItem2.sdb` 定义配方
 
@@ -92,16 +97,17 @@
 ## 脚本中使用
 
 ```pascal
-// 设置玩家职业
-print('setsenderjobkind', '1');  // 设置为炼金术士
+// 每条命令及其参数放在一个完整字符串中；职业1是铸造师
+print('setsenderjobkind 1');
 
-// 检查玩家职业
-if callfunc('getsenderjobkind') = 5 then
+// 独立查询示例：callfunc返回字符串，不假定上面的排队命令已执行
+if callfunc('getsenderjobkind') = '1' then
 begin
-  // 玩家是矿工
-  print('say', '你可以使用采矿工具');
+  print('say 你当前的职业是铸造师 0');
 end;
 ```
+
+此示例只说明命令格式和制造职业查询，不用于判断采矿资格。接口依据：`gameserver-tgs1000/uScriptManager.pas:164-172,226-228,350-351,425-430,595-596`。
 
 ---
 

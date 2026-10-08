@@ -1,7 +1,7 @@
 # senderrefill
 
 ## 功能描述
-补满玩家的活力、内功和外功（三功补满）。向玩家发送 FM_REFILL 消息，完全恢复生命值、内力值和体力值。
+在事件发送者上广播 `FM_REFILL`。玩家接收分支恢复当前活力、内功、外功、武功、生命和头/臂/腿活力，以及武功护盾；各值使用对应上限。
 
 ## 语法格式
 ```pascal
@@ -67,7 +67,7 @@ print ('senderrefill');
 
 ## 注意事项
 
-1. **完全恢复**：一次性补满所有生命、内力和体力值
+1. **实际恢复字段**：`UUser.pas` 第 8533-8548 行恢复 `CurEnergy`、`CurInPower`、`CurOutPower`、`CurMagic`、`CurLife`、`CurHeadLife`、`CurArmLife`、`CurLegLife` 和 `CurShield`，清零 `DiedTick`，再发送属性更新；字段中文名遵循 [统一术语表](../../help/TERMINOLOGY.md)
 2. **无参数**：不接受任何参数，恢复量由玩家自身最大值决定
 3. **常用场景**：常用于比武、挑战、捕盗等战斗开始前，确保玩家以满状态进入战斗
 4. **配合冻结使用**：典型用法是先 commandicebyname 冻结玩家，再 senderrefill 补满，最后解冻开始战斗

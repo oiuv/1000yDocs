@@ -1,6 +1,6 @@
 # AM&WHRelation.sdb
 
-拳法与武器关系表（Attack Method & Weapon Hand Relation）。定义不同武功（拳法/心法）与6种武器类型之间的相性关系值。
+护体功与掌法相性表。行对应护体功相性类别，六列对应掌法相性类别；不是武功与武器类型的配合表。
 
 ## 文件路径
 `bin/Init/AM&WHRelation.sdb`
@@ -11,14 +11,14 @@ CSV格式，第一行为列名
 ## 字段说明
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| Name | 字符串 | 索引名（如 Armor1、Armor2 等，标识武功/心法类型） |
-| WindOfHand1 | 整数 | 与武器类型1的相性值 |
-| WindOfHand2 | 整数 | 与武器类型2的相性值 |
-| WindOfHand3 | 整数 | 与武器类型3的相性值 |
-| WindOfHand4 | 整数 | 与武器类型4的相性值 |
-| WindOfHand5 | 整数 | 与武器类型5的相性值 |
-| WindOfHand6 | 整数 | 与武器类型6的相性值 |
-| Desc | 字符串 | 描述（武功/心法名称） |
+| Name | 字符串 | 行标识（Armor1～Armor7）；运行时按数据行顺序取护体相性下标 0～6 |
+| WindOfHand1 | 整数 | 对掌法相性类别 0 的相性值 |
+| WindOfHand2 | 整数 | 对掌法相性类别 1 的相性值 |
+| WindOfHand3 | 整数 | 对掌法相性类别 2 的相性值 |
+| WindOfHand4 | 整数 | 对掌法相性类别 3 的相性值 |
+| WindOfHand5 | 整数 | 对掌法相性类别 4 的相性值 |
+| WindOfHand6 | 整数 | 对掌法相性类别 5 的相性值 |
+| Desc | 字符串 | 随包护体功名称备注；当前加载器不读取 |
 
 ## 数据示例
 ```
@@ -51,4 +51,9 @@ if FileExists ('.\Init\AM&WHRelation.SDB') then begin
 end;
 ```
 
-加载逻辑：将每种武功/心法与6种武器类型的相性值读入二维数组 `AM_WHRelationTable`。行索引为武功序号，列索引为武器类型（0~5）。值越大表示该武功与该武器类型的配合越好。
+加载器把数据行依次存入 `AM_WHRelationTable[0..6,0..5]`。受掌法攻击时，`GetValueFromRelationTable` 使用防御方当前护体功和来袭掌法的 `rMagicRelation` 取值 `m`。
+
+- 伤害分支先按护体功类别和熟练度修正 `m`，再计算 `damageBody - damageBody * m div 100`，随后还有其他防御计算。因此表值不是最终伤害减免百分比。
+- 原始相性值为 60 时进入元气吸收分支，吸收量还与掌法消耗、护体类别及熟练度有关。
+
+依据：`gameserver-tgs1000/svClass.pas:3874-3879`；`gameserver-tgs1000/UUser.pas:3206-3243` 的 `CommandAttackedMagic`。

@@ -40,11 +40,11 @@ unit Unit1;  
 
 interface
 
-{ 过程或函数声明 }
+// 过程或函数声明
 
 implementation
 
-{ 过程或函数实现 }
+// 过程或函数实现
 
 end.
 ```
@@ -104,4 +104,4 @@ end.
 
 更多语法限制请见 [help/Pascal.md](help/Pascal.md)。
 
-脚本示例有两个版本来源：`gameserver-tgs1000/bin/Script` 是当前未修改的炎黄新章随包脚本，[`docs/Script`](Script/README.md) 是云端千年神武奇章线上优化版脚本归档。云端脚本只能证明该运营版本的实际用法；定制奖励不能视为原版规则，移植前仍须以当前 Pascal 分派器确认接口兼容性。
+脚本示例有两个版本来源：`gameserver-tgs1000/bin/Script` 是炎黄新章运行脚本基线，包含仓库已提交的接口和文本修复；[`docs/Script`](Script/README.md) 是云端千年神武奇章线上优化版脚本归档。云端脚本只能证明该运营版本的实际用法；定制奖励不能视为原版规则，移植前仍须以当前 Pascal 分派器确认接口兼容性。

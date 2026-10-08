@@ -46,7 +46,8 @@ quest_level := callfunc ('getsenderqueststr');
 if quest_level = 'level1' then begin
    print ('addaddablestatepoint 3');
    print ('say 获得3个状态点');
-end else if quest_level = 'level2' then begin
+end;
+if quest_level = 'level2' then begin
    print ('addaddablestatepoint 5');
    print ('say 获得5个状态点');
 end;

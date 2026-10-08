@@ -119,4 +119,4 @@ end;
 
 ## 版本兼容
 
-[`../Script/`](../Script/README.md) 是云端千年神武奇章线上优化版脚本，当前 `gameserver-tgs1000/bin/Script` 是未修改的炎黄新章随包脚本。云端脚本中的真实用法不等于原版规则或当前仍注册该接口：两套 `龙师父.txt` 都残留 `getjobgrade`，而当前分派器没有该分支，应使用 `getsenderjobgrade`。
+[`../Script/`](../Script/README.md) 是云端千年神武奇章线上优化版归档；`gameserver-tgs1000/bin/Script` 是当前炎黄运行脚本基线，包含仓库后续修复。当前炎黄 `龙师父.txt` 已使用有效接口 `getsenderjobgrade`；云端归档仍保留未注册的 `getjobgrade`，不能直接照搬。炎黄脚本的 `say` 分隔符和 `绣球.txt` 普通文本分派错误也已修复，详见 [归档与迁移说明](../Script/README.md)。

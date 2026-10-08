@@ -6,12 +6,12 @@
 
 | 位置 | 版本与用途 |
 |---|---|
-| `gameserver-tgs1000/bin/Script/` | 炎黄新章随包脚本；用于核对当前配置引用和基础示例 |
+| `gameserver-tgs1000/bin/Script/` | 炎黄新章运行脚本基线，含仓库后续修复；用于核对当前配置引用和基础示例 |
 | [`docs/Script/`](../Script/README.md) | 云端千年神武奇章线上优化版脚本；用于参考该运营版业务流程 |
 | `gameserver-tgs1000/uScriptManager.pas` | 当前 `print`、`callfunc` 注册和 `Self/Sender` 分派标准 |
 | `gameserver-tgs1000/ScriptCls.pas` | 当前语法编译和执行标准 |
 
-云端神武版脚本不能直接覆盖当前目录。迁移时要检查接口名、脚本编号、对象/物品/地图名称以及配套 `Help`、`NpcSetting` 文件，并区分云端运营定制与版本演进。已知兼容缺口是云端神武版和炎黄随包的 `龙师父.txt` 都残留 `getjobgrade`，但当前分派器未注册，应改为 `getsenderjobgrade`。
+云端神武版脚本不能直接覆盖当前目录。迁移时要检查接口名、脚本编号、对象/物品/地图名称以及配套 `Help`、`NpcSetting` 文件，并区分云端运营定制与版本演进。当前炎黄 `龙师父.txt` 已改用 `getsenderjobgrade`；云端归档仍使用未注册的 `getjobgrade`，迁移时应替换。当前炎黄的 `say` 分隔符和 `绣球.txt` 文本命令也已修复，归档状态见 [Script 说明](../Script/README.md)。
 
 脚本关键字和变量名不区分大小写，但单引号内的字符串保持原样。当前 `print`/`callfunc` 分派器不会自动转换命令名大小写；接口名应使用索引页所列的精确形式。
 

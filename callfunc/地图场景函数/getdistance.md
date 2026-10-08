@@ -13,7 +13,7 @@ Str := callfunc('getdistance');
 
 ## 返回值
 - **成功**：返回两者之间的距离值（字符串格式的数字），使用 `GetLargeLength` 计算大距离
-- **失败**：返回 '0'
+`Self` 和 `Sender` 都必须有效；入口直接读取双方坐标，没有把无效对象转换为 `0` 的分支。
 
 ## 源码实现
 在 `uScriptManager.pas` 的 `CallFunction` 中直接计算：
@@ -35,7 +35,8 @@ end else if cmd = 'getdistance' then begin
 ```pascal
 // 检查玩家是否靠近 NPC
 Dist := callfunc('getdistance');
-if StrToInt(Dist) > 5 then begin
+Distance := StrToInt(Dist);
+if Distance > 5 then begin
    print('say 请走近一些再和我说话');
    exit;
 end;

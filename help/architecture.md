@@ -9,41 +9,21 @@
 ### 1.1 架构图
 
 ```
-                          ┌──────────────────────────────────────────────────────────────┐
-                          │                     内网 (Internal)                           │
-                          │                                                              │
-                          │   ┌──────────┐    ┌──────────┐    ┌──────────┐              │
-  ┌──────────┐  TCP 3053  │   │  Login   │    │    DB    │    │   Paid   │              │
-  │  Client  │◄───────────┤   │  :3050   │    │  :3051   │    │ :配置值  │              │
-  │          │            │   └────▲─────┘    └────▲─────┘    └────▲─────┘              │
-  │  (外部)  │            │        │               │               │                     │
-  └────┬─────┘            │        │               │               │                     │
-       │                  │   ┌────┴───────────────┴───────────────┴─────┐              │
-       │ SM_CONNECTTHRU   │    │              Gate (网关)                 │              │
-       ├─────────────────►│    │              TCP 3054                   │              │
-       │                  │    │  ┌──────────────────────────────────┐   │              │
-  ┌────▼─────┐  TCP 3054  │    │  │ 状态机: gs_none→gs_login→      │   │              │
-  │ Balance  │◄──────────►│    │  │  gs_agree→gs_selectchar→       │   │              │
-  │ (负载均衡)│            │    │  │  gs_gotogame→gs_playing        │   │              │
-  └────▲─────┘            │    │  └──────────────────────────────────┘   │              │
-       │                  │    └───────▲───────────────▲─────────────────┘              │
-       │ UDP 3030         │            │               │                                 │
-       │ (BM_GATEINFO)    │            │               │                                 │
-       │                  │    ┌───────┴───────────────┴─────────────────┐              │
-  ┌────┴─────┐            │    │              Game Server                 │              │
-  │  Gate 1~10│───────────┤    │         (游戏服务器)                     │              │
-  │ (TCP 3000│            │    │                                        │              │
-  │  管理连接)│            │    │  ┌──────────┐  ┌──────────┐           │              │
-  └──────────┘            │    │  │ 地图/怪物 │  │ 用户管理  │           │              │
-                          │    │  │ NPC/物品  │  │ 行会/任务 │           │              │
-                          │    │  └──────────┘  └──────────┘           │              │
-                          │    └────────────────────────────────────────┘              │
-                          │                                                              │
-                          │   UDP 日志推送:                                              │
-                          │   ITEM:6001  MOUSEEVENT:6010  MONITER:6011                 │
-                          │   CONNECT:6022  PAY:6000  OBJECT:3003  RELATION:3005        │
-                          └──────────────────────────────────────────────────────────────┘
+Client ── TCP 3053 ──> Balance
+Client <── SM_CONNECTTHRU ── Balance（返回 Gate 地址）
+Client ── TCP 3054 ──> Gate
+                       ├── UDP 3030 ──> Balance（BM_GATEINFO）
+                       ├── TCP 3050 ──> Login（SQL/SDB 二选一）
+                       ├── TCP 3051 ──> DB（选角、锁定等）
+                       ├── TCP 配置端口 ──> Paid
+                       └── TCP 3052 ──> Game（TGS）
+                                        ├── TCP 3051 ──> DB（角色保存、福袋等）
+                                        ├── TCP 3040 ──> Battle
+                                        ├── TCP 3020 ──> Notice
+                                        └── UDP ──> 七路日志目标
 ```
+
+以上箭头表示主动连接或发送方向；TCP 建立后可双向传输。公网入口是 Balance 与 Gate，其余服务与日志目标应位于受信内网。UDP 日志配置示例为 ITEM 6001、MOUSEEVENT 6010、MONITER 6011、CONNECT 6022、PAY 6000、OBJECT 3003、RELATION 3005。Balance 另保留 TCP 3000 监听，本版本 `gate_biscuit` 不使用该注册通道。
 
 ### 1.2 各服务职责
 
@@ -83,10 +63,10 @@ DB 读取的 `RemoteIP.txt` 属于另一组远程连接器配置，不能代替�
 | **3053** | Balance | 监听 | 客户端连接入口 | **外网** |
 | **3054** | Gate | 监听 | 客户端游戏连接入口 | **外网** |
 | **3050** | Login | 监听 | Gate → Login 连接 | 内网 |
-| **3051** | DB | 监听 | Gate → DB 连接 | 内网 |
+| **3051** | DB | 监听 | Gate/TGS → DB 连接 | 内网 |
 | **3052** | Game | 监听 | Gate → Game 连接 | 内网 |
 | **配置决定** | Paid | 监听 | Gate → Paid；新建 Gate 配置写入 5999，缺项读取回退到 3049 | 内网 |
-| **3000** | Balance | 监听 | Gate 管理连接（TCP 通道） | 内网 |
+| **3000** | Balance | 监听 | 保留的 Gate 管理 TCP 通道；本版 Gate 不使用 | 内网 |
 | **1021** | SDB Login | 监听 | `REMOTEACCEPTPORT` 远程连接 | 内网 |
 | **6060** | SQL Login 的远端服务 | 连接目标 | SQL Login 读取 `[REMOTE_SERVER]` 后主动连接的缺省端口 | 内网 |
 | **1024** | DB | 远程管理 | DB 远程同步端口 | 内网 |
@@ -375,7 +355,8 @@ end;
 |------|----------|------|
 | 负载均衡 | Balance ↔ Client | `SM_CONNECTTHRU` |
 | 账号验证 | Gate ↔ Login | `LG_SELECT` |
-| 角色列表 | Gate ↔ DB | `DB_SELECT` |
+| 角色列表 | Gate ↔ Login、Gate → Client | `LG_SELECT` 返回角色槽位，`SM_CHARINFO` 下发列表 |
+| 角色加载 | Gate ↔ DB | `DB_SELECT` 读取选中的角色数据 |
 | 计费验证 | Gate ↔ Paid | `PM_CHECKPAID` / `PM_CHECKPAID2` |
 | 进入游戏 | Gate ↔ Game | `GM_CONNECT` |
 | 角色锁定 | Gate → DB | `DB_LOCK` |
@@ -448,17 +429,19 @@ end;
 Game (TConnector)
   │  AddSaveData() → SaveBuffer (环形缓冲区, 4MB)
   │
-  ▼  ConnectorList.Update() 每 10ms 处理
+  ▼  ConnectorList.Update() 每 10ms 检查
   │
-Gate (TfrmGate)
+Game 内部 FGate (TfrmGate)
   │  AddSendDBServerData(DB_UPDATE / DB_UPDATE_END)
   │
-  ▼  通过 Gate ↔ DB 的 TCP 连接
+  ▼  通过 TGS ↔ DB 的 TCP 连接
   │
 DB (TDBProvider)
   │  写入 FDB 文件
   ▼
 ```
+
+此处 `TfrmGate` 定义于 `gameserver-tgs1000/FGate.pas`，是 TGS 自身的通信窗口；其 `sckDBConnect` 直接连接 DB。外部 `gate_biscuit` 仍保留 `GM_SENDUSERDATA` 转发分支，但上述 SaveBuffer 保存路径不经过它。
 
 ### 6.2 环形缓冲区批量写入
 
@@ -471,8 +454,8 @@ SaveBuffer := TPacketBuffer.Create(1024 * 1024 * 4);  // 4MB 缓冲区
 
 保存数据封装为 `TCheckCharData`（包含 `TDBRecord` + `rEnd` 标志位）：
 
-- `rEnd = 0`：定期保存，发送 `DB_UPDATE`
-- `rEnd = 1`：结束保存（下线），发送 `DB_UPDATE_END`
+- `rEnd = 0`：发送 `DB_UPDATE`
+- `rEnd = 1`：发送 `DB_UPDATE_END`；当前定期与下线保存入口均使用此值
 
 ### 6.3 定期保存
 
@@ -488,7 +471,7 @@ if SaveTick + 60 * 10 * 100 < CurTick then begin
 end;
 ```
 
-> 注意：源码中定期保存使用的 `rEnd := 1`（即 `DB_UPDATE_END`），这意味着每次定期保存都会触发 `WaitPlayerList.Release`。保存功能可通过 Gate 界面 `chkSaveUserData` 复选框开关。
+> 定期保存使用 `rEnd := 1`（即 `DB_UPDATE_END`）；DB 返回成功后，TGS 的 `FGate.DBMessageProcess` 调用 `WaitPlayerList.Release`。连接器的定期入队功能由 TGS 主窗口 `chkSaveUserData` 复选框控制；`UUser.pas` 中每 10 分钟收集角色状态是另一条更新内存记录的路径。
 
 ### 6.4 下线保存
 
@@ -509,7 +492,7 @@ end;
 
 ### 6.5 保存队列处理
 
-`TConnectorList.Update()` 每 10ms 检查保存队列，逐条发送到 DB：
+TGS 主定时器每 10ms 调用 `TConnectorList.Update()`，但发送分支还要求经过 10 个 `mmAnsTick`。`Common/uAnsTick.pas` 默认每 10ms 增加 1，因此有待保存记录时，约每 100ms 尝试发送一条到 DB；只有成功写入发送缓冲区才出队。窗口定时器调度及连接状态可能延长间隔。
 
 ```delphi
 // gameserver-tgs1000/uConnect.pas — TConnectorList.Update
@@ -517,8 +500,8 @@ if SaveBuffer.Count > 0 then begin
   if CurTick >= SaveTick + 10 then begin
     if SaveBuffer.View(@CharData) = true then begin
       case CharData.rEnd of
-        0: frmGate.AddSendDBServerData(DB_UPDATE, @CharData.rCharData, SizeOf(TDBRecord));
-        1: frmGate.AddSendDBServerData(DB_UPDATE_END, @CharData.rCharData, SizeOf(TDBRecord));
+        0: if frmGate.AddSendDBServerData(DB_UPDATE, @CharData.rCharData, SizeOf(TDBRecord)) then SaveBuffer.Flush;
+        1: if frmGate.AddSendDBServerData(DB_UPDATE_END, @CharData.rCharData, SizeOf(TDBRecord)) then SaveBuffer.Flush;
       end;
     end;
     SaveTick := CurTick;
@@ -533,35 +516,28 @@ end;
 ### 7.1 TCP 连接关系图
 
 ```
-┌─────────┐     TCP 3000      ┌─────────┐
-│ Balance │◄──────────────────│  Gate   │  (Gate 管理连接)
-└─────────┘                   └────┬────┘
-                                   │
-                    ┌──────────────┼──────────────┐
-                    │              │              │
-              TCP 3052       TCP 3050       TCP 3051
-                    │              │              │
-              ┌─────▼─────┐ ┌─────▼─────┐ ┌─────▼─────┐
-              │   Game    │ │   Login   │ │    DB     │
-              └─────┬─────┘ └─────┬─────┘ └─────┬─────┘
-                    │              │              │
-              TCP 3040     SDB:TCP 1021     TCP 1024/1020
-              (Battle)     (远程连接)     (远程同步)
-                                   │
-              TCP 配置值           │
-                    │              │
-              ┌─────▼─────┐ ┌─────▼─────┐
-              │   Paid    │ │  Notice   │
-              └───────────┘ │  (3020)   │
-                            └───────────┘
+主动连接方           监听/目标服务
+Client       ──3053──> Balance
+Client       ──3054──> Gate
+Gate         ──3050──> Login
+Gate         ──3051──> DB
+Gate         ──3052──> Game
+Gate         ──配置──> Paid
+Game         ──3051──> DB
+Game         ──3040──> Battle
+Game         ──3020──> Notice
+远程管理端   ──1021──> SDB Login
+SQL Login    ──6060──> REMOTE_SERVER（配置目标）
+远程管理端 ─1024/1020─> DB
 ```
 
 **连接方向说明**：
 
 - Gate 作为**客户端**主动连接到 Game/Login/DB/Paid
-- Balance 的 `sckGate`（TCP 3000）作为**服务端**接受 Gate 的管理连接
+- Balance 的 `sckGate` 保留 TCP 3000 监听；当前 Gate 实现只通过 UDP 3030 上报状态
 - Game 的 `GateConnectorList` 作为**服务端**接受 Gate 的连接
-- DB 的 `sckAccept` 作为**服务端**接受 Gate 的连接
+- DB 的 `sckAccept` 作为**服务端**接受 Gate 和 TGS 的连接
+- Game 自身作为**客户端**主动连接 DB/Battle/Notice
 
 SDB Login 监听配置的 `REMOTEACCEPTPORT`（缺省 1021）；SQL Login 不监听该端口，而是作为客户端连接 `[REMOTE_SERVER]`（缺省 `127.0.0.1:6060`）。
 
@@ -635,7 +611,7 @@ end;
 | `GM_SENDALL` | 5 | 全服广播 |
 | `GM_UNIQUEVALUE` | 6 | 网关唯一标识请求 |
 
-### Gate ↔ DB 消息
+### Gate/TGS ↔ DB 消息
 
 | 常量 | 值 | 说明 |
 |------|-----|------|

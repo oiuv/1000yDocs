@@ -52,9 +52,10 @@ end else if cmd = 'findobjectbyname' then begin
 Str := callfunc('findobjectbyname 张三');
 if Str = '0' then begin
    print('say 没有找到名为张三的人');
-end else begin
-   print('say 找到了，ID为：' + Str);
+   exit;
 end;
+Cmd := 'say 找到了，ID为：' + Str;
+print(Cmd);
 ```
 
 ### 查找NPC

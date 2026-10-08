@@ -1,6 +1,6 @@
 # BestMagicStateData.sdb
 
-绝世武功状态数据。定义各绝世武功的额外攻防属性加成，用于在武功状态激活时叠加到角色属性上。
+绝世武功状态点转换系数表。按武功名称提供攻防计算系数；`GetStateDataofBestMagic` 将武功各项已分配状态点转换为 `rcLifeData` 的附加攻防值，不是将表中数值直接加到人物属性。
 
 ## 文件路径
 `bin/Init/BestMagicStateData.sdb`
@@ -11,18 +11,18 @@ CSV格式，第一行为列名。以武功名称为索引。
 ## 字段说明
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| （索引名） | 字符串 | 武功名称（如日月神功、寒阴指等） |
-| DamageBody | 整数 | 身体攻击力加成 |
-| DamageHead | 整数 | 头部攻击力加成 |
-| DamageArm | 整数 | 手臂攻击力加成 |
-| DamageLeg | 整数 | 腿部攻击力加成 |
-| DamageEnergy | 整数 | 元气攻击力加成 |
-| ArmorBody | 整数 | 身体防御力加成 |
-| ArmorHead | 整数 | 头部防御力加成 |
-| ArmorArm | 整数 | 手臂防御力加成 |
-| ArmorLeg | 整数 | 腿部防御力加成 |
-| ArmorEnergy | 整数 | 元气防御力加成 |
-| Desc | 字符串 | 描述 |
+| Name | 字符串 | 武功名称（如日月神功、寒阴指等） |
+| DamageBody | 整数 | 身体攻击状态点的转换系数 |
+| DamageHead | 整数 | 头部攻击状态点的转换系数 |
+| DamageArm | 整数 | 手臂攻击状态点的转换系数 |
+| DamageLeg | 整数 | 腿部攻击状态点的转换系数 |
+| DamageEnergy | 整数 | 元气攻击状态点的转换系数 |
+| ArmorBody | 整数 | 身体防御状态点的转换系数 |
+| ArmorHead | 整数 | 头部防御状态点的转换系数 |
+| ArmorArm | 整数 | 手臂防御状态点的转换系数 |
+| ArmorLeg | 整数 | 腿部防御状态点的转换系数 |
+| ArmorEnergy | 整数 | 元气防御状态点的转换系数 |
+| Desc | 字符串 | 随包备注；当前加载器不读取 |
 
 ## 数据示例
 ```
@@ -62,4 +62,21 @@ if FileExists ('.\Init\BestMagicStateData.sdb') then begin
 end;
 ```
 
-加载逻辑：以武功名称为键存入 `StateKeyClass` 哈希表。通过 `GetStateDataofBestMagic` 方法在武功状态激活时查询并叠加属性。部分武功侧重攻击（如寒阴指有攻击力但无防御力），部分侧重防御（如日月神功只有防御力）。
+加载器以武功名称为键存入 `StateKeyClass`。例如身体攻击项调用 `GetResultSettingValueofBestMagic(rStatus.rDamageBody, 表的DamageBody, rcLifeData.damageBody)`；其余九项分别使用对应的状态点和系数。随包寒阴指填写攻击系数，日月神功填写防御系数。
+
+转换函数的算法如下（`div` 为整数除法）：
+
+```text
+statePoint 不在 0..540 时返回
+t = statePoint
+对 x = 1..10：
+    若 t < x * 10：
+        n = (x - 1) * 10 + t div x
+        total += (x * x + n) * sValue div 100
+        返回
+    t -= x * 10
+```
+
+例如身体攻击状态点为10、系数为88时：第一轮扣除10，第二轮得到 `n=10`，附加值为 `14*88 div 100=12`，不是直接增加88。实际结果还取决于调用时的基础 `rcLifeData`。
+
+依据：`gameserver-tgs1000/svClass.pas:2603-2619` 的转换函数及 `:3410-3444` 的 `GetStateDataofBestMagic`。

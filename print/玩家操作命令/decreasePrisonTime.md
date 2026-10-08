@@ -58,7 +58,8 @@ if Str = 'true' then begin
    print ('getsenderitem 金元:10');
    print ('decreasePrisonTime 120');
    print ('say 缴纳罚金，刑期减少120分钟');
-end else begin
+end;
+if Str = 'false' then begin
    print ('say 你没有足够的金元来减刑');
 end;
 ```

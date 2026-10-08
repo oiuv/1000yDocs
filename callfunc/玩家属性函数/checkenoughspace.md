@@ -17,7 +17,7 @@ Str := callfunc('checkenoughspace 需要的空位数');
 - **'false'**：背包空间不足
 
 ## 源码实现
-基于 `!UUser.pas` 中的 `SCheckEnoughSpace` 函数：
+基于当前 `UUser.pas` 中的 `SCheckEnoughSpace` 函数：
 
 ```pascal
 function TUser.SCheckEnoughSpace (aCount : Integer) : String;
@@ -36,20 +36,24 @@ end;
 ```pascal
 // 检查是否有任何空位
 space_status := callfunc('checkenoughspace');
-if space_status = 'true' then
+if space_status = 'true' then begin
     print('say 背包有空间');
-else
+end;
+if space_status = 'false' then begin
     print('say 背包已满');
+end;
 ```
 
 ### 指定空位数量检查
 ```pascal
 // 检查是否有5个空位
 space_status := callfunc('checkenoughspace 5');
-if space_status = 'true' then
+if space_status = 'true' then begin
     print('say 背包有足够空间');
-else
+end;
+if space_status = 'false' then begin
     print('say 背包空间不足，需要至少5个空位');
+end;
 ```
 
 ### 真实游戏示例

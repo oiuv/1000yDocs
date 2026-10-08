@@ -14,13 +14,19 @@ procedure OnBow (aStr : String);
 
 ## 触发条件
 
-动态对象被弓箭或远程技能命中时，收到 `FM_BOW` 消息，且对象具有 `DYNOBJ_EVENT_BOW` 事件标记时触发。
+当前有两条 `FM_BOW` 调用路径：
 
-源码位置：`BasicObj.pas` 第 6864-6867 行
+- `TDynamicObject`：要求 `DYNOBJ_EVENT_BOW` 标记及目标/范围判断通过；`OnDanger` 精确返回 `false` 时直接退出，否则可调用 `OnBow`。
+- `TLifeObject`：要求对象未死亡、允许受击且未禁弓术，并通过目标/范围判断；`OnDanger` 未拒绝后，先进行弓术伤害结算，再调用 `OnBow`。这条路径不要求动态对象事件标记。
+
+两条路径中 `Self` 都是受击对象，`Sender` 是攻击者。此事件针对弓术消息，不能据“远程”一词推广到掌风等其它消息。
+
+源码位置：`BasicObj.pas` 第 6852-6868 行、`uSkills.pas` 第 1890-1915 行
 
 ## 适用对象
 
 - DynamicObject（动态对象）— 需设置 `DYNOBJ_EVENT_BOW` 标记
+- 使用 `TLifeObject.FieldProc` 的生命对象（包括 NPC、Monster、User）— 按生命对象路径的受击条件判断
 
 ## 示例
 
@@ -59,6 +65,6 @@ end;
 
 ## 相关事件
 
-- [OnDanger](../procedure/OnHit.md) — 远程攻击判定回调（决定是否接受伤害）
+- [OnDanger](../function/OnDanger.md) — 远程攻击判定回调（决定是否接受伤害）
 - [OnTurnOn](OnTurnOn.md) / [OnTurnOff](OnTurnOff.md) — 开关状态事件（OnBow 触发 IncStep 后联动）
 - [OnHit](OnHit.md) — 近战命中事件

@@ -192,7 +192,7 @@ SoundEvent,
 SoundSpecial,
 SoundStart,
 SoundDie,
-GuardPos|String|禁止进入区域坐标，最多20组（10个坐标）|1:0:1:1:0:1
+GuardPos|String|禁止进入区域坐标，最多20对X/Y（20个坐标、40个整数）；遇到X/Y均为0时停止解析|1:0:1:1:0:1
 EventItem,
 EventDropItem,
 EventSay|String|玩家说话|芝麻开门

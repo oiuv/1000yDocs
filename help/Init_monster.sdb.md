@@ -11,7 +11,7 @@
 | `Damage`、`DamageHead`、`DamageArm`、`DamageLeg` | 攻击及部位伤害 |
 | `Armor`、`Life`、`AttackSpeed`、`Avoid`、`Recovery`、`Accuracy`、`SpendLife`、`HitArmor` | 基础战斗数据，直接写入 `TMonsterData` 对应成员 |
 | `SpellResistRate`、`ActionWidth`、`EscapeLife`、`ViewWidth`、`ArmorWHPercent` | 抗性、行动范围、逃跑阈值、视野和防具武功百分比成员 |
-| `virtue`、`VirtueLevel`、`RegenInterval` | 活力值、活力等级和再生间隔 |
+| `virtue`、`VirtueLevel`、`RegenInterval` | 浩然正气经验相关的值、等级及再生间隔；不是人物活力 |
 
 `Kind` 使用 `MOP_KIND_NONE=0`、`AUTOCALL=1`、`AUTODIE=2`、`NEWSKILL=3`、`SEAL=4`。这些是源码常量名称；实际行为由创建出的怪物对象逻辑决定。
 
@@ -44,6 +44,8 @@
 表头中的 `boOnlyOnce`、`CallInterval`、`HideInterval` 没有被当前 `LoadMonsterData` 读取。不能仅凭字段名推断它们在本版本中生效。
 
 ## 校验依据
+
+`Virtue`/`VirtueLevel` 经 `uMonster.pas:291-292` 写入怪物的 `VirtueValue`/`VirtueLevel`。战斗经验分支在 `uSkills.pas:714-739` 用人物浩然正气等级差修正奖励，并通过 `FM_ADDVIRTUEEXP` 交给 `UUser.pas:8746-8748` 的 `AttribClass.AddVirtue`。
 
 - 配置表头：`gameserver-tgs1000/bin/Init/Monster.SDB`
 - 加载器：`gameserver-tgs1000/svClass.pas` 的 `TMonsterClass.LoadMonsterData`

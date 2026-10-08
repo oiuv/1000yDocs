@@ -82,11 +82,10 @@
 ## 脚本中使用
 
 ```pascal
-// 检查玩家是否持有某种类的物品
-if callfunc('getsenderitemexistencebykind', 34) > 0 then
-begin
-  // 玩家持有任务物品(ITEM_KIND_QUESTITEM = 34)
-  print('say', '你身上有任务物品');
+// 检查背包中是否存在类型34（ITEM_KIND_QUESTITEM）的物品
+Str := callfunc('getsenderitemexistencebykind 34 0');
+if Str = 'true' then begin
+   print('say 你身上有任务物品');
 end;
 ```
 

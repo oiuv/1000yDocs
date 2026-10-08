@@ -75,7 +75,7 @@ end;
 
 ### 示例 3：定期检查物品刷新（狐狸洞.txt）
 
-利用 1 秒级别的定时触发，定期检查并刷新物品：
+这是地图脚本用法，按 Manager 的 `OnTimer` 周期检查物品刷新，正常 tick 倍率下约每 60 秒执行一次。`checkitemregen` 只在 Manager 重载的 `CallEvent` 入口中处理；普通对象定时器不会执行该命令。最后的 `60` 是命令自己的刷新间隔参数，不改变地图 `OnTimer` 周期：
 
 ```pascal
 procedure OnTimer (aStr : String);

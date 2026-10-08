@@ -220,10 +220,10 @@ Kind | int | 物品的类型，非常重要，见下表Kind | 1
 Desc | string | 物品的描述，可为空 | 给物品染上颜色的试剂
 Grade | int | 物品的品级，1-10，1为最高 | 1
 QuestNum| int | Kind值为ITEM_KIND_GRADEUPQUESTITEM的物品，双击显示指定编号的任务信息 | 9999
-NeedItem| string | 需要什么物品才能获取此物品，否则会提示需要有任务物品，格式为：物品名:数量:物品名:数量:... | 招式全集:1
-NotHaveItem| string | 拥有什么物品时不能拾取此物品，否则会提示无法拾取物品，格式为：物品名:数量:物品名:数量:...|戒指:1:不灭:1:牌王:1
-DelItem| string | 拾取此物品时，会删除指定数量的物品，格式为：物品名:数量:物品名:数量:...|葫芦2:1
-AddItem| string | 拾取此物品时，会添加指定数量的物品，格式为：物品名:数量:物品名:数量:...|收了魂的葫芦2:1
+NeedItem| string | 拾取前必须持有列出的物品名；格式为物品名:数量重复（最多4组），加载数量必须为正，但当前拾取分支只检查名字存在，不检查数量 | 招式全集:1
+NotHaveItem| string | 持有任一列出的物品名时禁止拾取；格式及上限同NeedItem，当前拾取分支不比较配置数量|戒指:1:不灭:1:牌王:1
+DelItem| string | 拾取时按列出的名称取物品模板并调用DeleteItem，不使用配置子项数量；SpecialKind为ITEM_SPKIND_DELALLBYDURA时跳过此删除分支；格式及上限同NeedItem|葫芦2:1
+AddItem| string | 拾取时按列出的名称添加物品，数量采用被拾取地面物品的rCount，不使用配置子项数量；格式及上限同NeedItem|收了魂的葫芦2:1
 boDouble| boolean | 是否可堆叠，如钱币可以，装备不可以，可叠加物品数量最大值为100000000 | TRUE
 boColoring| boolean | 是否可染色，针对装备类物品 | TRUE
 Shape| int | 物品的形状，具体编号由客户端文件item.atz控制 | 1

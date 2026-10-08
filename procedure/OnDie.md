@@ -13,13 +13,18 @@ procedure OnDie (aStr : String);
 | aStr | String | 空字符串，无附加信息 |
 
 ## 触发条件
-当 Monster、NPC 或 DynamicObject 的生命值降到 0 并完成死亡动画/处理后触发。此事件在 `OnDieBefore` 之后执行，适合用于：
+调用时机和 Sender 取决于对象路径：
+
+- 生命对象（NPC、Monster 等）：`TLifeObject.CommandChangeCharState` 转入 `wfs_die` 时调用，不等待死亡动画结束。`Self` 是死亡对象，`Sender` 是攻击者；当两者 ID 相同时跳过事件。
+- DynamicObject：由动态对象死亡更新路径调用，`Self` 是死亡对象、`Sender=nil`。
+
+`OnDieBefore` 只在动态对象部分扣血路径中调用，不能假设所有 `OnDie` 都有前置 `OnDieBefore`。本事件可用于：
 - 死亡后生成新的怪物或对象
 - 触发地图事件（如播放通知、改变地图状态）
 - 掉落物品或触发宝箱逻辑
 - 重置计数器或机关状态
 
-**源码位置**: `BasicObj.pas` 第 7199-7201 行
+**源码位置**: `uSkills.pas` 第 1583-1617 行；`BasicObj.pas` 第 7199-7201 行
 
 ## 适用对象
 - Monster
@@ -84,6 +89,6 @@ end;
 ```
 
 ## 相关事件
-- [OnDieBefore](OnDieBefore.md) — 死亡前触发（在死亡处理之前）
+- [OnDieBefore](OnDieBefore.md) — 动态对象部分扣血路径中的死亡前回调
 - [OnHit](OnHit.md) — 被攻击命中时触发
 - [OnRegen](OnRegen.md) — 对象重生时触发

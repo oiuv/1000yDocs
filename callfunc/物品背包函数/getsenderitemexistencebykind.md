@@ -1,105 +1,55 @@
 # getsenderitemexistencebykind
 
-## 功能描述
-检查玩家背包中是否存在指定种类的物品。
+按整数类型编号检查事件发送者的背包物品或当前穿戴武器，返回字符串 `true` 或 `false`。
 
-## 语法格式
+## 语法
+
 ```pascal
-Str := callfunc('getsenderitemexistencebykind 物品种类');
+Str := callfunc('getsenderitemexistencebykind 类型编号 选项');
 ```
 
-## 参数说明
-- **物品种类**：String - 要检查的物品种类名称
+| 参数 | 源码行为 |
+| --- | --- |
+| 类型编号 | 经 `_StrToInt` 转换为整数，对应物品的 `rKind` / `ITEM_KIND_*`，不是中文类别名称 |
+| 选项 | `0` 检查背包，`1` 检查当前穿戴武器；省略时 `_StrToInt('')` 得到 `0` |
 
-## 返回值
-- **成功**：'true' - 玩家背包中存在指定种类的物品
-- **失败**：'false' - 玩家背包中不存在指定种类的物品
-
-## 源码实现
-基于 `!UUser.pas` 中的 `SGetItemExistenceByKind` 函数：
+`uScriptManager.pas` 调用：
 
 ```pascal
-function TUser.SGetItemExistenceByKind (aItemKind : String) : String;
-var
-   i : Integer;
-begin
-   Result := 'false';
+Result := TBasicObject(FSender).SGetItemExistenceByKind(
+  _StrToInt(Params[0]), _StrToInt(Params[1]));
+```
 
-   for i := 0 to MAXITEM - 1 do begin
-      if HaveItemClass.ItemList [i] <> nil then begin
-         if HaveItemClass.ItemList [i]^.rItemKind = aItemKind then begin
-            Result := 'true';
-            exit;
-         end;
-      end;
-   end;
+`UUser.pas` 的 `TUser.SGetItemExistenceByKind(aKind, aOption: Integer)` 先令结果为 `false`：
+
+- 选项 `0`：调用 `HaveItemClass.FindKindItem(aKind)`，在背包数组中比较 `rKind`，找不到（`-1`）则退出。
+- 选项 `1`：比较 `WearItemClass.GetWeaponKind`（武器格的 `rKind`）与 `aKind`，不相等则退出。
+- 正常应传有效非空物品类型。空背包格的 `rKind` 为 `0`，未装备武器时 `GetWeaponKind` 也返回 `0`，不能用类型 `0` 判断存在实际物品。
+- 检查通过后返回 `true`。其它选项在当前代码中跳过检查而直接返回 `true`；脚本只能使用 `0`、`1`，不能依赖非法选项判断物品。
+
+依据：`UUser.pas` 第 10026-10043 行、`uUserSub.pas` 第 2809-2819、5346-5351 行。
+
+## 真实脚本示例
+
+当前工作区炎黄 `bin/Script/quest老侠客.txt` 使用以下调用，云端神武归档也有相同用法：
+
+```pascal
+Str := callfunc('getsenderitemexistencebykind 59');
+Str := callfunc('getsenderitemexistencebykind 60 1');
+```
+
+两次查询分别检查背包中的类型 `59` 和穿戴武器的类型 `60`，不是按“武器”“任务物品”等中文类别名称查询。判断返回值应使用字符串比较：
+
+```pascal
+Str := callfunc('getsenderitemexistencebykind 59 0');
+if Str = 'false' then begin
+   print('say 没有找到所需类型的背包物品');
+   exit;
 end;
 ```
-
-## 使用示例
-
-### 基础物品检查
-```pascal
-// 检查是否有武器类物品
-weapon_status := callfunc('getsenderitemexistencebykind 武器');
-if weapon_status = 'true' then
-    print('say 你背包中有武器');
-```
-
-### 任务物品检查
-```pascal
-// 检查是否有任务所需物品类型
-quest_item := callfunc('getsenderitemexistencebykind 任务物品');
-if quest_item = 'true' then begin
-    print('say 你带着任务物品，可以继续任务');
-    // 继续任务逻辑
-end else begin
-    print('say 你需要先获取任务物品');
-    exit;
-end;
-```
-
-### 装备检查
-```pascal
-// 检查各类装备
-armor_status := callfunc('getsenderitemexistencebykind 防具');
-accessory_status := callfunc('getsenderitemexistencebykind 饰品');
-
-if armor_status = 'true' and accessory_status = 'true' then
-    print('say 你的装备很齐全')
-else if armor_status = 'true' then
-    print('say 你有防具但缺少饰品')
-else if accessory_status = 'true' then
-    print('say 你有饰品但缺少防具')
-else
-    print('say 你需要装备一些防具和饰品');
-```
-
-### 药品检查
-```pascal
-// 检查药品库存
-medicine_status := callfunc('getsenderitemexistencebykind 药品');
-if medicine_status = 'false' then begin
-    print('say 你的药品不足，需要补充');
-    print('putsendermagicitem 金疮药:10 @quest药店 4');
-end;
-```
-
-## 注意事项
-
-1. **返回值格式**：返回字符串 'true' 或 'false'，需要进行字符串比较
-2. **种类匹配**：检查的是物品的 `rItemKind` 属性，不是物品名称
-3. **遍历背包**：函数会遍历玩家整个背包来查找匹配的物品种类
-4. **存在性检查**：只要背包中有一个匹配的物品就返回true
-5. **种类定义**：物品种类需要在游戏数据库中定义，常见的种类包括：
-   - 武器
-   - 防具
-   - 饰品
-   - 药品
-   - 任务物品
-   - 材料
 
 ## 相关函数
-- `getsenderitemexistence` - 检查指定名称的物品是否存在
-- `getsenderitemcountbyname` - 获取指定名称物品的数量
-- `checkenoughspace` - 检查背包是否有足够空间
+
+- [getsenderitemexistence](getsenderitemexistence.md)：按名称及数量查询物品。
+- [getsenderitemcountbyname](getsenderitemcountbyname.md)：查询同名物品数量。
+- [checkenoughspace](../玩家属性函数/checkenoughspace.md)：检查背包空位。

@@ -410,14 +410,16 @@ Action Message — 定义角色/怪物的动作类型。
 | `AM_STANDUP` | 4 | 站起 |
 | `AM_HELLO` | 5 | 打招呼 |
 | `AM_MOTION` | 6 | 动作 |
-| `AM_TURN` ~ `AM_TURN9` | 10-19 | 转向（10个方向） |
-| `AM_MOVE` ~ `AM_MOVE9` | 20-29 | 移动（10个方向） |
-| `AM_HIT` ~ `AM_HIT9` | 30-39 | 攻击（10个方向） |
-| `AM_TURNNING` ~ `AM_TURNNING9` | 40-49 | 旋转（10个方向） |
+| `AM_TURN` ~ `AM_TURN9` | 10-19 | 转向动作状态序列 |
+| `AM_MOVE` ~ `AM_MOVE9` | 20-29 | 移动动作状态序列 |
+| `AM_HIT` ~ `AM_HIT9` | 30-39 | 攻击动作状态序列 |
+| `AM_TURNNING` ~ `AM_TURNNING9` | 40-49 | 旋转动作状态序列 |
 | `AM_HIT10` | 50 | 第10段攻击 |
 | `AM_HIT10_READY` | 51 | 第10段攻击准备 |
 | `AM_HIT11` | 52 | 第11段攻击 |
 | `AM_HIT11_READY` | 53 | 第11段攻击准备 |
+
+这些常量表示动作状态，不表示方向数量；方向由独立的 `Dir` 字段传递，常规移动和转向使用 `0..7` 八方向。
 
 ---
 

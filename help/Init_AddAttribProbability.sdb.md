@@ -1,6 +1,6 @@
 # AddAttribProbability.sdb
 
-附加属性概率数据。定义不同品级下各属性品质（最低/较低/普通/较高/最高）出现的概率权重，用于附加属性系统的随机属性生成。
+附加属性编号抽取权重表。列由已给定的材料品质选择，行权重用于随机决定物品的 `rAddType`；本表不随机生成材料品质。
 
 ## 文件路径
 `bin/Init/AddAttribProbability.sdb`
@@ -11,12 +11,12 @@ CSV格式，第一行为列名
 ## 字段说明
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| Name | 字符串 | 索引名（品级编号） |
-| Lowest | 整数 | 最低品质属性出现概率权重 |
-| Lower | 整数 | 较低品质属性出现概率权重 |
-| Normal | 整数 | 普通品质属性出现概率权重 |
-| Higher | 整数 | 较高品质属性出现概率权重 |
-| Highest | 整数 | 最高品质属性出现概率权重 |
+| Name | 字符串 | 行标识；抽取出的属性编号按数据行顺序从 1 开始，不是物品品级 |
+| Lowest | 整数 | 材料品质为最低时，本行属性编号的权重 |
+| Lower | 整数 | 材料品质为较低时，本行属性编号的权重 |
+| Normal | 整数 | 材料品质为普通时，本行属性编号的权重 |
+| Higher | 整数 | 材料品质为较高时，本行属性编号的权重 |
+| Highest | 整数 | 材料品质为最高时，本行属性编号的权重 |
 
 ## 数据示例
 ```
@@ -65,4 +65,8 @@ for i := 1 to FDataList.Count - 1 do begin
 end;
 ```
 
-加载逻辑：读取各品级的概率权重后，会计算累积概率表（前缀和），用于 `GetAddTypeNum` 方法中根据随机值确定属性品质等级。品质常量对应：`ITEM_ATTRIBUTE_LOWEST`、`ITEM_ATTRIBUTE_LOWEER`、`ITEM_ATTRIBUTE_NORMAL`、`ITEM_ATTRIBUTE_HIGHER`、`ITEM_ATTRIBUTE_HIGHEST`。
+加载器分别对五列计算前缀和。`ProcessAddAttribItem(iWorth)` 先用产品品级从 `AddAttribGrade.sdb` 取得 `aMaxRange`，再调用 `GetAddTypeNum(aMaxRange, iWorth)`：以已给定的品质选择一列，取该列第 `aMaxRange` 行的累计值为随机范围，返回属性编号并写入产品 `rAddType`。
+
+例如品质为最低、`aMaxRange=2` 时，只在前两行抽取：属性编号 1 权重 60，编号 2 权重 50，总权重 110；不会根据同一行的五列随机抽取品质。品质常量是 `ITEM_ATTRIBUTE_LOWEST`、`ITEM_ATTRIBUTE_LOWEER`（源码拼写）、`ITEM_ATTRIBUTE_NORMAL`、`ITEM_ATTRIBUTE_HIGHER`、`ITEM_ATTRIBUTE_HIGHEST`。
+
+依据：`gameserver-tgs1000/svClass.pas:9043-9103`；`gameserver-tgs1000/uUserSub.pas:12067-12079`。

@@ -1,6 +1,6 @@
 # ConsumeEnergy.sdb
 
-元气消耗表。根据武功等级区间定义元气消耗百分比，武功等级越高消耗的元气比例越大。
+掌法元气消耗系数表。按人物最大元气 `FAttribClass.Energy` 查找区间；字段名虽含 `Skill`，当前调用并不传入武功等级。
 
 ## 文件路径
 `bin/Init/ConsumeEnergy.sdb`
@@ -12,9 +12,9 @@ CSV格式，第一行为列名
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
 | Name | 字符串 | 索引名（序号标识） |
-| StartSkill | 整数 | 武功等级区间起始值 |
-| EndSkill | 整数 | 武功等级区间结束值 |
-| ConsumePercent | 整数 | 元气消耗百分比 |
+| StartSkill | 整数 | 最大元气区间起始值，含边界 |
+| EndSkill | 整数 | 最大元气区间结束值，含边界 |
+| ConsumePercent | 整数 | 从公式中的 150 扣除的系数，不是最终消耗百分比 |
 
 ## 数据示例
 ```
@@ -50,4 +50,13 @@ if FileExists ('.\Init\ConsumeEnergy.SDB') then begin
 end;
 ```
 
-加载逻辑：将每个等级区间的元气消耗百分比存入 `SkillConsumeEnergyArr` 数组。通过 `TMagicClass.GetSkillConsumeEnergy` 方法查询指定武功等级对应的元气消耗百分比。等级越高，消耗比例越大（0%~80%）。
+加载器将区间和系数存入 `SkillConsumeEnergyArr`；`GetSkillConsumeEnergy` 按输入元气匹配区间。掌法分支的实际消耗为：
+
+```text
+n = Energy * (150 - GetSkillConsumeEnergy(Energy)) div 1000
+n = n * (100 - DecValue) div 100
+```
+
+`div` 为整数除法，`DecValue` 来自人物对象的减耗值；当前元气不足 `n` 时使用失败，否则扣除 `n`。随包系数 0～80 对应减耗修正前的比例 15%～7%，不能解释为消耗 0%～80%。
+
+依据：`gameserver-tgs1000/svClass.pas` 的 `TMagicClass.GetSkillConsumeEnergy`；`gameserver-tgs1000/uUserSub.pas:7294-7305` 的 `MAGICCLASS_MYSTERY` 分支。

@@ -12,7 +12,7 @@
 |-----------|-----------|------|---------|------|
 | **MSSQL** | — | SQL 登录实现的账号数据 | `loginsql/uDBAdapter.pas` | 通过 BDE `TQuery` 操作 `account1000y` 表 |
 | **SDB** | `.sdb` | SDB 登录实现的账号数据 / 游戏配置 | `loginsdb_biscuit/uDBAdapter.pas`、`Common/UserSdb.pas` | 纯文本 CSV 格式，`TUserStringDB` 类操作 |
-| **FDB** | `.fdb` | 角色数据持久化 | `db/uDBProvider.pas`、`Common/uDBRecordDef.pas` | 自定义二进制格式，支持多文件扩展 |
+| **FDB** | `.fdb` | 角色数据持久化 | `Common/uDBProvider.pas`、`Common/uDBRecordDef.pas` | 自定义二进制格式，支持多文件扩展 |
 
 ### 1.1 各数据库的使用场景
 
@@ -490,7 +490,7 @@ end;
 ### 6.3 CRC 校验流程
 
 ```
-游戏服务器                         DB 服务器
+游戏服务器（TGS 的 FGate）          DB 服务器
     │                                 │
     ├── 收集 CharData ──────────────→ │
     │                                 ├── DB_UPDATE: 直接写入数据（不计算 CRC）
@@ -506,7 +506,7 @@ end;
 ### 6.4 DB 服务器写入流程
 
 ```
-1. 接收游戏服务器发来的保存请求
+1. 接收游戏服务器通过其自身 DB 连接发来的保存请求（`gameserver-tgs1000/FGate.pas`）
 2. 通过 IndexClass 二分查找角色名 → (FileNo, RecordNo)
 3. 填充 TDBRecord 数据
 4. DB_UPDATE_END 时计算 CRC32 校验值 → 写入 CRCKey 字段

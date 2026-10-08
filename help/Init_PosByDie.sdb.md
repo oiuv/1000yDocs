@@ -21,7 +21,7 @@ CSV 格式，逗号分隔，首行为列名。
 | DestServer | Integer | 目标地图（服务器）ID | `pd^.rDestServerID := StrDB.GetFieldValueInteger(iName, 'DestServer')` |
 | DestX | Integer | 目标 X 坐标 | `pd^.rDestX := StrDB.GetFieldValueInteger(iName, 'DestX')` |
 | DestY | Integer | 目标 Y 坐标 | `pd^.rDestY := StrDB.GetFieldValueInteger(iName, 'DestY')` |
-| Notice | String | 死亡提示消息（韩文编码） | 未直接读取到结构体中 |
+| Notice | String | 随包参考备注，实际文件包含 GBK 中文；不是已确认会发送的死亡提示 | 当前加载器不读取此列 |
 
 ### 使用场景
 
@@ -33,12 +33,12 @@ CSV 格式，逗号分隔，首行为列名。
 |--------|-----------|-------|-------|------|
 | 3 | 1 | 699 | 689 | 地图3死亡→地图1 |
 | 19 | 1 | 148 | 309 | 地图19死亡→地图1 |
-| 33 | 33 | 71 | 167 | 地下采石场1层原地复活 |
-| 35 | 35 | 172 | 215 | 铁矿1层原地复活 |
+| 33 | 33 | 71 | 167 | 地下采石场1层固定坐标复活（同地图，不是原死亡坐标） |
+| 35 | 35 | 172 | 215 | 铁矿1层固定坐标复活（同地图，不是原死亡坐标） |
 
 ## 相关源码
 
 - `svClass.pas` — `TPosByDieClass.ReLoadFromFile`（第 7755 行）
 - `svClass.pas` — `TPosByDieClass.GetPosByDieData`（第 7784 行）
-- `docs\help\deftype.pas` — `TPosByDieData` 记录定义（第 2609 行）
+- `1000ydef/deftype.pas` — `TPosByDieData` 记录定义
 - `UUser.pas` — 死亡传送逻辑（第 4297 行、第 10707 行）

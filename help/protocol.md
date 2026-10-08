@@ -381,6 +381,7 @@ end;
 - `SM_RECONNECT` (254): 重连
 - `SM_CONNECTTHRU` (253): 连接转发
 - `SM_SETCLIENTCONDITION` (2): 设置客户端条件
+- `SM_NETSTATE` (56): 客户端状态校验请求
 
 #### 角色信息
 - `SM_CHARINFO` (3): 角色基本信息
@@ -426,6 +427,7 @@ end;
 - `CM_IDPASS` (3): 登录（账号密码）
 - `CM_CREATEIDPASS` (4): 创建账号
 - `CM_CHANGEPASSWORD` (5): 修改密码
+- `CM_NETSTATE` (36): 客户端状态校验答复
 
 #### 角色管理
 - `CM_CREATECHAR` (6): 创建角色
@@ -654,31 +656,51 @@ end;
 
 ---
 
+### 4.5 客户端状态校验
+
+进入游戏后，TGS `UUser.pas` 默认每 500 个 `mmAnsTick`（约 5 秒）发送一次状态校验。请求与答复经 Gate 转发，仍按客户端 TCP 的 `TWordComData`、`TPacketData` 和加密外层封装。下表偏移仅针对业务结构，定义见 `1000ydef/deftype.pas`。
+
+`TSNetState`（25 字节，Game → Client）：
+
+| 偏移 | 字节数 | 字段 | 含义 |
+|---:|---:|---|---|
+| 0 | 1 | `rMsg` | `SM_NETSTATE=56` |
+| 1 | 4 | `rID` | 校验 ID，答复原样保留 |
+| 5 | 4 | `rMadeTick` | 服务端发送时 tick，答复原样保留 |
+| 9 | 16 | `rQuestion` | 校验问题字节，直接用于 CRC32 |
+
+`TCNetState`（21 字节，Client → Game）：
+
+| 偏移 | 字节数 | 字段 | 原生客户端填写方式 |
+|---:|---:|---|---|
+| 0 | 1 | `rMsg` | `CM_NETSTATE=36` |
+| 1 | 4 | `rID` | 请求中的 ID |
+| 5 | 4 | `rMadeTick` | 请求中的发送 tick |
+| 9 | 4 | `rCurTick` | 客户端当前 `mmAnsTick` |
+| 13 | 4 | `rAnswer1` | `oz_CRC32(rQuestion, 16)` |
+| 17 | 4 | `rAnswer2` | `oz_CRC32(TCNetState前17字节, 17)`；计算前先填其余字段 |
+
+两结构均为 packed record，多字节字段为小端；ID 与 tick 为 Delphi Integer，答案为 Cardinal。`Common/uAnsTick.pas` 默认每 10ms 增加 1，`rCurTick` 应使用客户端自己的同单位时钟，不能填毫秒、秒或固定值。CRC32 使用 `Common/uCookie.pas` 的 `oz_CRC32`。原生答复代码见 `client/FMain.pas` 的 `SM_NETSTATE` 分支。
+
+服务端 `UUser.pas` 的 `CM_NETSTATE` 分支先清零 `MoveMsgCount`；若接收时已达到 `rMadeTick + 50`（默认约 500ms），会清除应答基线并结束该分支。若 `SaveNetState.rID = 0` 或本次 ID 比基线 ID 跳增大于 1，则仅记录本次答复作为基线并返回，该次不检查 CRC 与 tick 差值。进入后续校验分支时，客户端 tick 差值达到 600（默认约 6 秒）且启用 `boCheckSpeed` 会关闭连接；两个 CRC 中任一错误也会关闭连接。发送循环另按最近收包时间、未应答时间和 `boCheckSpeed` 检查失联。不能把这些条件简化为固定“5 秒无回复必断线”，也不能只发送无校验值的普通心跳。
+
 ## 5. 服务间通信
 
 ### 5.1 TCP 连接架构
 
 ```
-                    ┌─────────────┐
-                    │   Balance   │
-                    │  (TCP 3053) │
-                    │  (UDP 3030) │
-                    └──────┬──────┘
-                           │ 客户端连接
-                           ▼
-┌──────────┐         ┌─────────────┐         ┌──────────┐
-│  Client  │────────>│    Gate     │<────────│  Login   │
-│          │  3053   │  (TCP 3054) │  3050   │(TCP 3050)│
-└──────────┘         └──────┬──────┘         └──────────┘
-                            │
-              ┌─────────────┼─────────────┐
-              │             │             │
-              ▼             ▼             ▼
-       ┌──────────┐  ┌──────────┐  ┌──────────┐
-       │   Game   │  │    DB    │  │  Paid    │
-       │(TCP 3052)│  │(TCP 3051)│  │(配置端口)│
-       └──────────┘  └──────────┘  └──────────┘
+Client ──3053──> Balance（返回 Gate 地址后断开）
+Client ──3054──> Gate
+                 ├──3050──> Login
+                 ├──3051──> DB（选角、锁定等）
+                 ├──配置──> Paid
+                 └──3052──> Game
+                              ├──3051──> DB（角色保存、福袋等）
+                              ├──3040──> Battle
+                              └──3020──> Notice
 ```
+
+箭头表示 TCP 主动连接方向，建立后可双向收发。Gate 另通过 UDP 3030 向 Balance 上报；Balance 保留的 TCP 3000 管理监听不由本版 Gate 使用。
 
 ### 5.2 端口分配
 
@@ -712,6 +734,15 @@ Gate 定期向 Balance 的 UDP 3030 端口发送状态信息：
 
 游戏事件通过 UDP 发送到日志服务器：
 
+外层 `TComData` 为 `Size: Integer` 加正文，`Size` 仅包含正文长度，不包括自身 4 字节。文字日志正文使用 `TStringData`：1 字节 `rmsg`、2 字节小端文本长度、GBK 文本。设文本长度为 `N`，则：
+
+```text
+[正文长度 N+3 : 4字节][rmsg : 1字节][文本长度 N : 2字节][GBK文本 : N字节]
+UDP 报文总长度 = N + 7
+```
+
+长度字段均按小端读取，文本不要求尾部 NUL。依据是 `1000ydef/deftype.pas` 的 `TComData`、`TStringData`，以及 `gameserver-tgs1000/FSockets.pas` 的 `Size := cnt` 与 `SendBuffer(..., cnt + 4)`；Gate 状态上报使用独立 `TBalanceData`，不带此日志外层。
+
 | 日志类型 | 端口 | 说明 |
 |---------|:----:|------|
 | ITEM | 6001 | 物品日志 |
@@ -744,10 +775,12 @@ Login → Gate
   ▼
 Gate
   │ 比对账号和密码，发送 LG_UPDATE 更新登录信息
-  │ 随后向 Paid 发起 PM_CHECKPAID（启用计费校验时）
   ▼
 Gate → Client
   │ 返回角色列表 (加密)
+  ▼
+Gate → Paid
+  │ 发起 PM_CHECKPAID（启用计费校验且需要外部查询时）
 ```
 
 #### 游戏流程
@@ -769,18 +802,17 @@ Gate → Client
 #### 存档流程
 
 ```
-Game → Gate
-  │ 请求保存角色数据
+Game 内部 TConnector → SaveBuffer
+  │ 保存队列，rEnd 选择 DB_UPDATE / DB_UPDATE_END
   ▼
-Gate → DB (3051)
-  │ 转发存档请求
+Game 内部 FGate → DB (3051)
+  │ 通过 TGS 自身 sckDBConnect 发送保存请求
   ▼
-DB → Gate
-  │ 返回存档结果
-  ▼
-Gate → Game
-  │ 返回存档确认
+DB → Game 内部 FGate
+  │ DB_UPDATE_END 成功时释放 WaitPlayerList 中的角色
 ```
+
+`gameserver-tgs1000/FGate.pas` 的 `TfrmGate` 属于 TGS 进程。该保存路径不经过外部 `gate_biscuit`；外部 Gate 保留的 `GM_SENDUSERDATA` 转发代码是另一分支。主定时器每 10ms 检查队列，但默认 tick 下约每 100ms 只尝试发送一条，成功排队后才出队，见[保存队列处理](architecture.md#65-保存队列处理)。
 
 ### 5.5 配置文件
 
@@ -997,16 +1029,16 @@ name = data.decode('gbk').rstrip('\x00')
 
 | 索引 | 加密值 | ASCII |
 |:----:|:------:|:-----:|
-| 0 | 91 | '[' |
-| 1 | 75 | 'K' |
-| 2 | 104 | 'h' |
-| 3 | 67 | 'C' |
-| 4 | 112 | 'p' |
-| 5 | 83 | 'S' |
-| 6 | 59 | ';' |
-| 7 | 98 | 'b' |
-| 8 | 118 | 'v' |
-| 9 | 71 | 'G' |
+| 0 | 78 | 'N' |
+| 1 | 62 | '>' |
+| 2 | 84 | 'T' |
+| 3 | 83 | 'S' |
+| 4 | 86 | 'V' |
+| 5 | 85 | 'U' |
+| 6 | 74 | 'J' |
+| 7 | 108 | 'l' |
+| 8 | 119 | 'w' |
+| 9 | 100 | 'd' |
 
 **完整加密算法**：以 `Common/uCrypt.pas` 为源码标准；Python 版本只用于辅助分析和兼容性验证。
 

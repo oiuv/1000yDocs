@@ -26,6 +26,7 @@ Result := TBasicObject(FSelf).SGetName;
 procedure OnUserStart (aStr : String);
 var
    Str : String;
+   FirstQuest : Integer;
 begin
    Str := callfunc ('getfirstquest');
    FirstQuest := StrToInt (Str);
@@ -47,7 +48,7 @@ Str := 'say 等待摆擂征婚者:' + aName;
 print (Str);
 ```
 
-炎黄随包和云端神武版两版 `绣球.txt` 原文都写成 `print('等待摆擂征婚者:' + Str)`。该字符串不以已注册命令开头，不会命中 `CommandScript` 分派，因此这里只保留经当前源码校正后的写法，并把原文视为脚本缺陷。
+当前工作区炎黄 `bin/Script/绣球.txt` 已在两处普通消息前补齐 `say` 命令；云端神武归档仍保留直接把普通文本交给 `print` 的用法。`print` 的字符串必须以已注册命令开头，拼接也应先赋值到变量再调用。
 
 ## 注意事项
 1. **重要区别**：`getname` 获取的是脚本关联对象（FSelf）的名称；`getsendername` 获取的是触发事件的玩家名称

@@ -2,7 +2,7 @@
 
 > 源码: `1000ydef/deftype.pas` 第 960-1020 行
 
-定义客户端 UI 窗口类型，用于 `showwindow` 等脚本命令。
+定义客户端 UI 窗口编号，供相应客户端/服务端消息使用；这些编号不是脚本 `showwindow` 的类型参数。
 
 ---
 
@@ -74,15 +74,11 @@
 
 ## 脚本中使用
 
+`showwindow` 接收一个命令字符串，格式为 `showwindow 文件路径 类型`。`类型=0` 走帮助窗口分支，非 `0` 走交易窗口分支；不能把 `WINDOW_TRADE=18` 等常量直接当作打开窗口的脚本命令。NPC 买卖窗口另见 [tradewindow](../../print/物品交易命令/tradewindow.md)。
+
 ```pascal
-// 显示交易窗口
-print('showwindow', '18');  // WINDOW_TRADE
-
-// 显示门派信息窗口
-print('showwindow', '11');  // WINDOW_GUILDINFO
-
-// 显示绝世武功窗口
-print('showwindow', '28');  // WINDOW_BESTMAGIC
+// 当前炎黄bin/Script/龙师父.txt中的帮助文件调用
+print('showwindow .\help\龙师父.txt 1');
 ```
 
 ---

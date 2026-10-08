@@ -14,4 +14,4 @@ JobGrade := callfunc('getsenderjobgrade');
 Result := IntToStr(TBasicObject(FSender).SGetJobGrade);
 ```
 
-`TUser.SGetJobGrade` 返回 `HaveJobClass.JobGrade`。云端神武版和炎黄随包的 `龙师父.txt` 都仍调用旧名称 `getjobgrade`，这是已确认的脚本/分派器兼容缺口，不代表该名称在当前服务端有效。迁移或维护该脚本时，应把两处调用改为 `getsenderjobgrade`。参见 [getsenderjobgrade](getsenderjobgrade.md)。
+`TUser.SGetJobGrade` 返回 `HaveJobClass.JobGrade`。云端神武归档的 `龙师父.txt` 保留 `getjobgrade` 旧名称；当前工作区炎黄 `bin/Script/龙师父.txt` 已修正两处调用为 `getsenderjobgrade`。归档用法不代表当前分派器存在该接口。参见 [getsenderjobgrade](getsenderjobgrade.md)。
