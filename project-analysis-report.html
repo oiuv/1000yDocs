@@ -109,370 +109,90 @@
   </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="hero-inner">
-      <p class="eyebrow">Repository technical assessment</p>
-      <h1>千年（1000y）炎黄新章源码项目专业分析报告</h1>
-      <p class="subtitle">面向运维、协议分析、脚本维护与 Python 服务开发的项目基线。游戏规则与协议只依据 Pascal 源码、炎黄实际程序目录、炎黄资料和云端神武线上脚本；Python 状态另对照受控代码与明确标注的测试记录。</p>
-      <div class="meta">
-        <span>最近复核：2026-10-08</span>
-        <span>根仓库基线：<code>80a8aeb</code></span>
-        <span>docs 基线：<code>d852b66</code> + 本轮文档修订</span>
-      </div>
-    </div>
-  </header>
-
-  <nav aria-label="报告目录">
-    <div class="nav-inner">
-      <a href="#conclusion">结论</a>
-      <a href="#scope">证据边界</a>
-      <a href="#inventory">项目清单</a>
-      <a href="#architecture">架构与端口</a>
-      <a href="#protocol">协议与数据流</a>
-      <a href="#game">游戏与脚本</a>
-      <a href="#python">Python 服务</a>
-      <a href="#findings">问题登记</a>
-      <a href="#docs">文档成熟度</a>
-      <a href="#actions">维护建议</a>
-    </div>
-  </nav>
-
-  <main>
-    <section id="conclusion">
-      <h2>一、执行结论</h2>
-      <p class="lead">仓库包含 Delphi 7 客户端和主要服务端源码，游戏基线为<strong>炎黄新章</strong>，随包脚本已包含仓库后续修复；云端神武脚本仅作版本对照。维护范围为 <code>docs/</code> 和 <code>py1000y/</code>，Pascal 只读。本轮修正协议数据流、数据表消费语义和脚本示例，并更新 CLI 状态；历史编译记录不能替代当前运行验收。</p>
-
-      <div class="grid">
-        <div class="card"><span class="number">287</span><span class="label">根仓库受控 Pascal 单元（.pas）</span></div>
-        <div class="card"><span class="number">835</span><span class="label">bin 子模块受控文件</span></div>
-        <div class="card"><span class="number">164 / 145</span><span class="label">炎黄脚本文件 / Script.SDB 索引</span></div>
-        <div class="card"><span class="number">7 / 7</span><span class="label">2026-08-20 历史全量编译记录</span></div>
-        <div class="card"><span class="number">83 / 33</span><span class="label">受控 Python 源文件 / 测试文件</span></div>
-      </div>
-
-      <div class="callout good"><strong>可直接用于维护的成果：</strong>当前文档已覆盖服务拓扑、协议、配置、38 个主 Init 表、11 类有效 Setting 场景表、脚本接口和 96 篇炎黄玩家资料；Python Paid 是可正式部署的付费服务，UDP Logger 是可统一或独立启动的生产日志服务。</div>
-      <div class="callout high"><strong>不能忽略的程序风险：</strong>加密发送缓冲区上限、Gate 限包失效、白名单 fail-open、随机事件数组越界等均是源码级已确认问题。因项目约束不改游戏代码，必须通过内网隔离、输入限制、部署检查和监控降低风险。</div>
-    </section>
-
-    <section id="scope">
-      <h2>二、版本关系与证据边界</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>优先级</th><th>信息源</th><th>可以证明</th><th>不能证明</th></tr></thead>
-          <tbody>
-            <tr><td class="priority">1</td><td>仓库 Pascal 源码</td><td>协议结构、分派器、默认值、加载路径和实际代码分支</td><td>线上防火墙、未入库程序和运营改动</td></tr>
-            <tr><td class="priority">2</td><td><code>gameserver-tgs1000/bin/</code></td><td>炎黄随包程序、配置、数据与脚本基线，含仓库后续脚本修复</td><td>云端服务器实际部署值</td></tr>
-            <tr><td class="priority">3</td><td><a href="help/炎黄新章游戏资料/README.md">炎黄新章游戏资料</a></td><td>玩家可见玩法、物品、任务与版本说明</td><td>未在资料中描述的内部实现</td></tr>
-            <tr><td class="priority">4</td><td><a href="Script/README.md">云端千年神武奇章线上优化版脚本</a></td><td>用户真实运营的云端神武版脚本流程与接口用法</td><td>原版神武规则、炎黄当前行为、定制奖励的通用性</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>云端千年神武奇章是在原版神武核心玩法基础上的运营优化版；它与炎黄新章之间的 104 个同名差异文件，既可能来自版本演进，也可能来自云端定制。没有额外证据时，不对差异原因作单一归因。</p>
-      <div class="callout warn"><strong>判定规则：</strong>当前炎黄运行行为发生冲突时，以 Pascal 调用路径和 <code>bin</code> 实际数据共同判定；文件存在不等于被加载，字段存在不等于代码使用，云端脚本出现某奖励也不等于原版神武或炎黄拥有同一奖励。</div>
-    </section>
-
-    <section id="inventory">
-      <h2>三、项目结构与精确清单</h2>
-      <p>统计日期为 2026-10-08：Pascal、Python 和 bin 文件总数按各仓库 Git 受控清单统计；表、地图、脚本及 Markdown 按对应目录实际文件统计。bin 子模块基线为 <code>8feaad5</code>；不把缓存、运行生成物或 <code>.codegraph/</code> 算作受控源码。</p>
-
-      <h3>3.1 Delphi/Pascal 代码</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>目录</th><th>.pas</th><th>职责</th></tr></thead>
-          <tbody>
-            <tr><td><code>client/</code></td><td>149</td><td>Windows 游戏客户端、DirectX/UndelphiX 依赖及示例</td></tr>
-            <tr><td><code>gameserver-tgs1000/</code></td><td>40</td><td>游戏逻辑、地图、对象、脚本、行会及服务连接</td></tr>
-            <tr><td><code>Common/</code></td><td>31</td><td>协议、加密、数据库记录、脚本基础与通用连接器</td></tr>
-            <tr><td><code>FastNet/</code></td><td>29</td><td>旧式网络组件库</td></tr>
-            <tr><td><code>db/</code></td><td>9</td><td>角色 FDB 数据服务</td></tr>
-            <tr><td><code>1000ydef/</code></td><td>8</td><td>共享类型、工具和等级数据</td></tr>
-            <tr><td><code>loginsdb_biscuit/</code></td><td>6</td><td>SDB/本地账号登录实现</td></tr>
-            <tr><td><code>loginsql/</code></td><td>6</td><td>BDE/ODBC SQL Server 账号登录实现</td></tr>
-            <tr><td><code>gate_biscuit/</code></td><td>5</td><td>客户端接入、状态机及后端路由</td></tr>
-            <tr><td><code>balance/</code></td><td>3</td><td>客户端入口与 Gate 选择</td></tr>
-            <tr><td><code>authentication/</code></td><td>1</td><td>Authentication Writer 源码；当前 CFG 以 <code>-J</code> 生成 OBJ，不是服务 EXE 构建</td></tr>
-          </tbody>
-          <tfoot><tr><th>合计</th><th>287</th><th>不含 docs、Python、缓存与未受控临时文件</th></tr></tfoot>
-        </table>
-      </div>
-
-      <h3>3.2 炎黄 Game Server 运行资源</h3>
-      <div class="grid">
-        <div class="card"><span class="number">42</span><span class="label"><code>Init/*.sdb</code>，其中 38 个主表</span></div>
-        <div class="card"><span class="number">61 + 1</span><span class="label"><code>Smp/</code> 地图 .smp + .sma</span></div>
-        <div class="card"><span class="number">164</span><span class="label"><code>Script/*.txt</code></span></div>
-        <div class="card"><span class="number">19</span><span class="label">存在但未被 Script.SDB 索引</span></div>
-      </div>
-      <p><code>bin/</code> 还包含 <code>AdditionalAttrib</code>、<code>Event</code>、<code>Guild</code>、<code>Help</code>、<code>ITEMLOG</code>、<code>MacroData</code>、<code>NpcSetting</code>、<code>QuestNotice</code>、<code>Setting</code> 等运行目录，以及 <code>game.ini</code>、<code>sv1000.Ini</code>、<code>tgs1000.acs</code> 和实际可执行文件。</p>
-
-      <h3>3.3 文档与对照资料</h3>
-      <ul>
-        <li><strong>309</strong> 个 Markdown 页面，按配置、数据表、脚本事件、<code>callfunc</code>、<code>print</code>、运维专题和原始资料索引组织。</li>
-        <li><strong>96</strong> 篇炎黄新章原始游戏资料，保持 GBK/CP936 与 CRLF。</li>
-        <li><strong>197</strong> 个云端神武版脚本及 <code>Script.SDB</code>，同样保持原始编码与换行。</li>
-        <li>炎黄与云端版共有 164 个同名数据文件（含 <code>Script.SDB</code>）：60 个字节相同、104 个不同；云端版另有 34 个脚本，炎黄另有 <code>火炉1.txt</code>。</li>
-      </ul>
-
-      <h3>3.4 Delphi 7 历史构建记录</h3>
-      <p>以下保留 2026-08-20 的构建记录：当时使用 Delphi 7 DCC32 <code>7.0.4.453</code> 运行 <code>build_all.bat</code>，七个目标均完成强制全量编译（<code>-B</code>）。本轮未重新构建，不将旧记录表述为当前提交已通过新一轮编译：</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>目标</th><th>编译行数</th><th>结果</th></tr></thead>
-          <tbody>
-            <tr><td>Balance</td><td>7,609</td><td><span class="badge confirmed">成功</span></td></tr>
-            <tr><td>DB</td><td>14,863</td><td><span class="badge confirmed">成功</span></td></tr>
-            <tr><td>Game Server</td><td>86,630</td><td><span class="badge confirmed">成功</span></td></tr>
-            <tr><td>Gate</td><td>10,891</td><td><span class="badge confirmed">成功</span></td></tr>
-            <tr><td>SDB Login</td><td>9,927</td><td><span class="badge confirmed">成功</span></td></tr>
-            <tr><td>SQL Login</td><td>9,623</td><td><span class="badge confirmed">成功</span></td></tr>
-            <tr><td>Client</td><td>142,969</td><td><span class="badge confirmed">成功</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small">编译器仍报告原项目中的 Warning/Hint，但没有 Error/Fatal。<code>authentication/</code> 自带独立 <code>build.bat</code>，根 <code>build_all.bat</code> 当前未包含该项目，因此不计入 7/7。</p>
-      <div class="callout warn"><strong>Authentication 历史独立验证：</strong>当时缺少 <code>bin/dcu</code>，创建目录后编译 1,167 行、3 个 Hint。<code>authenticate.cfg</code> 含 <code>-J</code>，产物为 OBJ/DCU 而非 EXE；这不是第八个可部署服务，也不证明新环境已准备好输出目录。</div>
-    </section>
-
-    <section id="architecture">
-      <h2>四、服务架构、部署边界与端口</h2>
-      <pre aria-label="服务拓扑">公网玩家
-  │
-  ├─ TCP 3053 ─► Balance ── UDP 3030 心跳 ◄── Gate
-  │                   │ 返回 Gate 地址             │
-  └─ TCP 3054 ───────────────────────────────► Gate
-                                                  │
-                 ┌──────────────┬──────────────┬──┴───────────┐
-                 ▼              ▼              ▼              ▼
-             Login 3050      DB 3051       Game 3052     Paid 配置端口
-             (二选一)        (角色 FDB)       │             (内网)
-                                              ├─ Battle 3040
-                                              ├─ Notice 3020
-                                              └─ 7 路 UDP 日志目标</pre>
-
-      <div class="callout high"><strong>生产边界：</strong>只应向玩家网络开放 Balance TCP 3053 和 Gate TCP 3054。Login、DB、Game、Paid、Battle、Notice、管理端口及 UDP 日志端口必须限制在可信内网；源码中的白名单不足以替代主机防火墙。</div>
-
-      <h3>4.1 核心服务</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>服务</th><th>源码</th><th>端口/方向</th><th>确认职责</th></tr></thead>
-          <tbody>
-            <tr><td>Balance</td><td><code>balance/</code></td><td>监听 TCP 3053、UDP 3030、管理 TCP 3000</td><td>接收 Gate 状态并向客户端返回可用 Gate</td></tr>
-            <tr><td>Gate</td><td><code>gate_biscuit/</code></td><td>监听 TCP 3054；连接 3050/3051/3052/Paid</td><td>维护登录状态机，路由 Login、DB、Game 与 Paid 请求</td></tr>
-            <tr><td>Login</td><td><code>loginsdb_biscuit/</code> 或 <code>loginsql/</code></td><td>监听 TCP 3050</td><td>两种替代实现；SQL 版经 BDE/ODBC 访问 SQL Server，SDB 版使用本地记录</td></tr>
-            <tr><td>DB</td><td><code>db/</code></td><td>监听 TCP 3051；远程 1024、物品 1020</td><td>角色数据持久化和管理协议</td></tr>
-            <tr><td>Game</td><td><code>gameserver-tgs1000/</code></td><td>监听 TCP 3052；连接 DB/Battle/Notice</td><td>地图、对象、战斗、NPC、脚本与玩家状态</td></tr>
-            <tr><td>Paid</td><td><code>py1000y/paid/</code></td><td>Gate 配置决定；Python 默认 127.0.0.1:3049</td><td>正式付费状态校验服务，不保存游戏角色数据</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>4.2 外部/配套服务与离散 UDP 端口</h3>
-      <p>Battle TCP 3040 与 Notice TCP 3020 是 Game 的外部依赖；当前仓库包含协议与连接端代码，但不包含可认定为完整替代实现的 Pascal 服务端源码。UDP 日志端口不是 <code>6000–6022</code> 连续端口段，而是以下七个离散目标：</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>配置项</th><th>默认/实例端口</th><th>用途</th><th>Python 接收器</th></tr></thead>
-          <tbody>
-            <tr><td><code>UDP_PAY</code></td><td>6000</td><td>付费会话日志</td><td>已实现</td></tr>
-            <tr><td><code>UDP_ITEM</code></td><td>6001</td><td>物品流动日志</td><td>已实现</td></tr>
-            <tr><td><code>UDP_MOUSEEVENT</code></td><td>6010</td><td>鼠标事件日志</td><td>已实现</td></tr>
-            <tr><td><code>UDP_MONITER</code></td><td>6011</td><td>在线人数/监控日志</td><td>已实现</td></tr>
-            <tr><td><code>UDP_CONNECT</code></td><td>6022</td><td>连接日志</td><td>已实现</td></tr>
-            <tr><td><code>UDP_OBJECT</code></td><td>3003</td><td>对象与掉落日志</td><td>已实现</td></tr>
-            <tr><td><code>UDP_RELATION</code></td><td>3005</td><td>关系日志协议</td><td>未实现</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small">完整字段、方向、默认值差异和状态机见 <a href="help/architecture.md">系统架构</a>、<a href="help/protocol.md">通信协议</a> 与 <a href="help/sv1000.ini.md">Game Server 配置</a>。</p>
-    </section>
-
-    <section id="protocol">
-      <h2>五、协议、加密与关键数据流</h2>
-      <div class="two-col">
-        <div class="card">
-          <h3>主要封包层</h3>
-          <ul>
-            <li>多数 TCP 服务间通信使用 <code>TPacketData</code> 外层。</li>
-            <li>UDP 日志的 <code>TComData.Size</code> 为正文长度，不含外层 4 字节。字符串正文为消息号 1 字节、GBK 文本长度 2 字节及文本；报文总长为文本字节数加 7。</li>
-            <li>Gate 到 Balance 的 UDP 状态使用独立 <code>TBalanceData</code>，不能按日志包解析。</li>
-            <li>客户端/Gate 的加密路径由 <code>uCrypt.pas</code> 和封包代码共同构成，必须按具体调用链描述，不能笼统称作“AES”。</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>登录顺序</h3>
-          <ol>
-            <li>客户端向 Balance 查询 Gate。</li>
-            <li>客户端连接 Gate，进入版本与登录状态机。</li>
-            <li>Gate 向 Login 校验账号。</li>
-            <li>Gate 先发送角色列表；启用付费检查时再查询 Paid 独立记录。</li>
-            <li>角色选择和付费状态满足要求后，Gate 经 DB 读取角色并接入 Game。</li>
-          </ol>
-          <p>Paid 账号记录与 MSSQL/FDB 游戏角色数据独立；当前 Python Paid 不查询角色数据库。</p>
-        </div>
-      </div>
-
-      <h3>5.1 配置差异必须按组件处理</h3>
-      <ul>
-        <li>SQL Login 的 <code>[ODBC]</code> 使用 DSN、用户名和密码；是否能使用 Windows 身份验证取决于 DSN/驱动配置，当前项目不新增该整合。</li>
-        <li>SDB Login 与 SQL Login 是二选一登录实现，它们的远程端口和 IP 检查路径不同，不能合并成一个“通用 Login 配置”。</li>
-        <li>Gate 新建 Paid 配置时写入 5999，而读取缺省项时回退 3049；Python Paid 默认 3049。部署必须以服务器实际 <code>GATE.INI</code> 为准。</li>
-        <li><code>sv1000.ini</code> 控制 Game 到 DB、Battle、Notice 和 UDP 日志目标，不控制 Gate 到 Paid 的地址。</li>
-      </ul>
-
-      <h3>5.2 数据持久化</h3>
-      <p>DB 服务使用自定义 FDB 角色文件结构，启动路径会调用 <code>AddBlankRecord(10000)</code> 预分配空记录。Login SQL 数据库存放账号认证信息；Paid SQLite 存放独立付费模式和到期时间。三类数据职责不同，不应在文档或工具中混称为“玩家数据库”。</p>
-      <p>TGS 使用自己的 DB TCP 连接直接保存角色，不经外部 Gate。内部 <code>TfrmGate</code> 是 TGS 连接管理窗口；保存队列每 10 tick（100 ms）尝试发送一项，成功才移除。周期保存使用 <code>rEnd=1</code>（<code>DB_UPDATE_END</code>），应与普通更新分支区分。</p>
-      <h3>5.3 客户端状态校验</h3>
-      <p><code>SM_NETSTATE</code> / <code>CM_NETSTATE</code> 携带校验 ID、tick 与 CRC，应按 packed 布局应答。服务端按时间和校验条件决定是否断开；不能只称为普通保活或把客户端已发送等同服务器验证通过。见 <a href="help/client-communication.md">客户端通信</a>。</p>
-    </section>
-
-    <section id="game">
-      <h2>六、Game Server 运行模型、数据与脚本</h2>
-      <h3>6.1 执行与空间模型</h3>
-      <ul>
-        <li><code>Common/uAnsTick.pas</code> 通过多媒体定时器建立 10 ms tick；Game 的管理器在此基础上处理玩家、对象、怪物、技能和脚本更新。</li>
-        <li>地图 AOI 使用 <code>PHONE_BLOCK_SIZE = 16</code> 的空间块，并向当前块及周围八块广播邻域消息。</li>
-        <li>玩家、NPC、怪物、门和动态对象由不同类及 Setting 表创建；页面中不能把“拍卖”等未发现消费路径的数据当作已启用系统。</li>
-      </ul>
-
-      <h3>6.2 当前职业与等级</h3>
-      <p>当前炎黄数据确认的生活职业为<strong>铸造师、炼丹师、裁缝、工匠、矿工</strong>；职业等级为<strong>初级工、技能工、熟练工、达人、名人、神工</strong>。这些名称来自当前 <code>Init/JobGrade.sdb</code> 和配套资料，替换了原报告中的错误称谓。</p>
-
-      <h3>6.3 脚本加载与接口覆盖</h3>
-      <div class="grid">
-        <div class="card"><span class="number">145</span><span class="label">Script.SDB 实际索引项</span></div>
-        <div class="card"><span class="number">109</span><span class="label">当前有效 callfunc</span></div>
-        <div class="card"><span class="number">76</span><span class="label">当前有效 print</span></div>
-        <div class="card"><span class="number">29</span><span class="label">源码实际事件名</span></div>
-      </div>
-      <p><code>TScriptManager.LoadFromFile</code> 只遍历 <code>Script.SDB</code>，不会扫描脚本目录。当前 19 个未索引脚本只能作为备用实现分析，除非增加索引并验证对应对象引用，否则服务器不会默认加载。</p>
-      <p>接口文档保留 <code>getjobgrade</code> 与 <code>changequeststr</code> 两个未实现/迁移页，不计入有效接口。699 条十进制常量记录已与源码实际声明核对，数值一致；本轮另纠正动画状态与方向的解释。接口覆盖不等于示例语法与触发语义天然正确。</p>
-      <div class="callout warn"><strong>版本迁移：</strong>云端神武版的随机事件编号 4、5、活动奖励和对象配置不能复制到炎黄目录后直接使用。每次迁移必须核对接口注册、<code>Self/Sender</code>、<code>Script.SDB</code> 编号、物品/地图/对象名称以及 Help/NpcSetting 配套文件。</div>
-    </section>
-
-    <section id="python">
-      <h2>七、Python 服务与工具成熟度</h2>
-      <p><code>py1000y/</code> 是源码分析、运维和替代服务开发区，不是对整个服务端的完成重写。应按用途分别部署，不能因同处 Python 目录而默认全部复制到服务器。</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>组件</th><th>定位</th><th>状态</th><th>生产说明</th></tr></thead>
-          <tbody>
-            <tr><td><code>paid/</code></td><td>正式付费校验服务</td><td><span class="badge formal">正式服务</span></td><td>显式 <code>start</code> 才监听；SQLite 独立付费数据；查询异常 fail-closed；默认回环 3049</td></tr>
-            <tr><td><code>udp_logger/</code></td><td>六路 UDP 生产日志接收</td><td><span class="badge formal">正式服务</span></td><td><code>service.py</code> 可统一启动，独立入口保留；按天轮转、行缓冲写入；RELATION 未实现</td></tr>
-            <tr><td><code>balance/1000y_balance.py</code></td><td>Balance 替代实现</td><td><span class="badge candidate">联机候选</span></td><td>主要协议已按源码实现；当前测试集中没有 Balance 自动化用例，正式替换前需真实 Client/Gate 联机回归</td></tr>
-            <tr><td><code>gate/</code></td><td>Gate 接入代理</td><td><span class="badge tool">受控代理</span></td><td>校验 Balance 授权后转发原生 Gate，不是完整 Gate 重写；真实 IP 日志还原需对应 Logger 配置</td></tr>
-            <tr><td><code>client/</code></td><td>炎黄 CLI / MUD 客户端</td><td><span class="badge candidate">开发中</span></td><td>已有登录、寻路/跨图、聊天、物品、武功、战斗与辅助，共用会话/Action 层；尚有协议和验收边界，不是完整图形客户端</td></tr>
-            <tr><td><code>tcp_proxy.py</code>、<code>udp_proxy.py</code></td><td>转发与协议观测</td><td><span class="badge tool">分析工具</span></td><td>诊断工具，不等于完整替代服务</td></tr>
-            <tr><td><code>uCrypt.py</code>、<code>1000yCrypto.py</code></td><td>加解密与包分析</td><td><span class="badge tool">分析工具</span></td><td>用于与 Pascal 算法交叉验证</td></tr>
-            <tr><td><code>db/fdb_reader.py</code>、<code>login/login_admin_client.py</code></td><td>数据读取与远程管理</td><td><span class="badge tool">运维工具</span></td><td>涉及账号/角色数据，必须限定内网和备份后操作</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>7.1 已有自动化验证</h3>
-      <pre>python -B -m unittest discover -s py1000y/tests -p "test_*.py" -v</pre>
-      <p>33 份受控测试覆盖 Paid、UDP Logger、Gate Proxy 和 CLI 协议、终端、任务、寻路、战斗、药品及停止隔离。本轮仅核对文档，未执行测试；<a href="../py1000y/client/docs/LIVE_PLAYTEST.md">客户端已有测试记录</a>报告 571 项、Windows/Ubuntu 各跳过对应平台专项，其余通过，不能写成本轮新结果。</p>
-      <p>CLI 已有正式服记录，但掌法首次施放、默认危险低活生存、自然延迟掉落、实服卡住/绕圈触发与近期安全补丁尚未完整验收。Web 客户端是后续规划；见 <a href="../py1000y/client/docs/README.md">客户端文档目录</a>和 <a href="../py1000y/client/docs/WEB_CLIENT_PLAN.md">Web 规划</a>。</p>
-
-      <h3>7.2 运行约束</h3>
-      <ul>
-        <li>Paid 无参数只显示帮助，必须显式执行 <code>paid_server.py start</code>，避免误启动多个实例。</li>
-        <li>UDP Logger 的 SDB/CSV 文件保持打开并行缓冲写入；运行中其他编辑器能否读取取决于共享模式。句柄与缓存规模有界，不会随按年运行持续累积全部日志到内存。</li>
-        <li>运行日志、SQLite 实例、分析结果和备份文件不应新增进版本控制；现有历史数据也不应当作协议规范。</li>
-      </ul>
-    </section>
-
-    <section id="findings">
-      <h2>八、已确认问题与风险登记</h2>
-      <p>下表只登记能从当前源码、随包数据或脚本对照直接复核的问题。严重度用于运维优先级，不代表本轮获准修改游戏代码。</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>等级</th><th>问题</th><th>源码/数据证据</th><th>影响与当前处置</th></tr></thead>
-          <tbody>
-            <tr><td><span class="badge high-badge">高</span></td><td>加密发送固定缓冲区容量不足</td><td><code>Common/uPackets.pas</code> 的 8192 字节 Data 与同尺寸加密临时区；编码存在约 4/3 扩张</td><td>安全 Data 上限为 6133 字节；必须限制单包数据，详见协议文档</td></tr>
-            <tr><td><span class="badge high-badge">高</span></td><td>Gate 一秒限包逻辑实际不生效</td><td><code>gate_biscuit/uConnector.pas</code>：8 个约 10 ms 环形槽被覆盖，通常无法满足 <code>CheckTime &gt;= 1000</code></td><td>不能把源码中的检查当作有效防护；使用边界限流和监控</td></tr>
-            <tr><td><span class="badge high-badge">高</span></td><td>服务接入白名单 fail-open</td><td>DB/SQL Login 的 <code>IPList.txt</code> 缺失时允许全部；SDB Login 接收路径未调用检查器</td><td>Login、DB 必须仅监听/放行受信内网</td></tr>
-            <tr><td><span class="badge medium-badge">中</span></td><td>Gate 心跳注释/条件与实际周期不同</td><td><code>BalanceSendTick</code> 未更新，3 秒条件启动后持续为真；发送由 1 秒显示定时器驱动</td><td>容量与告警按约 1 秒实际行为设计</td></tr>
-            <tr><td><span class="badge medium-badge">中</span></td><td>随机事件数组越界</td><td>列表仅分配 0～2，加载和炎黄脚本使用 3；云端版还使用 4、5</td><td>编号 3 也不能写成安全可用；不要迁移 4、5</td></tr>
-            <tr><td><span class="badge medium-badge">中</span></td><td>矿物可用数据清零类型错误</td><td><code>TMineObjectClass.LoadFromFile</code> 对 <code>TMineObjectAvailData</code> 使用了另一结构的 <code>SizeOf</code></td><td>可能产生未初始化字段；文档按实际表头描述但标注源码缺陷</td></tr>
-            <tr><td><span class="badge confirmed">已修复</span></td><td>炎黄随包脚本旧接口/文本分派问题</td><td>当前龙师父已使用 <code>getsenderjobgrade</code>，三个 <code>say</code> 分隔和绣球正文已修复</td><td>不再列为当前故障；云端神武历史档案不改写，迁移仍须核对</td></tr>
-            <tr><td><span class="badge medium-badge">中</span></td><td>婚姻数据路径多处错误</td><td><code>Marry.SDB</code> 初始化标志、离婚日期、保存列与姓名查询均有源码问题</td><td>不要依赖该数据作唯一运营依据，操作前备份</td></tr>
-            <tr><td><span class="badge low-badge">低/休眠</span></td><td>存在未接通或未消费的功能</td><td><code>DeallerSkill.ProcessMessage</code> 被注释；BadIp 只加载；NpcFunc 无数据/消费者；BestMagicEnergy 加载被注释</td><td>文档不宣称为已启用功能，启用前需完整调用链审查</td></tr>
-            <tr><td><span class="badge low-badge">低/构建</span></td><td>Authentication 构建未纳入全量脚本</td><td>根 <code>build_all.bat</code> 不调用该项目；独立脚本不创建 CFG 要求的 <code>bin/dcu</code>；<code>-J</code> 只生成 OBJ</td><td>源码已在补齐目录后编译成功；不要把当前结果描述成可部署 EXE</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small">详细复核记录见 <a href="help/AuditReport.md">文档全面审计报告</a>、<a href="help/protocol.md">通信协议与安全边界</a>、<a href="help/architecture.md">部署边界</a>、<a href="help/Event.md">Event 运行数据</a>。</p>
-    </section>
-
-    <section id="docs">
-      <h2>九、文档完整性与成熟度判断</h2>
-      <div class="two-col">
-        <div class="card">
-          <h3>已达到可维护基线</h3>
-          <ul class="checklist">
-            <li>架构、端口、配置优先级、协议外层与加密边界。</li>
-            <li>38 个当前主 Init 表和 11 类有效 Setting 场景表。</li>
-            <li>109 个 callfunc、76 个 print、29 个事件及 699 条常量记录。</li>
-            <li>Script.SDB 加载边界、未索引脚本清单与版本迁移规则。</li>
-            <li>96 篇炎黄原始资料完整进入索引。</li>
-            <li>Paid、UDP Logger 的生产边界及 CLI 协议、配置、操作与验收记录。</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>仍需持续验证</h3>
-          <ul class="checklist">
-            <li>真实 Client/Gate/Python Balance 端到端联机兼容。</li>
-            <li>外部 Battle、Notice、补丁服务的完整服务端实现与部署配置。</li>
-            <li>运行中所有分支的动态覆盖；静态源码审查不能证明每条路径已在生产触发。</li>
-            <li>炎黄基线与云端神武定制差异的逐项业务归因。</li>
-            <li>CLI 掌法首次施放、危险低活保护与近期安全补丁的实服验收。</li>
-            <li>编译成功不等于所有运行分支已覆盖；仍需真实客户端登录、服务互联和脚本触发测试。</li>
-          </ul>
-        </div>
-      </div>
-      <p>因此，文档可以作为当前维护和运维开发入口，但不能宣称“所有程序功能均已实机验证”或“云端脚本代表原版神武”。专题页仍是字段和操作细节的规范来源，本 HTML 是跨模块总览。</p>
-    </section>
-
-    <section id="actions">
-      <h2>十、维护与部署建议</h2>
-      <ol class="checklist">
-        <li><strong>保护证据层：</strong>本轮 Pascal、炎黄 <code>bin</code>、原始资料和云端神武档案只读；获授权的脚本维护须保留来源、编码与版本边界。</li>
-        <li><strong>先验证配置：</strong>上线前逐个核对 Gate Paid 端口、Game UDP 目标、Login 实现、ODBC DSN 与防火墙，不依赖缺省值猜测。</li>
-        <li><strong>控制网络边界：</strong>公网只开放 3053/3054；其他 TCP、UDP 和管理端口按主机白名单限制。</li>
-        <li><strong>保持服务独立：</strong>服务器只部署需要的 Python 组件。Paid 与 UDP Logger 可独立使用；UDP Logger 也可按通道选择。</li>
-        <li><strong>分层测试：</strong>先运行 Python 单元测试，再做真实报文回放、Gate/TGS 联机、跨日轮转和异常数据库测试。</li>
-        <li><strong>区分历史验证：</strong>保留 2026-08-20 的 7/7 构建和 Authentication OBJ 记录；日常维护不重建 Delphi，复测先取得所有者授权。</li>
-        <li><strong>变更前备份：</strong>GBK/CP936 的 SDB/TXT 保持编码和 CRLF；脚本启用同时检查 <code>Script.SDB</code>、对象引用和配套资源。</li>
-        <li><strong>风险不隐去：</strong>只要游戏源码约束仍为“不修改”，就在运维文档和部署检查中持续保留上述缺陷及缓解措施。</li>
-      </ol>
-
-      <h3>推荐阅读顺序</h3>
-      <p><a href="help/README.md">技术资料总入口</a> → <a href="help/architecture.md">系统架构</a> → <a href="help/protocol.md">通信协议</a> → <a href="help/sv1000.ini.md">Game Server 配置</a> → <a href="help/Script.md">脚本系统</a> → <a href="help/AuditReport.md">审计报告</a>。</p>
-    </section>
-
-    <section id="evidence">
-      <h2>附录：关键证据路径与统计口径</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>主题</th><th>关键路径</th></tr></thead>
-          <tbody>
-            <tr><td>封包与加密</td><td><code>Common/uPackets.pas</code>、<code>Common/uCrypt.pas</code>、<code>1000ydef/deftype.pas</code></td></tr>
-            <tr><td>Gate 状态/限包/心跳</td><td><code>gate_biscuit/uConnector.pas</code>、<code>gate_biscuit/FMain.pas</code></td></tr>
-            <tr><td>Game 启动与配置</td><td><code>gameserver-tgs1000/SVMain.pas</code>、<code>gameserver-tgs1000/bin/</code></td></tr>
-            <tr><td>AOI</td><td><code>gameserver-tgs1000/fieldmsg.pas</code></td></tr>
-            <tr><td>脚本分派/加载</td><td><code>gameserver-tgs1000/uScriptManager.pas</code>、<code>gameserver-tgs1000/ScriptCls.pas</code></td></tr>
-            <tr><td>账号与白名单</td><td><code>loginsql/</code>、<code>loginsdb_biscuit/</code>、<code>db/uIpChecker.pas</code></td></tr>
-            <tr><td>炎黄当前脚本</td><td><code>gameserver-tgs1000/bin/Script/</code>、<code>Script.SDB</code></td></tr>
-            <tr><td>云端神武优化版</td><td><code>docs/Script/</code>（仅作该运营版本对照）</td></tr>
-            <tr><td>Python 正式服务</td><td><code>py1000y/paid/</code>、<code>py1000y/udp_logger/</code>、<code>py1000y/tests/</code></td></tr>
-            <tr><td>全量构建</td><td><code>build_all.bat</code> 及各项目 <code>build.bat</code>；Delphi 7 DCC32 7.0.4.453 实测 7/7，Authentication 另行验证 OBJ 构建</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small">数量随提交变化。Pascal、Python 与 bin 总数来自受控清单；表、地图、脚本和 Markdown 来自相应目录。基线为根仓库 <code>80a8aeb</code>、docs <code>d852b66</code>、bin <code>8feaad5</code>，加本轮文档修订；历史编译与客户端测试单独标注来源，本轮不宣称新运行验收。</p>
-    </section>
-  </main>
-
-  <footer>千年炎黄新章项目技术分析基线 · 2026-10-08 · 只读分析游戏代码，维护 docs 与 py1000y</footer>
+<header class="hero">
+<div class="hero-inner">
+  <h1>炎黄新章项目分析报告</h1>
+  <p class="subtitle">官方游戏源码、服务架构、协议、运行配置与资料维护</p>
+  <div class="meta">标准：当前 Pascal 源码 · 随包配置与脚本 · 炎黄新章游戏资料</div>
+</div>
+</header>
+<nav>
+<div class="nav-inner">
+  <a href="#summary">概览</a>
+  <a href="#sources">资料边界</a>
+  <a href="#architecture">服务架构</a>
+  <a href="#protocol">协议与数据</a>
+  <a href="#operations">运行注意事项</a>
+  <a href="#documentation">文档导航</a>
+</div>
+</nav>
+<main>
+<section id="summary">
+  <h2>项目概览</h2>
+  <p>项目为炎黄新章的 Delphi 7 客户端与分布式服务端源码。客户端经 Balance 获取 Gateway，再由 Gateway 接入登录、付费校验、角色数据库与游戏服务。本文说明官方源码能够证实的行为，不把运营版本定制或未提供实现的外部服务当作通用游戏规则。</p>
+  <div class="callout">编译成功、页面齐全和文件存在分别只证明构建、索引及资料存在；它们不等于全部加载分支正确，也不等于完整实机验收。</div>
+</section>
+<section id="sources">
+  <h2>标准资料与版本边界</h2>
+  <table><thead><tr><th>资料</th><th>用途与限制</th></tr></thead><tbody>
+    <tr><td>当前 Pascal 源码</td><td>消息结构、函数分派、加载路径、计算和状态机的首要依据；声明必须与调用点共同检查。</td></tr>
+    <tr><td><code>gameserver-tgs1000/bin</code></td><td>程序真实配置、Init 数据表、Setting 场景表、脚本和索引；不能仅凭文件名认定加载或生效。</td></tr>
+    <tr><td><code>help/炎黄新章游戏资料</code></td><td>原始玩家资料，辅助核对界面术语与玩家可见规则，不覆盖当前实现。</td></tr>
+    <tr><td><code>Script/</code></td><td>经授权提供的云端千年神武奇章运营优化脚本，仅作接口与迁移参考。核心玩法沿用神武，但运营奖励和优化不能视为未修改炎黄版规则。</td></tr>
+  </tbody></table>
+  <p>本子模块为公开通用文档，主仓库并非公开源码仓库。已有服务端源码副本是有意提供的独立参考，应保持与对应源码一致；其存在不授权公开其他私有实现或内部运营资料。</p>
+</section>
+<section id="architecture">
+  <h2>服务模块与连接方向</h2>
+  <pre>Client → Balance → Gateway → Login / DB / Game / Paid
+                    ↑
+             Gate 状态 → Balance（UDP）</pre>
+  <table><thead><tr><th>组件</th><th>常用入口</th><th>职责</th></tr></thead><tbody>
+    <tr><td>Balance</td><td>TCP 3053；接收 UDP 3030</td><td>按可用 Gateway 连接数返回地址。TCP 3000 管理监听不证明当前 Gateway 使用该路径。</td></tr>
+    <tr><td>Gateway</td><td>TCP 3054</td><td>版本校验、登录阶段、后端连接及游戏消息转发；不是游戏逻辑主机。</td></tr>
+    <tr><td>Login</td><td>TCP 3050</td><td>SDB 与 SQL 两种账号后端；配置、依赖和接入检查必须按所选实现核对。</td></tr>
+    <tr><td>DB</td><td>TCP 3051</td><td>角色数据持久化；管理与物品接口同样应保持私有。</td></tr>
+    <tr><td>Game / TGS</td><td>TCP 3052</td><td>地图、实体、战斗、物品、脚本及角色状态；向 DB 发送角色保存。</td></tr>
+    <tr><td>付费后端</td><td>以 Gate 配置为准</td><td>启用计费时校验付费状态。源码配置存在 3049、5999 两种缺省值，不可混用。</td></tr>
+  </tbody></table>
+  <p>角色列表在付费查询之前返回；启用付费校验时，付费确认后才能完成角色接入。TGS 内部 <code>TfrmGate</code> 是游戏服务内部组件，不等于外部 Gateway；角色保存走 TGS 的 DB 连接。</p>
+  <h3>日志与外部服务</h3>
+  <p>UDP 日志端口包括 ITEM 6001、MOUSEEVENT 6010、MONITER 6011、CONNECT 6022、PAY 6000、OBJECT 3003、RELATION 3005，实际目标地址以 <code>sv1000.ini</code> 为准。Battle、Notice 仅说明已提供的连接配置和调用接口，不推断未提供实现的内部行为。</p>
+</section>
+<section id="protocol">
+  <h2>通信、状态与数据加载</h2>
+  <ul>
+    <li>整数按 Delphi packed record 的小端布局解析，固定字符串保留字段宽度、零填充与 GBK/CP936。</li>
+    <li>客户端 TCP 使用自定义加密及帧边界，不是 TLS；收发必须处理拆包和粘包。连接版本取启用的 <code>PROGRAM_VERSION</code>，当前共享源码为 40，其他部署仍须核对实际 Gate。</li>
+    <li>客户端与 Gate、以及 Gate 的 Login/DB/Paid 后端路径须按各自封包实现核对；Gate 与 Game 的路径不能机械套用客户端加密层。</li>
+    <li>移动具有客户端预测与服务端校正；本地位置不等于每一步均有服务端确认。客户端状态校验应依据 <code>SM_NETSTATE</code>、<code>CM_NETSTATE</code> 的实际结构和 CRC。</li>
+    <li>保存队列每 10 个 tick（100ms）尝试发送一项，成功后移除；周期保存 <code>rEnd=1</code> 对应 <code>DB_UPDATE_END</code>。</li>
+    <li>Init、Setting、脚本索引和 help 窗口分别有加载入口；脚本语法、事件上下文及返回值须按解释器和分派器判断。</li>
+  </ul>
+  <p>数据表字段名不能替代实际计算：武功耗能、物品条件、附加属性、制造和地图连接均须同时核对加载器及消费点。目录中的备份、未索引脚本或注释掉的加载代码不应写成可用功能。</p>
+</section>
+<section id="operations">
+  <h2>安全与维护注意事项</h2>
+  <ul>
+    <li>公网仅开放 Balance 与 Gateway；Login、DB、Game、付费后端、管理接口和 UDP 接收端必须限制来源。</li>
+    <li>SDB Login 不调用 IP 检查器，DB/SQL Login 缺少 <code>IPList.txt</code> 时放行全部来源；不能用配置文件代替网络隔离。</li>
+    <li>Gate 心跳计时未更新、限包环形槽覆盖过快，不能将现行实现描述成严格三秒心跳或可靠一秒限包。</li>
+    <li>加密发送临时缓冲区限制、随机事件编号越界、婚姻记录、名单加载路径及矿物结构清零等已确认风险见源码校核页；说明风险不代表修复程序。</li>
+    <li>原始 SDB/TXT、脚本与 Delphi 源文件保留 GBK/CP936 和 CRLF。Markdown/HTML 使用 UTF-8，不改写作为证据保留的原始资料。</li>
+    <li>公开资料不包含凭据、玩家记录、运行日志、数据库和未经授权新增的源码；示例使用脱敏地址和账号。</li>
+  </ul>
+</section>
+<section id="documentation">
+  <h2>公开文档导航</h2>
+  <ul>
+    <li><a href="help/README.md">资料总目录</a>：配置、数据表、脚本接口与玩家资料入口。</li>
+    <li><a href="help/architecture.md">服务架构</a>与<a href="help/client-communication.md">客户端通信</a>：连接方向和登录过程。</li>
+    <li><a href="help/protocol.md">通信协议</a>与<a href="help/TERMINOLOGY.md">术语表</a>：结构、常量及官方中文名称。</li>
+    <li><a href="help/AuditReport.md">源码校核与运行注意事项</a>：已确认的实现缺陷及维护要求。</li>
+    <li><a href="help/build.md">构建说明</a>：Windows 编译入口、产物和日志边界。</li>
+  </ul>
+  <p>功能说明只保留当前已核实的事实、使用规范与限制；发现资料与实现冲突时修正说明，不追加开发讨论、旧方案或测试流水账。</p>
+</section>
+</main>
 </body>
 </html>

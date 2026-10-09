@@ -1073,13 +1073,8 @@ Data:
 - [客户端连接与通信](client-communication.md) — 按客户端源码说明入口配置、重定向、登录和收发调用链
 - [消息类型常量](constants/MESSAGES.md) — 完整的 SM_*/CM_*/FM_* 常量列表
 - [数据结构定义](deftype.pas) — deftype.pas 的详细文档
-- [Balance 服务](../../py1000y/balance/README.md) — 负载均衡服务说明
-- [Gate 服务](../../py1000y/gate/README.md) — 网关服务说明
-- [Python CLI 客户端](../../py1000y/client/README.md) — 炎黄协议联调入口与当前实现范围
 
 ---
 
-**文档版本**: 1.0  
-**最后更新**: 2026-02  
 **源码版本**: 1000y Delphi 7  
-**协议版本**: 仓库源码及当前线上炎黄部署均为 40
+**协议版本**: 当前共享源码 `PROGRAM_VERSION=40`；部署须核对目标 Gate 实际版本

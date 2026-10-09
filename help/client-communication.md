@@ -45,7 +45,7 @@ Client                  Balance :3053                 Gate :3054
 1. 登录窗口首次激活时，`FormActivate` 根据 `addr.txt` 设置 `sckConnect.Address/Port` 并连接 Balance。
 2. Balance 在连接可写时选择当前连接数最少的可用 Gate，将 `TSConnectThru` 封装为加密包返回；客户端不需要先发送请求。
 3. `FLogOn.MessageProcess` 收到 `SM_CONNECTTHRU` 后保存 Gate IP 和端口、关闭 Balance 连接，再由 `TimerReConnect` 使用同一个 `TClientSocket` 连接 Gate。
-4. Gate 连接成功后，客户端立即发送 `TCVer`：`rmsg=CM_VERSION`、`rVer=PROGRAM_VERSION`、`rNation=NATION_VERSION`。仓库 `deftype.pas` 当前启用值为 40；用户确认当前线上炎黄 Gate 已更新为 40。联调必须使用目标 Gate 的构建版本，不能仅凭仓库常量推断其他部署的值。
+4. Gate 连接成功后，客户端立即发送 `TCVer`：`rmsg=CM_VERSION`、`rVer=PROGRAM_VERSION`、`rNation=NATION_VERSION`。仓库 `deftype.pas` 当前启用值为 40。联调必须使用目标 Gate 的构建版本，不能仅凭仓库常量推断其他部署的值。
 5. Gate 要求新连接的第一条应用消息是 `CM_VERSION`。版本或区域不符时返回 `SM_CLOSE(rkey=1)`；通过后设置登录窗口状态并返回 `SM_MESSAGE` 连接提示。
 
 ## 4. 登录、选角和进入游戏
@@ -103,5 +103,3 @@ CM_* 业务结构
 - **中文乱码**：协议字符串和旧客户端文本按 CP936/GBK 处理，并保留定长字段的 NUL 填充。
 
 进一步的字段布局、加密算法和消息编号参见[网络协议与封包结构](protocol.md)、[系统架构与登录链路](architecture.md)和[消息常量索引](constants/MESSAGES.md)。
-
-仓库还提供了[炎黄新章 Python CLI 客户端](../../py1000y/client/README.md)，可用于无界面协议联调。它不内置服务器地址，线上炎黄默认版本为 40，并允许用 `--version` 显式覆盖。
