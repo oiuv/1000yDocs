@@ -1,48 +1,31 @@
 # getsendermagiccountbyskill
 
-## 功能描述
-按技能类型获取玩家已学会的武功数量。
+检查触发玩家是否具有符合武功类型和熟练度条件的武功。名字中虽含 `count`，实际返回字符串 `'true'` 或 `'false'`，不返回数量。
 
-## 语法格式
+## 语法与参数
+
 ```pascal
-Str := callfunc('getsendermagiccountbyskill 技能类型 参数2');
+Str := callfunc('getsendermagiccountbyskill 武功类型 熟练度阈值');
 ```
 
-## 参数说明
-- **技能类型**：Integer - 武功的技能类型编号
-- **参数2**：Integer - 附加参数
+- 第一个参数为 `aMagicType`。非负值按 `rMagicType` 匹配；负值遍历类型 0–4。
+- 第二个参数为 `aSkillLevel`，与 `rcSkillLevel` 比较；满足 `rcSkillLevel >= aSkillLevel` 即通过。
+- 查询遍历 `DefaultMagic` 和 `HaveMagicArr`，不是全部武功分类数组的总统计。
 
-## 返回值
-- **整数（字符串）**：对应技能类型的武功数量
+玩家包装直接将 `HaveMagicClass.FindMagicByTypeAndSkill` 的布尔结果转成 `'true'/'false'`。
 
-## 源码实现
+## 示例
+
 ```pascal
-// uScriptManager.pas 第611行
-end else if cmd = 'getsendermagiccountbyskill' then begin
-   Result := TBasicObject (FSender).SGetMagicCountBySkill (_StrToInt (Params [0]), _StrToInt (Params [1]));
-```
-
-调用 `TBasicObject.SGetMagicCountBySkill`，按技能类型统计玩家已学会的武功数量。
-
-## 使用示例
-
-### 查询武功数量
-```pascal
-// 获取指定技能类型的武功数量
-Str := callfunc ('getsendermagiccountbyskill 1 0');
-nCount := StrToInt (Str);
-if nCount > 0 then begin
-    print ('say 你已学会了相关武功');
+// 检查拳类基本/普通武功是否达到熟练度 9999
+Str := callfunc('getsendermagiccountbyskill 0 9999');
+if Str = 'true' then begin
+    print('say 已满足武功熟练度条件');
 end;
 ```
 
-## 注意事项
+不要对返回值调用 `StrToInt`。本函数也不能回答“学会了几种武功”。
 
-1. **返回值格式**：返回字符串类型的整数，需要 `StrToInt` 转换
-2. **脚本中未发现使用**：在现有脚本目录中未找到此函数的实际使用示例
-3. **两个参数**：需要传入技能类型和附加参数
+源码依据：[UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `SGetMagicCountBySkill`、[uUserSub.pas](../../help/TGS核心源码/uUserSub.pas) 的 `THaveMagicClass.FindMagicByTypeAndSkill`。
 
-## 相关函数
-- `getsendermagicskilllevel` - 获取武功技能等级
-- `checksendercurusemagic` - 检查当前使用的武功
-- `checkmagic` - 检查武功修炼条件
+相关接口：[getsendermagicskilllevel](getsendermagicskilllevel.md)、[checksendercurusemagic](checksendercurusemagic.md)。

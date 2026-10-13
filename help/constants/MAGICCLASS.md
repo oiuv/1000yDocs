@@ -1,6 +1,6 @@
 # 武功分类常量 (MAGICCLASS_*)
 
-> 源码: `1000ydef/deftype.pas` 第 293-300 行
+> 源码: [deftype.pas](../deftype.pas) 第 316-319 行（`MAGICCLASS_*`）
 
 定义武功的大分类，对应 `Init_magic.sdb` 中的武功级别分类。
 

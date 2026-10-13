@@ -1,7 +1,7 @@
 # getzhuangfight
 
 ## 功能描述
-获取触发者（玩家）所在门派的山庄领土瓜分战斗状态。仅门派掌门（Sysop）可以使用。
+尝试为触发玩家所在门派申请山庄领土瓜分。当前代码把门派名传给本应比较角色名的 `IsGuildSysop`，不能按正常的“仅当前掌门可申请”权限规则解释。
 
 ## 语法格式
 ```pascal
@@ -13,7 +13,7 @@ Str := callfunc('getzhuangfight');
 
 ## 返回值
 - **无门派**：返回 '-1'（玩家没有门派）
-- **非掌门**：返回 '-1'（玩家不是门派掌门）
+- **门派对象不存在，或门派名不等于该门派掌门角色名**：返回 '-1'
 - **无资格**：返回 '8'（门派不够资格）
 - **已占领**：返回 '7'（该门派已执掌此领地）
 - **其他**：返回 `Zhuang.AskConquer` 的结果值
@@ -33,6 +33,8 @@ begin
     result := IntToStr(Zhuang.AskConquer(GuildName));
 end;
 ```
+
+`TGuildObject.IsGuildSysop(aName)` 实际比较 `SelfData.Sysop = aName`。这里传入的是 `GuildName` 而非触发玩家 `Name`：即使玩家是掌门，只要两种名称不同仍会拒绝；名称恰好相同也不能证明调用者就是掌门。依据：[UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `SGetAskConquer`、[uGuild.pas](../../help/TGS核心源码/uGuild.pas) 的 `IsGuildSysop`。
 
 在 `uScriptManager.pas` 的 `CallFunction` 中调用：
 ```pascal
@@ -76,7 +78,7 @@ end;
 1. **返回值类型**：返回字符串格式的数字
 2. **权限检查**：
    - 玩家必须有门派（`GuildName` 不为空）
-   - 玩家必须是门派掌门（`IsGuildSysop` 返回 true）
+   - 当前实现要求 `SelfData.Sysop = GuildName`，不是核验触发玩家身份；不能依赖本接口实现正确的掌门权限控制
    - 不满足条件返回 '-1'
 3. **无参数**：该函数不需要任何参数
 4. **FSender 上下文**：操作的是触发者（玩家）

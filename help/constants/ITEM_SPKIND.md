@@ -1,6 +1,6 @@
 # 物品特殊类型常量 (ITEM_SPKIND_*)
 
-> 源码: `1000ydef/deftype.pas` 第 195-210 行
+> 源码: [deftype.pas](../deftype.pas) 第 193-204 行（`ITEM_SPKIND_*`）
 
 定义物品的特殊分类，对应 `Init_Item.sdb` 中的 `spkind` 字段。
 

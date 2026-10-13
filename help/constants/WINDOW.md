@@ -1,6 +1,6 @@
 # 窗口类型常量 (WINDOW_*)
 
-> 源码: `1000ydef/deftype.pas` 第 960-1020 行
+> 源码: [deftype.pas](../deftype.pas) 第 957-1011 行（`WINDOW_*`）
 
 定义客户端 UI 窗口编号，供相应客户端/服务端消息使用；这些编号不是脚本 `showwindow` 的类型参数。
 

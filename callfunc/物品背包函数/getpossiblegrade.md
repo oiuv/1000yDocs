@@ -1,17 +1,18 @@
 # getpossiblegrade
 
 ## 功能描述
-检查玩家是否满足武功升级的条件（是否有满级的指定等级武功）。
+检查触发玩家指定绝世武功分组中，是否有熟练度 `rcSkillLevel = 9999` 且 `rGrade` 等于参数值的武功。只检查这一项条件，不保证所有升级条件均满足。
 
 ## 语法格式
 ```pascal
-Str := callfunc('getpossiblegrade 参数1 参数2');
+Str := callfunc('getpossiblegrade 分组 当前品级');
 ```
 
 ## 参数说明
-- **参数1**：Integer - 武功类型/分组
-  - 0：普通武功类型
-- **参数2**：Integer - 目标等级
+- **参数1**：传给 Byte 类型的 `aType`，只应使用下列分组
+  - 0：`HaveBestProtectMagicArr`，绝世护体武功
+  - 1：`HaveBestAttackMagicArr`，绝世攻击武功
+- **参数2**：传给 Byte 类型的 `aGrade`，匹配已有武功的当前 `rGrade`，不是升级后的目标品级
   - 0：检查是否有满1级的神功（2级任务）
   - 1：检查是否有满2级的神功（3级任务）
 
@@ -21,12 +22,12 @@ Str := callfunc('getpossiblegrade 参数1 参数2');
 
 ## 源码实现
 ```pascal
-// uScriptManager.pas 第589行
+// uScriptManager.pas 的 CallFunction
 end else if cmd = 'getpossiblegrade' then begin
    Result := TBasicObject (FSender).SGetPossibleGrade(_StrToInt(Params[0]),_StrToInt(Params[1]));
 ```
 
-调用 `TBasicObject.SGetPossibleGrade`，检查玩家是否有满足条件的满级武功。
+调用 `TBasicObject.SGetPossibleGrade`，玩家实现委托给 `THaveMagicClass.GetPossibleGrade`。只检查对应分组内名称非空、熟练度为 9999 且品级相等的条目；其它分组返回 false。依据：[UUser.pas](../../help/TGS核心源码/UUser.pas)、[uUserSub.pas](../../help/TGS核心源码/uUserSub.pas)。
 
 ## 使用示例
 
@@ -91,7 +92,7 @@ print ('putsendermagicitem 侠客任务卷轴:1 @老侠客 4');
 ## 注意事项
 
 1. **返回值格式**：返回字符串 'true' 或 'false'
-2. **参数含义**：第一个参数为武功类型，第二个参数为目标等级
+2. **参数含义**：第一个参数为绝世武功分组，第二个参数为已有武功的当前品级；示例中的 `0 0`、`0 1` 均检查护体分组
 3. **任务前置条件**：用于检查玩家是否满足升级任务的前置武功等级要求
 4. **配合使用**：通常与 `gethavegradequestitem`、`checkenoughspace`、`getsenderitemexistence` 配合使用
 

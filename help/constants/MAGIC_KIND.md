@@ -1,6 +1,6 @@
 # 武功门派常量 (MAGIC_KIND_*)
 
-> 源码: `1000ydef/deftype.pas` 第 362-370 行
+> 源码: [deftype.pas](../deftype.pas) 第 360-365 行（`MAGIC_KIND_*`）
 
 定义武功所属门派，用于绝世武功的门派限制和说明。
 

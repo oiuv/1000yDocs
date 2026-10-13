@@ -29,7 +29,7 @@ CMD_ATTACK:
    end;
 ```
 
-优先级为 `wsp_giga`（最高级别），参数为目标 ServerID。
+优先级为 `wsp_giga`，参数为目标 ServerID。它不是最高级别：`TWorkSetPriority` 按 `wsp_byte`、`wsp_kilo`、`wsp_mega`、`wsp_giga`、`wsp_tera` 递增，见 [uWorkBox.pas](../../help/TGS核心源码/uWorkBox.pas)。
 
 ## 使用示例
 
@@ -58,7 +58,7 @@ end;
 
 1. **作用于NPC**：命令使 aSelf（NPC）发起攻击，不是玩家攻击
 2. **目标ID**：参数为目标对象的 ServerID，可通过 `getsenderserverid` 获取玩家的 ServerID
-3. **最高优先级**：攻击命令的优先级为 `wsp_giga`，会优先于其他队列中的动作执行
+3. **队列优先级**：攻击命令为 `wsp_giga`，不能抢在更高的 `wsp_tera` 任务之前；推入队列不等于立即执行
 4. **无脚本实例**：当前 bin/Script/ 目录下未找到此命令的实际使用脚本
 
 ## 相关命令

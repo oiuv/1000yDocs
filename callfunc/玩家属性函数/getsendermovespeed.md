@@ -18,7 +18,9 @@ Str := callfunc('getsendermovespeed');
 Result := IntToStr(TBasicObject(FSender).SGetMoveSpeed);
 ```
 
-当前源码只有 `TBasicObject` 实现并固定返回 0，未找到 `TUser` 覆盖。
+`TBasicObject.SGetMoveSpeed` 固定返回 0，当前 `TUser` 没有覆盖，所以 `FSender` 为普通玩家对象时返回 `'0'`。`TMonster` 另有覆盖，返回 `pSelfData.rWalkSpeed`；若事件发送者是怪物，应按其实际类型解释结果，不能把本接口当作玩家实际移动速度查询。
+
+源码依据：[BasicObj.pas](../../help/TGS核心源码/BasicObj.pas)、[uMonster.pas](../../help/TGS核心源码/uMonster.pas)。
 
 ## 注意事项
 

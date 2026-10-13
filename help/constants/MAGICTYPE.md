@@ -1,6 +1,6 @@
 # 武功类型常量 (MAGICTYPE_*)
 
-> 源码: `1000ydef/deftype.pas` 第 310-360 行
+> 源码: [deftype.pas](../deftype.pas) 第 329-355 行（`MAGICTYPE_*`）
 
 定义武功的武器/招式类型，对应 `Init_magic.sdb` 中的 `type` 字段。
 

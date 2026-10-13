@@ -1,6 +1,6 @@
 # 职业系统常量
 
-> 源码: `1000ydef/deftype.pas` 第 259-283 行
+> 源码: [deftype.pas](../deftype.pas) 第 272-297 行（`JOB_KIND_*`、`JOB_GRADE_*`）
 
 ---
 

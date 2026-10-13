@@ -1,65 +1,47 @@
 # checkitemregen
 
-## 功能描述
-在地图指定坐标处生成（重生）物品。通常用于定时器脚本中，定时在固定位置刷新物品供玩家拾取。
+按地图内同名地面物品对象的现有数量，尝试在指定区域补充物品。不是每次固定新增指定数量，也不保证恰好补足到参数值。
 
-## 语法格式
+## 语法与参数
+
 ```pascal
-print('checkitemregen 物品名 地图X 地图Y 范围 数量');
+print('checkitemregen 物品名 X Y 范围 数量上界');
 ```
 
-## 参数说明
-- **物品名**：String - 要生成的物品名称
-- **地图X**：Integer - 地图上的 X 坐标
-- **地图Y**：Integer - 地图上的 Y 坐标
-- **范围**：Integer - 物品生成的扩散范围（以坐标为中心的方形区域）
-- **数量**：Integer - 生成的物品数量
+- `X/Y`：地图坐标中心。
+- `范围 aW`：生成坐标使用 `X-aW+Random(aW*2)`、`Y-aW+Random(aW*2)`；正范围时是每轴从中心减 aW 到中心加 aW 减 1。
+- `数量上界 aCount`：循环上界，不是固定新增数。脚本应提供有效物品名、正范围及非负数量，并核对坐标。
 
-## 源码实现
-基于 `uScriptManager.pas` 第213-215行（注意：此命令在 `CommandScript` 之前的 `ScriptCommand` 过程中处理）：
+## 实现与边界
 
-```pascal
-if Cmd = 'checkitemregen' then begin
-   FManager.CheckItemRegen (Params [0], _StrToInt (Params [1]), _StrToInt (Params [2]), _StrToInt (Params [3]), _StrToInt (Params [4]));
-end;
-```
+命令由 `TScriptManager.CallEvent(aManager, ...)` 重载在 `CommandScript` 分派前处理，经 `TManager.CheckItemRegen` 调用 `TItemList.AddItemSpecial`。
 
-基于 `uManager.pas` 第378-381行的实现：
+`AddItemSpecial` 先遍历当前地图的 `ItemList.DataList`，按 `BasicData.Name` 统计同名物品**对象数** `nCount`，不是堆叠数量，也不只统计给定生成区域，然后执行：
 
 ```pascal
-procedure TManager.CheckItemRegen (aName : String; aX, aY, aW, aCount : Integer);
+for i := nCount to aCount do
 begin
-   TItemList (ItemList).AddItemSpecial (aName, ax, ay, aw, aCount);
+   x := aX - aW + Random(aW * 2);
+   y := aY - aW + Random(aW * 2);
+   AddItemObject(SubData, 0, 0, x, y);
 end;
 ```
 
-**实现细节：**
-- 参数顺序：`物品名`、`X坐标`、`Y坐标`、`范围(W)`、`数量`
-- 调用 `TItemList.AddItemSpecial` 在指定坐标范围内生成物品
-- 此命令在 `ScriptCommand`（非 `CommandScript`）中处理，说明它是由地图管理器（`FManager`）执行而非由 NPC 对象执行
-- `aW` 参数控制物品在坐标周围的分布范围
+Pascal 的 `to` 包含上界。因此当 `nCount <= aCount` 时，尝试新增 `aCount - nCount + 1` 个对象；已超过上界时不进入循环。不能改述为严格补足到 `aCount`。
 
-## 使用示例
+实际生成仍受 `AddItemObject` 的容量检查等条件影响：其检查为 `DataList.Count > 3000` 时直接返回，不能把循环次数当作成功生成数。
 
-### 定时刷新怪物掉落物
-基于 `狐狸洞.txt` 中的使用：
+## 示例
 
 ```pascal
-procedure OnTimer (aStr : String);
+procedure OnTimer(aStr: String);
 begin
-  // 在地图坐标(100,84)处，范围10格内，生成10个生肉
-  print ('checkitemregen 生肉 100 84 10 60');
+    // 范围参数为 10，数量上界为 60
+    // 当前同名对象为 0 时尝试新增 61 个；为 60 时仍尝试新增 1 个
+    print('checkitemregen 生肉 100 84 10 60');
 end;
 ```
 
-## 注意事项
+这是地图管理器事件中的命令，不应假定普通对象事件的另一 `CallEvent` 重载也会处理它。
 
-1. **执行上下文**：此命令由地图管理器执行，不是由 NPC 对象执行，因此参数中的坐标是地图绝对坐标
-2. **定时器使用**：通常在 `OnTimer` 事件中使用，定时刷新物品
-3. **范围参数**：`范围` 参数决定物品在坐标周围的分布区域，值越大分布越分散
-4. **数量参数**：最后一个参数是生成数量，不是时间间隔
-5. **物品可拾取**：生成的物品会出现在地图上，玩家可以拾取
-
-## 相关命令
-- `putsendermagicitem` - 给予玩家物品（直接进入背包）
-- `getsenderitem` - 回收玩家物品
+源码依据：[uScriptManager.pas](../../help/TGS核心源码/uScriptManager.pas)、[uManager.pas](../../help/TGS核心源码/uManager.pas)、[BasicObj.pas](../../help/TGS核心源码/BasicObj.pas) 的上述方法。

@@ -18,7 +18,9 @@ Str := callfunc('getmovespeed');
 Result := IntToStr(TBasicObject(FSelf).SGetMoveSpeed);
 ```
 
-当前源码只有 `TBasicObject` 实现并固定返回 0，未找到子类覆盖。
+`TBasicObject.SGetMoveSpeed` 固定返回 0；`TMonster.SGetMoveSpeed` 覆盖该方法，返回怪物资料的 `pSelfData.rWalkSpeed`。因此结果取决于 `FSelf` 的实际类型，不能一律解释为 0，也不能直接当作每秒移动格数。当前 `TUser` 没有覆盖该方法。
+
+源码依据：[BasicObj.pas](../../help/TGS核心源码/BasicObj.pas)、[uMonster.pas](../../help/TGS核心源码/uMonster.pas)。
 
 ## 注意事项
 

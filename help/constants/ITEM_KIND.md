@@ -1,6 +1,6 @@
 # 物品类型常量 (ITEM_KIND_*)
 
-> 源码: `1000ydef/deftype.pas` 第 105-170 行
+> 源码: [deftype.pas](../deftype.pas) 第 114-168 行（`ITEM_KIND_*`）
 
 定义物品的功能和行为类型，对应 `Init_Item.sdb` 中的 `kind` 字段。
 

@@ -1,70 +1,42 @@
 # getsenderdestroyitem
 
-## 功能描述
-按种类销毁玩家背包或装备栏中的物品。
+按穿戴槽和物品种类调用触发玩家的销毁接口。不是通用的“物品区域 + 物品 ID”删除命令。
 
-## 语法格式
+## 语法
+
 ```pascal
-Str := callfunc('getsenderdestroyitem 物品类型 物品ID');
+Str := callfunc('getsenderdestroyitem aKey aKind');
 ```
 
-## 参数说明
-- **物品类型**：Integer - 物品所在区域的类型
-  - 0：背包物品栏
-  - 9：装备栏（武器栏）
-- **物品ID**：Integer - 要销毁的物品ID
+- `aKey`：穿戴槽位；只有八卦牌背包分支忽略它，不表示背包/装备区域。
+- `aKind`：`ITEM_KIND_*` 常量，不是单件物品 ID。
 
-## 返回值
-- **'0'**：物品栏里没有对应物品
-- **'1'**：销毁成功
+## 分派与返回值
 
-## 源码实现
+`TUser.SDestroyItembyKind` 按第二个参数分派：
+
+| 条件 | 行为 |
+| --- | --- |
+| `aKind = ITEM_KIND_EIGHTANGLES (59)` | 在背包按种类寻找八卦牌，走 `THaveItemClass.DestroyItembyKind`；第一个参数不参与寻找 |
+| 其它种类 | 走 `TWearItemClass.DestroyItembyKind(aKey, aKind)`；当前有效销毁分支为 `ITEM_KIND_DURAWEAPON (60)` |
+
+返回十进制字符串：`'1'` 为执行销毁；`'0'` 为槽位无效或未找到对应物品；其它不匹配/未处理分支可能返回初始值 `'-1'`。不能仅用“非 0”当作成功。
+
+## 示例
+
 ```pascal
-// uScriptManager.pas 第615行
-end else if cmd = 'getsenderdestroyitem' then begin
-   Result := IntToStr (TBasicObject (FSender).SDestroyItembyKind (_StrToInt (Params [0]), _StrToInt (Params [1])));
-```
+// 按种类寻找背包中的八卦牌；0 不是“背包区域代码”
+Str := callfunc('getsenderdestroyitem 0 59');
 
-调用 `TBasicObject.SDestroyItembyKind`，按种类销毁物品，返回整数结果转为字符串。
-
-## 使用示例
-
-### 销毁背包中的物品
-```pascal
-// 销毁背包(类型0)中的物品(ID 59)
-Str := callfunc ('getsenderdestroyitem 0 59');
-if Str = '0' then begin
-    print ('say 物品栏里没有对应物品.');
-    exit;
-end;
+// 检查穿戴武器槽 9，销毁符合种类 60 的物品
+Str := callfunc('getsenderdestroyitem 9 60');
 if Str = '1' then begin
-    print ('say 物品已销毁');
+    print('say 已销毁对应物品');
 end;
 ```
-> 来源：`quest老侠客.txt`
 
-### 销毁装备栏中的武器
-```pascal
-// 销毁装备栏(类型9)中的武器(ID 60)
-Str := callfunc ('getsenderdestroyitem 9 60');
-if Str = '0' then begin
-    print ('say 没有可销毁的装备');
-    exit;
-end;
-if Str = '1' then begin
-    print ('getsenderitem 钱币:5000');  // 返还钱币
-end;
-```
-> 来源：`quest老侠客.txt`
+这两条是独立调用示例，不应直接连续执行作为任务流程。销毁不可逆；仅使用已核对的种类及槽位，不把此接口扩大解释为任意物品删除。
 
-## 注意事项
+源码依据：[UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `SDestroyItembyKind`、[uUserSub.pas](../../help/TGS核心源码/uUserSub.pas) 的背包/穿戴同名方法、[物品种类](../../help/constants/ITEM_KIND.md)。
 
-1. **返回值格式**：返回字符串类型的数字代码 '0' 或 '1'
-2. **不可逆操作**：销毁后物品永久消失，无法恢复
-3. **物品类型**：0 代表背包物品栏，9 代表装备栏
-4. **按种类销毁**：函数名为 `SDestroyItembyKind`，按种类匹配销毁
-
-## 相关函数
-- `getsenderrepairitem` - 修理物品
-- `getsenderitemexistence` - 检查物品是否存在
-- `getsenderitem` - 给予玩家物品
+相关接口：[getsenderrepairitem](getsenderrepairitem.md)、[getsenderitemexistence](getsenderitemexistence.md)。

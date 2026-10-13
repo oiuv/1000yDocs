@@ -1,19 +1,20 @@
 # getsenderitemexistence
 
 ## 功能描述
-检查玩家背包中是否存在指定名称和数量的物品。
+检查触发玩家是否满足指定物品条件。背包匹配失败时，玩家实现还会尝试按名称寻找已拥有武功，因此返回 `'true'` 不一定证明背包里有该数量的物品。
 
 ## 语法格式
 ```pascal
-Str := callfunc('getsenderitemexistence 物品名称:数量');
+Str := callfunc('getsenderitemexistence 物品名称:数量 匹配选项');
 ```
 
 ## 参数说明
 - **物品名称:数量**：String - 物品名称和所需数量，用冒号 `:` 分隔。格式为 `物品名称:数量`
+- **匹配选项**：独立的第二个参数 `aOption`，省略时按 0 处理。0 要求名称、`rUpgrade`、`rAddType` 匹配且数量足够；1 只按名称及数量匹配。
 
 ## 返回值
-- **成功**：'true' - 玩家背包中存在指定数量的物品
-- **失败**：'false' - 玩家背包中不存在或数量不足
+- **'true'**：背包中有一堆满足匹配条件和数量，或背包匹配失败后按名称找到了已拥有武功
+- **'false'**：物品定义无效，或背包和武功回退检查均未通过
 
 ## 源码实现
 ```pascal
@@ -22,7 +23,7 @@ end else if cmd = 'getsenderitemexistence' then begin
    Result := TBasicObject (FSender).SGetItemExistence (Params [0], _StrToInt (Params [1]));
 ```
 
-调用 `TBasicObject.SGetItemExistence`，第一个参数为物品名称，第二个参数为数量要求。
+调用 `TBasicObject.SGetItemExistence`。玩家实现先从第一个参数拆出物品名称与数量，将独立第二参数作为 `aOption` 传给 `FindItembyCount`。该方法逐槽检查单堆数量，不合计多堆。参见 [UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `SGetItemExistence` 和 [uUserSub.pas](../../help/TGS核心源码/uUserSub.pas) 的 `FindItembyCount`。
 
 ## 使用示例
 
@@ -75,7 +76,7 @@ end;
 
 1. **返回值格式**：返回字符串 'true' 或 'false'，需要进行字符串比较
 2. **参数格式**：物品名称和数量之间用冒号 `:` 分隔
-3. **数量检查**：不仅检查物品是否存在，还检查数量是否满足要求
+3. **数量检查**：背包分支检查单堆数量；武功名称回退分支不按该数量比较，不能把本接口当作无条件的背包库存证明
 4. **与 getsenderitemcountbyname 的区别**：本函数返回布尔值，`getsenderitemcountbyname` 返回具体数量
 
 ## 相关函数

@@ -13,7 +13,7 @@ Str := callfunc('getsendermapname');
 
 ## 返回值
 - **成功**：返回触发者所在地图的名称（字符串）
-- **失败**：返回空字符串
+- 源码直接返回 `Manager.Title`，没有单独的失败返回分支；空字符串不能当作约定的失败标志。调用前须保证 `FSender` 及其地图上下文有效。
 
 ## 源码实现
 在 `uScriptManager.pas` 的 `CallFunction` 中调用：

@@ -23,7 +23,7 @@ Result := IntToStr(TBasicObject(FSelf).SGetLife);
 
 - `TBasicObject.SGetLife` 的基础实现固定返回 `0`。
 - `TDynamicObject.SGetLife` 返回 `CurLife`。
-- `TUser.SGetLife` 返回 `AttribClass.UserLife`。
+- `TUser.SGetLife` 返回 `AttribClass.CurLife`（当前活力）。
 
 当前 `TMonster` 和 `TNpc` 继承 `TLifeObject`，源码中没有覆盖 `SGetLife`，因此沿用基础实现返回 `0`。不能笼统地把本函数解释为“怪物或 NPC 当前生命值”。
 
@@ -31,3 +31,5 @@ Result := IntToStr(TBasicObject(FSelf).SGetLife);
 
 - `getlife` 在 `FSelf` 上调用。
 - `getsenderlife` 在事件发送者 `FSender` 上调用。
+
+源码依据：[UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `TUser.SGetLife`。

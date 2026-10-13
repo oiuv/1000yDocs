@@ -1,6 +1,6 @@
 # 物品属性常量 (ITEM_ATTRIBUTE_*)
 
-> 源码: `1000ydef/deftype.pas` 第 172-193 行
+> 源码: [deftype.pas](../deftype.pas) 第 174-191 行（`ITEM_ATTRIBUTE_*`）
 
 定义物品的元素属性和特殊标记，对应 `Init_Item.sdb` 中的 `attrib` 字段。
 
@@ -36,9 +36,9 @@
 
 ## 属性相克关系
 
-火(1) → 冰(3) → 水(2) → 火(1)（循环相克）
+本页常量定义不能证明火、冰、水之间存在循环相克。`AM_WHRelationTable` 读取 `AM&WHRelation.SDB`，调用处使用护体武功与掌法的 `rMagicRelation`，不是这里的 `ITEM_ATTRIBUTE_*`。
 
-相关源码: `AM_WHRelationTable` 在 `svClass.pas` 中定义
+依据：[svClass.pas](../TGS核心源码/svClass.pas) 的 `GetValueFromRelationTable` 及 [UUser.pas](../TGS核心源码/UUser.pas) 的调用处。物品元素相克规则需另有对应实现依据，不能从该表推导。
 
 ---
 

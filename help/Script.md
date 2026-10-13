@@ -60,7 +60,7 @@ Name,FileName,Desc,
 
 ## Self 与 Sender
 
-`TScriptManager.ScriptCommand` 在事件调用期间保存当前 `Self` 和 `Sender`：
+`TScriptManager.CallEvent` 在事件调用期间保存当前 `Self` 和 `Sender`。带 `aManager` 参数的重载还处理 `checkitemregen` 等地图命令，再调用 `CommandScript` 分派其它命令，见 [uScriptManager.pas](TGS核心源码/uScriptManager.pas)：
 
 - 无 `sender` 前缀的接口通常作用于 `Self`；
 - `getsender...`、`changesender...` 等接口通常作用于 `Sender`；

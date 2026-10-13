@@ -1,75 +1,46 @@
 # getpassmissiontime
 
-## 功能描述
-获取玩家当前任务已经过的时间（分钟数）。
+获取触发玩家自任务计时起点以来的计数，返回十进制整数字符串；单位不是分钟。
 
-## 语法格式
+## 语法与返回值
+
 ```pascal
 Str := callfunc('getpassmissiontime');
+nValue := StrToInt(Str);
 ```
 
-## 参数说明
-- 无参数
+无参数。先调用 [startmissiontime](startmissiontime.md) 设置起点，再查询：
 
-## 返回值
-- **整数（字符串）**：任务已经过的时间（分钟），取整后的值
-
-## 源码实现
 ```pascal
-// uScriptManager.pas 第574行
-end else if cmd = 'getpassmissiontime' then begin
-   Result := IntToStr(Trunc(TBasicObject (FSender).SGetPassMissionTime));
+// TUser.SGetPassMissionTime
+Result := (Now - MissionStartTick) * 1000 + 1;
+// TScriptManager.CallFunction
+Result := IntToStr(Trunc(TBasicObject(FSender).SGetPassMissionTime));
 ```
 
-调用 `TBasicObject.SGetPassMissionTime`，返回浮点数经过 `Trunc` 取整后转为字符串。
+`Now` 的时间差以天为单位，每个计数单位为 1/1000 天，即 86.4 秒；表达式还加 1，再经 `Trunc` 取整。不能把返回值直接显示为“已经过去多少分钟”。
 
-## 使用示例
+`MissionStartTick` 声明为 `Single`，把 `Now` 存入它会损失日期时间精度。加 1 不保证首次查询一定为 1，也不能保证起点精确等于调用瞬间。
 
-### 萧郎任务 - 检查任务超时
+## 示例
+
 ```pascal
-// 检查玩家是否还持有任务物品
-Name := callfunc ('getsenderitemexistence 血红色的玛瑙石:1');
-if Name <> 'false' then begin
-    Str1 := callfunc ('getpassmissiontime');
-    print ('say 你怎么还没把玛瑙石送过去啊？要抓紧时间啊！ 100');
-    Str1 := 'say 已经过去' + Str1;
-    Str1 := Str1 + '分钟了！ 200';
-    print (Str1);
-    exit;
-end;
-```
-> 来源：`萧郎.txt`
-
-### 素莲任务 - 判断是否超时
-```pascal
-// 检查血石数量
-Name := callfunc('getsenderitemexistence 血石:30');
-if Name = 'false' then begin
-    Str := 'say 这真的是萧郎让你交给我的玛瑙石么？怎么颜色这么暗淡？';
-    print (Str);
-    exit;
-end;
-
-// 检查任务用时
-Str := callfunc ('getpassmissiontime');
-nValue := StrToInt (Str);
+Str := callfunc('getpassmissiontime');
+nValue := StrToInt(Str);
 if nValue > 30 then begin
-    print ('getsenderitem 血红色的玛瑙石:1');
-    Str := 'say 这真的是萧郎让你交给我的玛瑙石么？你不是骗子吧？';
-    print (Str);
+    // 按公式相对存储起点约 43.2 分钟达到条件，不是 30 分钟
+    print('say 任务已超时');
     exit;
 end;
 ```
-> 来源：`素莲.txt`
+
+这里判断的是取整后的值大于 30，不是未经偏移的时间差大于 30。起点的 Single 精度损失和实际查询时机会影响边界观察，不能作为精确计时器。
 
 ## 注意事项
 
-1. **返回值格式**：返回字符串类型的整数（分钟数），需要 `StrToInt` 转换
-2. **配合 startmissiontime 使用**：先通过 `startmissiontime` 开始计时，再用 `getpassmissiontime` 查询已过时间
-3. **超时判断**：常用于限时任务中判断玩家是否在规定时间内完成
-4. **取整处理**：源码中使用 `Trunc` 对浮点数取整
-5. **无参数**：不需要传入任何参数
+- 本接口调用 `FSender` 的虚方法；上述公式针对有效玩家 `TUser`。
+- 未设置起点时不能把结果当作本次任务用时。
+- 使用系统日期时间差，不是单调时钟；系统时钟调整会影响结果。
+- 脚本台词写“分钟”不改变底层计时单位。
 
-## 相关函数
-- `startmissiontime` - 开始任务计时
-- `getsenderitemexistence` - 检查物品是否存在
+源码依据：[uScriptManager.pas](../../help/TGS核心源码/uScriptManager.pas) 的 `CallFunction`、[UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `SGetPassMissionTime`。

@@ -1,6 +1,6 @@
 # 种族与对象分类常量
 
-> 源码: `1000ydef/deftype.pas` 第 395-420 行
+> 源码: [deftype.pas](../deftype.pas) 第 425-445 行（`RACE_*`、`CLASS_*`）
 
 ---
 

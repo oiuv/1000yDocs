@@ -18,4 +18,10 @@ X_Y
 XY := callfunc('getnearxy 100 200');
 ```
 
-当前仓库没有 `TMaper.GetNearXY` 的实现源码，因此文档只能确认委托调用和返回格式，不能进一步保证搜索半径、障碍物规则或一定改变原坐标。
+实现见 [MapUnit.pas](../../help/TGS核心源码/MapUnit.pas) 的 `TMaper.GetNearXY`：
+
+- 原坐标满足 `isMoveable` 时直接保留。
+- 否则循环 `i := 0 to 32`，最多调用 33 次 `GetNearPosition`，找到满足 `isMoveable` 的偏移后停止。
+- 全部失败时偏移归零，坐标不变，底层返回 `false`。
+
+[BasicObj.pas](../../help/TGS核心源码/BasicObj.pas) 的 `SGetNearXY` 忽略这个布尔返回值，只返回坐标。因此拿到 `X_Y` 不等于找到了可移动位置；也不能把 33 次尝试解释为 33 格搜索半径。

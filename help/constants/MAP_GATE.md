@@ -1,6 +1,6 @@
 # 地图与传送门常量
 
-> 源码: `1000ydef/deftype.pas` 第 212-250 行
+> 源码: [deftype.pas](../deftype.pas)，`GATE_KIND_*` 在第 213-223 行，`MAP_TYPE_*` 在第 231-241 行
 
 ---
 
