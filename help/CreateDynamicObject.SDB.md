@@ -18,8 +18,8 @@ No,Name,Script,NeedAge,NeedSkill,NeedItem,GiveItem,DropItem,DropMop,CallNpc,X,Y,
 | NeedAge | Integer | 开启对象所需最低年龄 |
 | NeedSkill | String | `武功名:等级`，最多 5 组 |
 | NeedItem | String | `物品名:数量`，最多 5 组；验证通过后删除 |
-| GiveItem | String | `物品名:数量:随机权重`，最多 5 组；权重小于等于 0 时按 1 处理 |
-| DropItem | String | `物品名:数量:随机权重`，最多 5 组 |
+| GiveItem | String | `物品名:数量:判定周期长度`，最多 5 组；周期小于等于 0 时按 1 登记，实际发放调用限制见下文 |
+| DropItem | String | `物品名:数量:判定周期长度`，最多 5 组；周期小于等于 0 时按 1 登记 |
 | DropMop | String | `怪物名:数量`，最多 5 组 |
 | CallNpc | String | `NPC名:数量`，最多 5 组 |
 | X / Y | String | 冒号分隔的坐标列表，各最多解析 5 个值 |
@@ -31,11 +31,16 @@ No,Name,Script,NeedAge,NeedSkill,NeedItem,GiveItem,DropItem,DropMop,CallNpc,X,Y,
 
 - `Name` 无法在 `DynamicObject.sdb` 解析时，整条记录不会加入对象列表。
 - `NeedSkill`、物品、怪物和 NPC 名称都会先回查各自当前数据表；无效名称不会形成有效运行数据。
-- `GiveItem` 和 `DropItem` 的随机权重会登记到 `RandomClass`。如果相关 `EventDropItem` 流程引用了对象/物品却没有对应概率数据，运行日志会出现 `Random Chance Not Found`。
-- 对象被攻击致死前会依次执行年龄、武功和物品条件；条件通过后才删除 `NeedItem`、推进对象步骤并发放物品。
+- `GiveItem` 和 `DropItem` 的第三项会按“对象名＋物品名”登记到 `RandomClass`，不是物品间的相对权重。周期与共享计数语义见 [HaveItem 周期判定](Init_monster.sdb.md#haveitem独立周期判定)。
+- `DropItem` 在对象已打开、允许移除且打开时长达到配置值的分支，通过 `GetCheckItemData` 判定；不能直接按攻击次数或每次交互次数统计周期。
+- 同名对象的同名物品共用匹配键，`GiveItem`、`DropItem`、`EventDropItem` 不因字段名称不同而自动拥有独立计数。缺失登记时会记录 `Random Chance Not Found`，但当前 `GetChance` 默认返回 `true`，不是拒绝发放。
+- 对象被攻击致死前会依次执行年龄、武功和物品条件；条件通过后才删除 `NeedItem`、推进对象步骤并进入 `GiveItem` 发放分支。不能据此保证物品实际发放成功。
+
+`GiveItem` 当前存在调用限制：`CommandAttackedMagic` 和 `FieldProc` 将“对象名、物品名”依次传给 `GetChanceItemData`，而该函数要求的前两项为“物品名:颜色:数量、对象名”；调用方也没有检查返回值。不能仅凭加载阶段登记了周期，就把该字段描述为可靠的周期奖励功能。配置验证时须检查实际发放结果。
 
 ## 源码依据
 
 - `svClass.pas` — `LoadCreateDynamicObject`
 - `BasicObj.pas` — `TDynamicObjectList.ReLoadFromFile`、`TDynamicObject.CommandAttackedMagic`
 - `1000ydef/deftype.pas` — `TCreateDynamicObjectData`
+- 公开源码：[svClass.pas](TGS核心源码/svClass.pas) 的 `TRandomClass`、`GetCheckItemData`、`GetChanceItemData`；[BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `CommandAttackedMagic`、`FieldProc`、`Update`

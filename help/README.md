@@ -17,6 +17,7 @@
 - [Pascal 脚本说明](Pascal.md)、[Script.SDB 与脚本入口](Script.md)
 - [事件配置](Event.md)、[任务公告](QuestNotice.md)、[ITEMLOG 福袋数据](ITEMLOG.md)
 - [制造配置](manufacture.md)、[材料配置](Material.md)
+- [怪物掉落机制](Init_monster.sdb.md#掉落持有与任务物品)：`HaveItem` 周期计数、`FallItem` 整组触发、参数区别与共享范围。
 
 ## 运行资源与扩展数据
 

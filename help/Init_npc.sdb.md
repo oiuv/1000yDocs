@@ -1,5 +1,13 @@
 # NPC.SDB
 
+## HaveItem 掉落配置
+
+`HaveItem` 使用重复的 `物品名:每次数量:判定周期长度`，最多 5 组。名称使用 `Item.SDB` 的 `Name`；非正周期按 1 处理，数量非正、名称为空或参数缺失会停止读取后续条目。
+
+`TNpcClass.LoadNpcData` 将“NPC 配置名＋物品名”登记到 `RandomClass`。`TNpc.FieldProc` 的死亡相关分支通过 `GetCheckItemData` 执行判定；各物品每个完整周期命中一次，计数在同一 TGS 进程内共享，不是玩家个人保底。完整算法、重启重置及多物品关系见 [Monster.SDB：HaveItem](Init_monster.sdb.md#haveitem独立周期判定)。
+
+不要将第三项理解为散落份数或物品间的相对权重。源码依据：[svClass.pas](TGS核心源码/svClass.pas) 的 `TNpcClass.LoadNpcData`、`TRandomClass`，以及 [uNpc.pas](TGS核心源码/uNpc.pas) 的 `TNpc.FieldProc`。
+
 
 ## 相关代码 
 
