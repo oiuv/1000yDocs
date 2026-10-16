@@ -27,12 +27,16 @@ end;
 | 偏移量 | 字段名 | 类型 | 大小 | 说明 |
 |:------:|--------|------|:----:|------|
 | 0-1 | PacketSize | Word | 2字节 | 整个包的总大小（包括包头8字节） |
-| 2-5 | RequestID | Integer | 4字节 | 请求标识符，用于匹配请求和响应 |
+| 2-5 | RequestID | Integer | 4字节 | 标识含义随链路而定：客户端发送序号，或 Gate 与后端之间用于定位客户端连接的 `ConnectID` 等 |
 | 6 | RequestMsg | Byte | 1字节 | 外层服务消息类型。服务间包通常直接使用 `LG_*`、`DB_*`、`GM_*` 等；客户端游戏命令通常封装在 `TWordComData.Data` 中，此字段为 0 |
-| 7 | ResultCode | Byte | 1字节 | 结果代码，0表示成功 |
+| 7 | ResultCode | Byte | 1字节 | 结果代码，含义由具体消息及接收方定义，不能统一按 0 判断成功 |
 | 8+ | Data | Byte[] | 变长 | 实际数据内容 |
 
 **包头固定大小**: 8字节（PacketSize + RequestID + RequestMsg + ResultCode）
+
+例如 DB/Login 的常见查询回包使用 `DB_OK=0`；Gate 的 `PaidMessageProcess` 收到 `PM_CHECKPAID` 且 `ResultCode=0` 时却直接结束处理，不应用计费数据。非零计费回包还需核对账号和付费模式。因此，兼容实现应分别处理各类消息的结果码。
+
+原生客户端的 `RequestID` 来自连接内递增的 `SendPacketCount`。Gate 的序号校验代码已被注释；向后端转发时使用自己的 `ConnectID`，不会把客户端序号直接当成后端请求标识。不能把所有链路都理解为逐请求唯一编号的请求/响应协议。
 
 **结构体 Data 上限**：`MAX_PACKET_SIZE = 8192` 字节。完整 `TPacketData` 还包含 8 字节包头，因此结构最大为 8200 字节。这只是记录字段和 `PutPacket` 入参检查的上限，不是当前加密发送路径的安全载荷上限。
 
@@ -415,7 +419,7 @@ end;
 - `SM_TRADEWINDOW` (65): 交易窗口
 - `SM_MARKETWINDOW` (77): 个人商店窗口
 
-**完整列表**: 参见 [`constants/MESSAGES.md`](constants/MESSAGES.md#服务端消息-sm)
+**完整列表**: 参见 [`constants/MESSAGES.md`](constants/MESSAGES.md#服务端消息-sm_)
 
 ### 3.3 客户端消息 (CM_*)
 
@@ -458,7 +462,7 @@ end;
 - `CM_MARRY` (61): 结婚
 - `CM_MARRYANSWER` (62): 结婚回应
 
-**完整列表**: 参见 [`constants/MESSAGES.md`](constants/MESSAGES.md#客户端消息-cm)
+**完整列表**: 参见 [`constants/MESSAGES.md`](constants/MESSAGES.md#客户端消息-cm_)
 
 ### 3.4 场景消息 (FM_*)
 
@@ -489,7 +493,7 @@ end;
 - `FM_ADDMONEY` (29): 增加金钱
 - `FM_DELMONEY` (30): 减少金钱
 
-**完整列表**: 参见 [`constants/MESSAGES.md`](constants/MESSAGES.md#场景消息-fm)
+**完整列表**: 参见 [`constants/MESSAGES.md`](constants/MESSAGES.md#场景消息-fm_)
 
 ---
 
@@ -534,14 +538,16 @@ end;
 Gate (解密)
   │
   │ 解析 TPacketData
-  │ 提取外层 RequestMsg 和 Data
+  │ 从 Data 取出 TWordComData 中的业务载荷
   │
-  │ 重新封装为未加密的 TPacketData
+  │ 封装为未加密的 TPacketData
+  │ RequestID=ConnectID，RequestMsg=GM_SENDGAMEDATA
   ▼
 Game Server
 ```
 
 **Gate 的处理流程**:
+
 1. 接收客户端的加密数据包
 2. 查找 `0x28` 和 `0x29` 定位数据包边界
 3. 提取加密数据并解密
@@ -625,6 +631,8 @@ end;
 
 #### 接收流程
 
+以下是加密接收路径的流程节选，省略游标推进和半包保留等处理，不是可独立使用的完整接收器：
+
 ```pascal
 procedure TPacketReceiver.Update;
 begin
@@ -648,11 +656,21 @@ begin
       // 3. 解密数据包
       DeCryption(@buffer[iStartPos], @Packet, iEndPos - iStartPos + 1);
       
-      // 4. 存入包缓冲区
-      PacketBuffer.Put(@Packet, Packet.PacketSize);
+      // 4. 当前源码仅检查声明包长大于 0 且不超过结构容量
+      if (Packet.PacketSize > 0) and (Packet.PacketSize <= SizeOf(TPacketData)) then begin
+         PacketBuffer.Put(@Packet, Packet.PacketSize);
+      end;
    end;
 end;
 ```
+
+**接收校验缺口**：上面的范围判断不等于完整的包长验证。`Common/uPackets.pas` 的加密接收路径没有使用 `DeCryption` 返回值判断解密是否成功，也没有核对解密所得长度与声明 `PacketSize` 是否匹配，且未要求声明长度至少覆盖 8 字节包头。
+
+长度匹配需考虑编码补齐：每 4 个加密字节解码为 3 字节，正常解码长度是 `3 * ceil(PacketSize / 3)`，末尾可能含 0～2 个补齐字节，不应要求它与 `PacketSize` 无条件相等。例如声明包长 68 字节，正常解码长度为 69 字节。
+
+`gate_biscuit/uConnector.pas` 随后按 `PacketSize - 8` 复制载荷；游戏状态下直接按内层 `TWordComData.Size` 转发，非游戏状态下按 `CM_*` 结构读取字段，未完整核对内层长度是否落在实际收到的载荷内、是否足够容纳对应命令。异常捕获并关闭连接不能替代这些长度检查。
+
+兼容实现应在复制、类型转换或转发前，核实解密成功、实际长度与声明长度、目标缓冲区容量及业务结构所需长度。以上是当前源码的检查缺口和维护要求，不是已修复的行为；自定义加密也不能使不可信输入自动变得安全。
 
 ---
 
@@ -706,7 +724,7 @@ Client ──3054──> Gate
 
 | 服务 | 端口 | 协议 | 说明 |
 |------|:----:|:----:|------|
-| **Balance** | 3053 | TCP | 负载均衡，客户端连接入口 |
+| **Balance** | 3053 | TCP | 客户端初始入口，返回选定 Gate 地址，不持续转发游戏流量 |
 | **Balance** | 3030 | UDP | 接收网关状态上报 |
 | **Gate** | 3054 | TCP | 网关，客户端游戏连接 |
 | **Login** | 3050 | TCP | 登录服务，账号验证 |
@@ -727,7 +745,7 @@ Gate 定期向 Balance 的 UDP 3030 端口发送状态信息：
 - rMsg: 消息类型（BM_GATEINFO = 0）
 - rIpAddr: 网关IP地址（20字节，GBK编码）
 - rPort: 网关端口（4字节，通常为3054）
-- rUserCount: 当前用户数（4字节）
+- rUserCount: Gate 接入连接数（4字节，ConnectorList.Count，含尚未进入游戏的连接）
 ```
 
 #### 日志记录
@@ -759,13 +777,13 @@ UDP 报文总长度 = N + 7
 
 ```
 Client → Balance (3053)
-  │ 请求网关信息
+  │ 建立 TCP 连接，无需发送获取网关信息的请求报文
   ▼
 Balance → Client
-  │ 返回 Gate IP:Port (加密)
+  │ 选到可用 Gate 后，主动返回 SM_CONNECTTHRU，包含 Gate IP:Port（加密）
   ▼
 Client → Gate (3054)
-  │ 连接网关
+  │ 断开 Balance，直接连接 Gate，完成版本校验并提交登录请求
   ▼
 Gate → Login (3050)
   │ LG_SELECT，仅发送账号 PrimaryKey
@@ -782,6 +800,8 @@ Gate → Client
 Gate → Paid
   │ 发起 PM_CHECKPAID（启用计费校验且需要外部查询时）
 ```
+
+`PaidSender=nil` 或 `CHECKPAIDINFO=FALSE` 会直接设置有效计费状态，不等待外部查询；不能把上图理解为 Paid 故障时一定拒绝登录。完整分支见[计费校验条件](architecture.md#55-计费校验条件)。
 
 #### 游戏流程
 
@@ -857,7 +877,11 @@ REMOTEPORT=5999
 LOCALPORT=5998
 ```
 
-`REMOTEPORT=5999` 是缺少 `GATE.INI` 时生成的模板值；读取已有配置且该键缺失时，源码缺省值是 3049。`LOCALPORT=5998` 会被生成，但当前 Gate 源码没有读取或使用该键。`LIMITPACKETCOUNT` 是配置阈值，不代表当前环形采样实现能够稳定执行一秒限包，实际缺陷见架构文档。
+`[GATE_SERVER] LOCALIP` 是 Gate 上报给 Balance、供客户端连接的地址，不是玩家监听 Socket 的绑定地址。当前 `FMain.FormCreate` 只为该监听器设置 `LOCALPORT` 并启用；填入 `127.0.0.1` 不能保证只在回环地址监听。跨机器部署时应填写玩家可达地址，并独立配置防火墙访问边界。
+
+`[PAID_SERVER] REMOTEPORT=5999` 是缺少 `GATE.INI` 时生成的模板值；读取已有配置且该键缺失时，源码缺省值是 3049。该节的 `LOCALPORT=5998` 会被生成，但当前 Gate 源码没有读取或使用该键。`CHECKPAIDINFO=TRUE` 不保证 Paid 不可用时拒绝登录，见[计费校验条件](architecture.md#55-计费校验条件)。
+
+`LIMITPACKETCOUNT` 是包率阈值，但环形采样周期随连接数和实际调度间隔变化，不代表稳定的一秒硬限包，见[包频率限制](architecture.md#45-包频率限制)。
 
 Gate 还读取两个独立文件：
 
@@ -926,6 +950,23 @@ PORT=6060
 ```
 
 SQL 实现不会读取 `REMOTEACCEPTPORT`；它读取 `[REMOTE_SERVER]`，并作为客户端主动连接该地址。`UserName` 和 `Password` 在交给 BDE/ODBC 前都会调用 `SimplePass.Decode`，不能把示例中的明文 `sa` 当成已验证可用的部署值。
+
+**SQL Login 的 IPList.txt**：
+
+启动时从程序工作目录读取，每行一个允许连接 Login 的来源 IP。通常填写 Gate 的连接来源地址，不是玩家地址。例如同机 Gate 使用回环地址连接、另有一台内网 Gate 时：
+
+```text
+127.0.0.1
+192.168.1.10
+```
+
+- 每行只写 IP，不带端口、引号或逗号；建议使用 ANSI 或无 BOM 的 UTF-8 纯文本。
+- 使用整行字符串完全相等比较，不去除前后空格，不解析注释、域名、通配符或 CIDR 网段。
+- 文件不存在时禁用检查并允许所有来源；文件存在但为空时拒绝所有来源；有内容时仅允许匹配项。
+- 修改文件不会自动重新加载，需重启 SQL Login 后生效。
+- `IPList.txt` 只控制这里的接入检查，不是账号认证，也不能代替防火墙。生产环境必须把 Login 和管理接口限制在可信内网。
+
+以上行为来自 `loginsql/uIpChecker.pas` 和 `FMain.sckAcceptAccept`。SDB Login 不读取该白名单。两种 Login 的账号保存与管理接口差异见[数据库说明](database.md#54-两种-login-实现的功能边界)。
 
 ---
 
@@ -1016,7 +1057,7 @@ name = data.decode('gbk').rstrip('\x00')
 
 **解决**: 
 - 检查目标 Gate 使用的 `PROGRAM_VERSION` 和 `NATION_VERSION`
-- 仓库 `deftype.pas` 当前启用 40；用户确认当前线上炎黄 Gate 也要求 40
+- 本文公开源码基线的 `PROGRAM_VERSION=40`，实际部署可能采用不同版本
 - 不要以仓库源码常量替代线上部署确认值
 
 ---
@@ -1052,7 +1093,7 @@ name = data.decode('gbk').rstrip('\x00')
 加密后: 28 [加密字节流] 29
 ```
 
-客户端先把 58 字节 `TCIdPass`（`rmsg` + 3 个 19 字节 `TNameString`）封装进 `TWordComData`，所以 Data 为 60 字节，完整 `TPacketData.PacketSize` 为 68（`0x0044`）。外层 `RequestMsg` 为 0，`CM_IDPASS=3` 位于 `TWordComData.Data` 的第一个字节。每次建立连接时 `SendPacketCount` 重置为 0，并在每次 `PutPacket` 后递增，因此不能把登录包的 `RequestID` 固定写成 0。
+客户端先把 58 字节 `TCIdPass`（`rmsg` + 3 个 19 字节 `TNameString`）封装进 `TWordComData`，所以 Data 为 60 字节，完整 `TPacketData.PacketSize` 为 68（`0x0044`）。外层 `RequestMsg` 为 0，`CM_IDPASS=3` 位于 `TWordComData.Data` 的第一个字节。每次建立连接时 `SendPacketCount` 重置为 0，并在成功排队后递增；复现原生发送行为时应使用当前序号，而不是固定为 0。当前 Gate 的对应递增校验已被注释，不能把这种发送约定描述为它正在执行的硬性拒绝规则。
 
 **角色移动** (CM_MOVE):
 ```
@@ -1077,4 +1118,4 @@ Data:
 ---
 
 **源码版本**: 1000y Delphi 7  
-**协议版本**: 当前共享源码 `PROGRAM_VERSION=40`；部署须核对目标 Gate 实际版本
+**协议版本**: 公开源码基线 `PROGRAM_VERSION=40`；部署须核对目标 Gate 实际版本

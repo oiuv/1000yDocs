@@ -2,7 +2,7 @@
 
 传送门
 
-实际随包表头包含 38 个字段，加载器为 `BasicObj.pas` 的 `TGateList.LoadFromFile`：
+实际随包表头包含 38 个字段，加载器为 [BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateList.LoadFromFile`，进入检查位于 `TGateObject.FieldProc`：
 
 | 字段 | 类型 | 作用 |
 |------|------|------|
@@ -41,22 +41,32 @@
 - Shape 为item.atz中的形状，主要是8、69和70，也可以使用其它值
 - X,Y设置为(0,0)，使用RandomPos指定坐标，随机坐标刷新时间由ActiveInterval指定
 - LimitPowerLevel为境界限制，超过境界的玩家进入后境界被限制到该值
-- NeedAge为需要年龄，必须超过该年龄才能进入，否则进一步判断AgeNeedItem条件并由boRemainItem决定是否删除物品
+- NeedAge 为直接进入年龄，年龄大于或等于该值即通过此项；否则进一步判断 AgeNeedItem 条件，并由 boRemainItem 决定是否删除物品
 - 如果没有设置NeedAge，只设置了AgeNeedItem是无效的
 - 符合NeedAge条件还会继续判断以下年龄限制
   - LimitAge为年龄上限，超过该年龄无法进入
   - OverAge为年龄下限，低于该年龄无法进入
-- 如果没有设置NeedAge和AgeNeedItem，只设置NeedItem，则有指定物品即可传送，且传送不会删除物品
+- NeedAge 为 0 时，NeedItem 逐项按名称检查是否存在，不核对配置数量，也不在此分支扣除物品；AgeNeedItem 不参与此分支
 - NeedItem、DelItem、AddItem最多可设置5种
-- DelItem为传送自动删除的物品（有则删除，无则不影响）
+- DelItem 为通过前置检查后尝试删除的物品：数量大于 0 时按数量删除，数量为 0 时删除全部同名物品；删除返回值不作为进入条件
 - AddItem为GATE_KIND_ORDERADDITEM的奖励设置
-- Quest值为3种：1=歼灭怪物，2=步法超过85，3=年龄小于20岁
+- Quest 值为 3 种：1=本地图存活怪物和 NPC 数均为 0，2=当前使用的步法修炼值至少 8501，3=年龄小于 20 岁。依据：[svClass.pas](TGS核心源码/svClass.pas) 的 `TQuestClass.CheckQuest1`、`CheckQuest2`、`CheckQuest3`
 - RegenInterval为传送门重新激活间隔，数值直接与 `mmAnsTick` 比较；`mmAnsTick` 每 10 ms 增加 1
 - ActiveInterval为传送门生效状态时间，常和RegenInterval配合使用
 - OpenClock可设置开启时间在几点（最多5个），Kind为GATE_KIND_SPECIALTIME(用`8:30/10:30`指定时间)、GATE_KIND_FIXPOSITION、GATE_KIND_FIXTIME、GATE_KIND_SPORTSWAR(用`8:10:12:14`指定小时)
 - MaxUser限制Kind为GATE_KIND_SPORTSWAR时指定活动人数上限
 
-#### Kind
+## 物品检查与扣除顺序
+
+普通进入路径不是“所有条件成功后一次性扣款”：
+
+1. `NeedAge>0` 且年龄不足时，只有年龄达到 `AgeNeedItem>0` 才检查全部 `NeedItem`。正数量按配置数量检查，非正数量按 1 检查；全部通过且 `boRemainItem=false` 时，先扣除其中正数量物品。达到 `NeedAge` 的玩家跳过这组物品检查与扣除。
+2. 随后还会检查 `LimitAge`、`OverAge` 等条件。`NeedAge=0` 的按名称检查位于另一分支。
+3. 再处理 `DelItem`，之后才检查 `Quest`，最终由对应 `Kind` 分支执行传送。
+
+因此，后续年龄或任务条件失败时，前面已经扣掉的物品不会自动返还。`NeedItem` 和 `DelItem` 不能当成同一个参数，也不能把 `DelItem` 当作“必须拥有这些物品”的门票校验。配置时使用有效物品名和明确的正数量，避免无意组合收费与可能失败的后置条件。
+
+## Kind
 
 ```
    GATE_KIND_NORMAL        = 0;   # 传送门种类：普通传送门

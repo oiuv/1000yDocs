@@ -45,10 +45,12 @@ Client                  Balance :3053                 Gate :3054
 ```
 
 1. 登录窗口首次激活时，`FormActivate` 根据 `addr.txt` 设置 `sckConnect.Address/Port` 并连接 Balance。
-2. Balance 在连接可写时选择当前连接数最少的可用 Gate，将 `TSConnectThru` 封装为加密包返回；客户端不需要先发送请求。
+2. Balance 在连接可写时，从可用且启用的 Gate 中选择最近上报连接数最少者，将 `TSConnectThru` 封装为加密包返回；客户端不需要先发送请求报文。这里统计的是 Gate 接入连接数，包含尚未进入游戏的连接。
 3. `FLogOn.MessageProcess` 收到 `SM_CONNECTTHRU` 后保存 Gate IP 和端口、关闭 Balance 连接，再由 `TimerReConnect` 使用同一个 `TClientSocket` 连接 Gate。
-4. Gate 连接成功后，客户端立即发送 `TCVer`：`rmsg=CM_VERSION`、`rVer=PROGRAM_VERSION`、`rNation=NATION_VERSION`。仓库 `deftype.pas` 当前启用值为 40。联调必须使用目标 Gate 的构建版本，不能仅凭仓库常量推断其他部署的值。
+4. Gate 连接成功后，客户端立即发送 `TCVer`：`rmsg=CM_VERSION`、`rVer=PROGRAM_VERSION`、`rNation=NATION_VERSION`。本公开文档的源码基线值为 40。联调必须使用目标 Gate 的构建版本，不能仅凭公开常量推断实际部署的值。
 5. Gate 要求新连接的第一条应用消息是 `CM_VERSION`。版本或区域不符时返回 `SM_CLOSE(rkey=1)`；通过后设置登录窗口状态并返回 `SM_MESSAGE` 连接提示。
+
+Balance 只选择接入 Gate，不选择游戏区服或数据库。多个 Gate 可以连接同一套后端，为同一个游戏世界提供不同入口；具体由 Gate 配置决定。客户端直连 Gate 后，Balance 不再参与游戏消息转发。详见[负载均衡职责与分配策略](architecture.md#3-负载均衡balance)。
 
 ## 4. 登录、选角和进入游戏
 
@@ -57,7 +59,7 @@ Client                  Balance :3053                 Gate :3054
 ```text
 Client -> Gate -> Login：查询账号记录并由 Gate 比对密码
 Gate -> Client：返回角色列表
-Gate -> Paid：启用计费校验时检查付费状态
+Gate -> Paid：需要外部计费查询时检查付费状态
 Client -> Gate：CM_SELECTCHAR
 Gate -> DB：读取所选角色记录
 Gate -> Game：GM_CONNECT，将角色交给游戏服务器
@@ -65,6 +67,10 @@ Game -> Gate -> Client：进入游戏并持续转发游戏消息
 ```
 
 登录阶段的账号密码、角色列表和计费结果都经过 Gate。进入游戏后，移动、攻击、拾取、聊天等 `CM_*` 消息仍发给 Gate；Gate 在 `gs_playing` 状态下以 `GM_SENDGAMEDATA` 转发给 Game Server，不会要求客户端另建 Game 连接。
+
+角色列表返回不代表已完成外部计费查询。选角会检查当前计费类型，但 `PaidSender=nil` 或 `CHECKPAIDINFO=FALSE` 会直接将类型设为有效，因此不能推断 Paid 故障时必定拒绝登录，见[计费校验条件](architecture.md#55-计费校验条件)。
+
+账号注册与创建角色不同：当前 Gate 对 `CM_CREATEIDPASS`、`CM_CREATEIDPASS2`、`CM_CREATEIDPASS3` 注册请求均直接退出；保留相关界面或消息定义不代表注册链路可用。`CM_CREATECHAR` 创建角色仍有独立处理分支。
 
 ## 5. 客户端封包与加密
 
@@ -78,9 +84,11 @@ CM_* 业务结构
   -> TCP 字节流
 ```
 
-所有整数按 Delphi packed record 的小端布局处理。`RequestID` 使用当前连接的 `SendPacketCount`，连接建立时归零，成功排队后递增；不能固定为零。客户端外层 `RequestMsg` 通常为 0，真正的 `CM_*` 位于 `TWordComData.Data[0]`。
+所有整数按 Delphi packed record 的小端布局处理。原生客户端的 `RequestID` 使用当前连接的 `SendPacketCount`，连接建立时归零，成功排队后递增；复现原生行为时应保留这一发送约定。不过当前 Gate 的对应序号校验已被注释，不能声称固定序号必然被它拒绝。客户端外层 `RequestMsg` 通常为 0，真正的 `CM_*` 位于 `TWordComData.Data[0]`。
 
 这套加密是项目自定义编码和边界封装，不是 TLS。TCP 可能拆分或合并数据，不能假设一次读取就是一个完整包。
+
+接收兼容实现还需验证实际包长、内外层声明长度和命令结构长度，不能照搬 Gate 当前不完整的长度检查。详见[接收流程与校验缺口](protocol.md#44-缓冲区管理)。
 
 ## 6. 收发和消息分派
 
@@ -97,8 +105,8 @@ CM_* 业务结构
 ## 8. 常见联调问题
 
 - **没有服务器列表**：检查工作目录是否存在 `addr.txt`，前四个字段是否非空；按四列格式编写。
-- **能连 Balance 但不能跳转**：确认 Balance 已收到 Gate 状态上报，并能返回可用 Gate 的外网 IP 和 3054 端口。
-- **连接 Gate 后立即断开**：检查第一条应用消息是否为 `CM_VERSION`，版本是否与目标 Gate 一致（当前线上炎黄与仓库源码均为 40），并核对 `NATION_VERSION`。
+- **能连 Balance 但不能跳转**：确认 Balance 已收到 Gate 状态上报，并能返回玩家可达的 Gate IP 和端口。Gate 的 `[GATE_SERVER] LOCALIP` 决定上报地址，不是监听绑定地址；端口取 `LOCALPORT`，默认 3054。
+- **连接 Gate 后立即断开**：检查第一条应用消息是否为 `CM_VERSION`，版本是否与目标 Gate 一致，并核对 `NATION_VERSION`；公开源码的 40 不证明线上部署值。
 - **登录无响应**：检查 Gate 到 Login/Paid 的内网连接；客户端不直接访问这两个服务。
 - **进入游戏后断开**：检查 `SM_NETSTATE` 的应答 CRC、客户端 tick 单位和回复延迟，不要仅验证登录包。
 - **偶发粘包或半包错误**：按字节流累计后再按 `0x28/0x29` 解帧，不要按单次 `recv()` 解析。

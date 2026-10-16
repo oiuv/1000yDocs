@@ -14,10 +14,10 @@
 | `WINDOW_ITEMS` | 1 | 物品栏 | 背包物品窗口 |
 | `WINDOW_WEARS` | 2 | 装备栏 | 穿戴装备窗口 |
 | `WINDOW_SCREEN` | 3 | 屏幕 | 主游戏画面 |
-| `WINDOW_BASICFIGHT` | 4 | 基础武功 | 基础武功窗口 |
+| `WINDOW_BASICFIGHT` | 4 | 基本武功 | 无名系列武功窗口 |
 | `WINDOW_MAGICS` | 5 | 武功 | 已学武功窗口 |
 | `WINDOW_EXCHANGE` | 6 | 交换 | 玩家间物品交换窗口 |
-| `WINDOW_SSAMZIEITEM` | 7 | 三三物品 | 特殊物品窗口 |
+| `WINDOW_SSAMZIEITEM` | 7 | 福袋物品保管窗 | 个人储物窗口，服务端标题为“物品保管窗” |
 | `WINDOW_ALERT` | 8 | 警告 | 弹窗警告 |
 | `WINDOW_AGREE` | 9 | 确认 | 确认对话框 |
 | `WINDOW_GUILDMAKE` | 10 | 创建门派 | 创建门派窗口 |
@@ -26,7 +26,7 @@
 | `WINDOW_GUILDWAR2` | 13 | 门派战2 | 门派大战窗口2 |
 | `WINDOW_GUILDMAGIC` | 14 | 门派武功 | 门派武功窗口 |
 | `WINDOW_RISEMAGICS` | 15 | 上层武功 | 上层武功窗口 |
-| `WINDOW_POWERLEVEL` | 16 | 元气等级 | 元气阶段窗口 |
+| `WINDOW_POWERLEVEL` | 16 | 元气境界 | 元气境界窗口 |
 | `WINDOW_HELP` | 17 | 帮助 | F1帮助/任务窗口 |
 | `WINDOW_TRADE` | 18 | 买卖 | NPC 交易窗口 |
 | `WINDOW_SKILL` | 19 | 技术 | 制造/加工技能窗口 |
@@ -86,3 +86,4 @@ print('showwindow .\help\龙师父.txt 1');
 ## 相关文档
 
 - [print/系统命令/showwindow.md](../../print/系统命令/showwindow.md) — showwindow 命令文档
+- [uUserSub.pas](../TGS核心源码/uUserSub.pas) — `TShowWindowClass.ShowItemLogWindow` 打开福袋物品保管窗

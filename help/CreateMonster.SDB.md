@@ -49,7 +49,7 @@ X|int|X坐标|10
 Y|int|Y坐标|10
 Width|int|生成范围|10
 Member|string|成员|迷宫隐忍者:1:迷宫桂林忍者:1
-Script|int|脚本，对应Script\Script.sdb文件Name|1
+Script|int|脚本索引，取成功加载列表中的第几个脚本；须与 `Script/Script.SDB` 的连续编号及加载顺序保持一致，见[脚本索引约束](Script.md#scriptsdb)|1
 Total|int|部分随包文件保留的列；当前 `LoadCreateMonster` 不读取，不能当作有效总量限制|
 
 `Name,MonsterName,Script,X,Y,Count,Width,Member` 是加载器实际消费的字段。`CreateMonster31.sdb` 等文件末尾虽然还有 `Total`，但当前记录结构和加载代码都没有对应赋值。

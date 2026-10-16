@@ -84,7 +84,7 @@
 ### 采矿系统
 
 - `JOB_KIND_MINER=5` 是定义常量，不能据此认定所有采矿检查均要求人物 `JobKind=5`；当前扩展采集代码独立使用 `ExtJobKind`，采集经验更新分支检查 `ExtJobKind=1`（`UUser.pas:4142-4146`）
-- 需要曲柄 (`ITEM_KIND_PICKAX`) 或高级曲柄 (`ITEM_KIND_HIGHPICKAX`)
+- 使用十字镐 (`ITEM_KIND_PICKAX`) 或高级十字镐 (`ITEM_KIND_HIGHPICKAX`)，随包名称例如青铜十字镐、高级象牙十字镐
 - 采矿点通过 `CreateMineObject.SDB` 配置
 
 ### 冶炼系统

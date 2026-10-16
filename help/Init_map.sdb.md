@@ -1,432 +1,129 @@
 # MAP.SDB
 
-> 地图中script为地图OnTimer过程触发的脚本，或者ATTRIBUTE为6可在地图刷新倒计时30秒触发OnEventTimer过程。
+`Init/MAP.SDB` 定义每张地图的资源、规则与刷新设置。`TManagerList.LoadFromFile` 按记录索引创建 `TManager`，加载 `Smp` 障碍数据及各类对象列表。这里的 `MapID` / `ServerID` 是地图管理器编号，不等于独立的 TGS 进程。
 
-提示：在Map.SDB中增加的地图，如果没有增加传送门、NPC等在小地图上可显示的对象，按ALT+M无法调出小地图。
+本页区分“实际读取并使用”“仅加载”和“未读取”字段，不能根据表头名称推断功能已经实现。布尔值按表内 `TRUE/FALSE` 配置；时间字段除另有说明外为 `mmAnsTick`，正常倍率下 100 tick 约 1 秒。
 
-## 相关代码
+加载依据：[uManager.pas](TGS核心源码/uManager.pas) 的 `TManagerList.LoadFromFile`。空间与刷新流程见 [地图、视野与对象生命周期](TGSWorld.md)。
 
-```pascal
-// uManager.pas
-function TManagerList.LoadFromFile (aFileName : String) : Boolean;
-var
-   i, j : Integer;
-   Manager : TManager;
-   MapDB : TUserStringDB;
-   iName : String;
-   Str, Dest, StrID, StrX, StrY, DestX, DestY : String;
-begin
-   Result := false;
+## 地图资源与声音
 
-   Clear;
+| 字段 | 类型 | 实际作用 |
+| --- | --- | --- |
+| `MapID` | Integer | SDB 记录索引，转整数后成为 `Manager.ServerID`。编号应唯一；源码将编号 0 用于新手村纸条限制 |
+| `SmpName` | String | 服务端从 `./Smp/` 加载的通行与障碍数据文件名 |
+| `MapName` | String | 发给客户端的 `.map` 地图布局文件名 |
+| `TilName` | String | 发给客户端的地砖图库文件名 |
+| `ObjName` | String | 发给客户端的物件图库文件名 |
+| `RofName` | String | 发给客户端的屋顶/顶层图库文件名 |
+| `MapTitle` | String | 地图标题；部分脚本按标题查找地图，应避免重名 |
+| `SoundBase` | String | 背景音乐基名；进入地图时非空才追加 `.wav` 发送 |
+| `SoundEffect` | String | 地图周期音效基名；与 `EffectInterval` 配合，发送时追加 `.wav`。不是整数字段 |
+| `EffectInterval` | Integer | 周期音效间隔；由非空 `SoundEffect` 启用。源码不检查间隔必须为正，0/负值可能每轮地图更新都发送音效，不应用来关闭声音 |
+| `SoundStart`、`SoundEnd` | String | 已加载到地图成员；当前地图运行逻辑未见消费，不等同于怪物/武功表中的同名音效字段 |
+| `boDark`、`boRain` | Boolean | 进入地图时分别写入 `SM_NEWMAP.rboDark/rboRain` 发给客户端；与服务端 `boWeather` 不同 |
 
-   MapDB := TUserStringDB.Create;
-   MapDB.LoadFromFile (aFileName);
+依据：[uSendCls.pas](TGS核心源码/uSendCls.pas) 的 `TSendClass.SendMap`、[uManager.pas](TGS核心源码/uManager.pas) 的 `TManager.Update`。
 
-   for i := 0 to MapDB.Count - 1 do begin
-      iName := MapDB.GetIndexName (i);
-      if iName <> '' then begin
-         Manager := TManager.Create;
+## 武功、装备与药品限制
 
-         Manager.ServerId := StrToInt (iName);
-         Manager.SmpName := MapDB.GetFieldValueString (iName, 'SmpName');
-         Manager.MapName := MapDB.GetFieldValueString (iName, 'MapName');
-         Manager.ObjName := MapDB.GetFieldValueString (iName, 'ObjName');
-         Manager.RofName := MapDB.GetFieldValueString (iName, 'RofName');
-         Manager.TilName := MapDB.GetFieldValueString (iName, 'TilName');
-         Manager.Title := MapDB.GetFieldValueString (iName, 'MapTitle');
-         Manager.SoundBase := MapDB.GetFieldValueString (iName, 'SoundBase');
-         Manager.OldSoundBase := Manager.SoundBase;
-         Manager.SoundEffect := MapDB.GetFieldValueString (iName, 'SoundEffect');
-         Manager.SoundStart := MapDB.GetFieldValueString (iName, 'SoundStart');
-         Manager.SoundEnd := MapDB.GetFieldValueString (iName, 'SoundEnd');
-         Manager.boUseChemistDrug := MapDB.GetFieldValueBoolean (iName, 'boUseChemistDrug');         
-         Manager.boUseDrug := MapDB.GetFieldValueBoolean (iName, 'boUseDrug');
-         Manager.boUsePowerItem := MapDB.GetFieldValueBoolean (iName, 'boUsePowerItem');
-         Manager.boUseGuildMagic := MapDB.GetFieldValueBoolean (iName, 'boUseGuildMagic');
-         Manager.boUseWindMagic := MapDB.GetFieldValueBoolean (iName, 'boUseWindMagic');
-         Manager.boUseBestMagic := MapDB.GetFieldValueBoolean (iName, 'boUseBestMagic');
-         Manager.boUseBestSpecialMagic := MapDB.GetFieldValueBoolean (iName, 'boUseBestSpecialMagic');
-         Manager.boCanChangeMagic := MapDB.GetFieldValueBoolean (iName, 'boCanChangeMagic');
-         Manager.boUseMagic := MapDB.GetFieldValueBoolean (iName, 'boUseMagic');
-         Manager.boUseRiseMagic := MapDB.GetFieldValueBoolean (iName, 'boUseRiseMagic');
-         Manager.boUsePowerLevel := MapDB.GetFieldValueBoolean (iName, 'boUsePowerLevel');
-         Manager.boUseEtcMagic := MapDB.GetFieldValueBoolean (iName, 'boUseEtcMagic');
-         Manager.boUseBowMagic := MapDB.GetFieldValueBoolean (iName, 'boUseBowMagic');
-         Manager.boItemDrop := MapDB.GetFieldValueBoolean (iName, 'boItemDrop');
-         Manager.boGetExp := MapDB.GetFieldValueBoolean (iName, 'boGetExp');
-         Manager.boBigSay := MapDB.GetFieldValueBoolean (iName, 'boBigSay');
-         Manager.boMakeGuild := MapDB.GetFieldValueBoolean (iName, 'boMakeGuild');
-         Manager.boPosDie := MapDB.GetFieldValueBoolean (iName, 'boPosDie');
-         Manager.boHit := MapDB.GetFieldValueBoolean (iName, 'boHit');
-         Manager.boWeather := MapDB.GetFieldValueBoolean (iName, 'boWeather');
-         Manager.boPrison := MapDB.GetFieldValueBoolean (iName, 'boPrison');
-         Manager.boChangeLife := MapDB.GetFieldValueBoolean (iName, 'boChangeLife');
-         Manager.ChangeDelay := MapDB.GetFieldValueInteger (iName, 'ChangeDelay');
-         Manager.ChangeSize := MapDB.GetFieldValueInteger (iName, 'ChangeSize');
-         Manager.MapAttribute := MapDB.GetFieldValueInteger(iName, 'Attribute');
-         Manager.boDark := MapDB.GetFieldValueBoolean (iName, 'boDark');
-         Manager.boRain := MapDB.GetFieldValueBoolean (iName, 'boRain');
-         Manager.ChangePercentage := MapDB.GetFieldValueInteger (iName, 'ChangePercentage');
-         Manager.boPick := MapDb.GetFieldValueBoolean(iName, 'boPick');
-         Manager.boNotDeal := MapDB.GetFieldValueBoolean (iName, 'boNotDeal');
+| 字段 | 类型 | 实际作用 |
+| --- | --- | --- |
+| `boUseBowMagic` | Boolean | 是否允许弓术、投法及对应武器 |
+| `boUseMagic` | Boolean | 是否允许 `MAGICCLASS_MAGIC`，即普通武功；不是全部武功的总开关 |
+| `boUseRiseMagic` | Boolean | 是否允许上层武功 |
+| `boUseWindMagic` | Boolean | 是否允许掌法（`MAGICCLASS_MYSTERY`） |
+| `boUseBestMagic` | Boolean | 是否允许绝世武功 |
+| `boUseBestSpecialMagic` | Boolean | 是否允许 `MAGICTYPE_BESTSPECIAL` 招式武功 |
+| `boUseGuildMagic` | Boolean | 是否允许 `rGuildMagicType=1` 的门派武功 |
+| `boUseEtcMagic` | Boolean | 是否允许 `MAGICTYPE_ECT` 辅助武功 |
+| `boUsePowerLevel` | Boolean | 是否允许通过境界窗口调整境界；不是经验倍率 |
+| `boUsePowerItem` | Boolean | 是否允许 `rboPower=true` 的装备；装备及武功自动换武器路径都会检查 |
+| `boCanChangeMagic` | Boolean | 限制武器攻击类型变化及武功自动换武器路径；不是无条件禁止所有同武器武功切换 |
+| `boUseDrug` | Boolean | 是否允许使用 `ITEM_KIND_DRUG` 药品 |
+| `boUseChemistDrug` | Boolean | 为假时拒绝 `ITEM_SPKIND_DONTDRUG` 类药品；也参与炼丹属性药的效果处理，不等于普通药品总开关 |
+| `UseDrugName` | String | 冒号分隔，最多 5 个药品名；仅门派大战、竞技场地图（Attribute 7、9）按此白名单允许服药，还需通过前两个药品开关 |
+| `boNotUseHideItem` | Boolean | 为真时拒绝 `ITEM_KIND_HIDESKILL` 隐身物品 |
 
-         Manager.RegenInterval := MapDB.GetFieldValueInteger (iName, 'RegenInterval');
-         Manager.EffectInterval := MapDB.GetFieldValueInteger (iName, 'EffectInterval');
+依据：[uUserSub.pas](TGS核心源码/uUserSub.pas) 的 `THaveItemClass.DblClickProcess`、`TWearItemClass.AddItem/ChangeItem`、`THaveMagicClass.DblClick*MagicProcess`；[UUser.pas](TGS核心源码/UUser.pas) 的 `TUser.MessageProcess`（`WINDOW_POWERLEVEL`）。传送门还会检查目标地图的部分武功/装备限制，见 [BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateObject.FieldProc`。
 
-         Manager.TargetServerID := MapDB.GetFieldValueInteger (iName, 'TargetServerID');
-         Manager.TargetX := MapDB.GetFieldValueInteger (iName, 'TargetX');
-         Manager.TargetY := MapDB.GetFieldValueInteger (iName, 'TargetY');
+## 地图交互与玩家状态
 
-         Manager.LoginServerID := MapDB.GetFieldValueInteger (iName, 'LoginServerID');
-         Manager.LoginX := MapDB.GetFieldValueInteger (iName, 'LoginX');
-         Manager.LoginY := MapDB.GetFieldValueInteger (iName, 'LoginY');
-         Manager.boSetGroupKey := MapDB.GetFieldValueBoolean (iName, 'boSetGroupKey');
-         Manager.GroupKey := MapDB.GetFieldValueInteger (iName, 'GroupKey');
-         Manager.boPK := MapDB.GetFieldValueBoolean(iName, 'boPK'); //10-02
-         Manager.boEvent := MapDB.GetFieldValueBoolean (iName, 'boEvent'); 
-         Manager.EventAge := MapDB.GetFieldValueInteger (iName, 'EventAge');  // 10-12
-         Manager.EventID := MapDB.GetFieldValueInteger (iName, 'EventID');
-         StrX := MapDB.GetFieldValueString (iName, 'EventX');
-         if StrX <> '' then begin
-            for j := 0 to 2 - 1 do begin
-               if StrX = '' then break;
-               StrX := GetValidStr3 (StrX, DestX, ':');
-               Manager.EventX [j] := _StrToInt (DestX);
-            end;
-         end;
+| 字段 | 类型 | 实际作用 |
+| --- | --- | --- |
+| `boGetExp` | Boolean | 登录、换图时赋给属性类与武功类的 `SetAddExpFlag`，控制对应经验增长路径；不设置倍率 |
+| `boBigSay` | Boolean | 控制大喊/全服喊话命令分支，不是普通聊天总开关 |
+| `boMakeGuild` | Boolean | 门派石创建、移动等路径检查地图是否允许，不是简单显示开关 |
+| `boItemDrop` | Boolean | 是否允许玩家从物品栏拖到地面；不是怪物死亡掉落的总开关 |
+| `boNotDeal` | Boolean | 为真时拦截多条攻击/受击及物品转移路径，包括丢弃、交换等；不能只解释为“禁止交易” |
+| `boPosDie` | Boolean | 在复活处理分支中查询 `PosByDie` 并转移位置；门派大战/竞技场有优先的复活分支，不是死亡瞬间统一传送 |
+| `boHit` | Boolean | 决定部分玩家受击消息使用 `SendLocalMessage` 还是 `Phone.SendMessage` 分发；为假不等于禁止攻击或不扣活力 |
+| `boPrison` | Boolean | 标识流放地图；囚禁玩家登录时定位到首个此类地图，并影响纸条等限制 |
+| `boSetGroupKey` | Boolean | 换入地图时强制设置 `GroupKey` 并取消安全状态；为真时也不执行普通“设定团队”命令分支 |
+| `GroupKey` | Integer | 上项启用时使用的团队标识；不是地图编号 |
+| `boPK` | Boolean | 维护地图玩家列表，供怪物 `GetRandomUser` 选取追击对象；不是通用“允许玩家互杀”开关 |
+| `boNotAllowPK` | Boolean | 允许无团队角色进入安全状态及“解除团队”；已有团队、战场规则仍另有判断，不能理解为全图绝对免伤 |
+| `boPick` | Boolean | 采矿开关，矿点的 `FM_PICK` / `FM_DECDEPOSIT` 检查此值；不是地面物品拾取开关 |
+| `boShop` | Boolean | 已加载；唯一摆摊命令消费分支被整块注释，当前不能靠此值开放摆摊 |
+| `boShowMiniMap` | Boolean | 为真取动态物件位置，为假取 NPC 与传送门位置；两条分支都可追加队友位置。为假且最终字符串为空时不发小地图信息 |
 
-         StrY := MapDB.GetFieldValueString (iName, 'EventY');
-         if StrY <> '' then begin
-            for j := 0 to 2 - 1 do begin
-               if StrY = '' then break;
-               StrY := GetValidStr3 (StrY, DestY, ':');
-               Manager.EventY [j] := _StrToInt (DestY);
-            end;
-         end;
+依据：[UUser.pas](TGS核心源码/UUser.pas) 的 `TUserObject.CommandHited`、`TUser.UserSay/DragProcess/MessageProcess/Update`、`TUserList.InitialLayer`；[uManager.pas](TGS核心源码/uManager.pas) 的 `AddUser/DelUser/GetRandomUser`；[uMonster.pas](TGS核心源码/uMonster.pas) 的 `TMonster.Update`；[BasicObj.pas](TGS核心源码/BasicObj.pas) 的矿点消息处理；[uGuild.pas](TGS核心源码/uGuild.pas) 的 `TGuildObject.CreateStone/MoveStone`。
 
-         //2003-05-13
-         Str := MapDB.GetFieldValueString (iName, 'SubMap');
-         if Str <> '' then begin
-            j := 0;
-            while Str <> '' do begin
-               Str := GetValidStr3 (Str, StrID, ':');
-               Manager.SubMapIDs[j] := _StrToInt (StrID);
-               inc(j);
-            end;
-         end;
+## 属性地图与天气
 
-         Manager.MotherMapId := MapDB.GetFieldValueInteger (iName, 'MotherMap');
-         Manager.boNotAllowPK := MapDB.GetFieldValueBoolean (iName, 'boNotAllowPK');
-         Manager.boShop := MapDB.GetFieldValueBoolean (iName, 'boShop'); 
-                  
-         Manager.CalcTime (Manager.RegenInterval, Manager.TotalHour, Manager.TotalMin, Manager.TotalSec);
-         Manager.CalcTime (Manager.RegenInterval, Manager.RemainHour, Manager.RemainMin, Manager.RemainSec);
+| 字段 | 类型 | 实际作用 |
+| --- | --- | --- |
+| `Attribute` | Integer | 地图类型，见下表；不同功能分别按类型判断，不是统一执行所有类型效果 |
+| `boChangeLife` | Boolean | 是否执行冰、火、补给、境界地图的周期属性变化 |
+| `ChangeDelay` | Integer | 上述变化的 tick 间隔 |
+| `ChangePercentage` | Integer | 冰地图每次减活力的比例，计算为 `(活力上限 div 100) * ChangePercentage` |
+| `ChangeSize` | Integer | 火/境界地图每次减活力数，或补给地图每次增加活力、内功、外功、武功数 |
+| `boWeather` | Boolean | 是否向此地图玩家发送服务端天气消息；还受 TGS 的 Weather 开关控制 |
 
-         Str := MapDB.GetFieldValueString (iName, 'UseDrugName');
-         if Str <> '' then begin
-            for j := 0 to 5 - 1 do begin
-               if Str = '' then break;
-               Str := GetValidStr3 (Str, Dest, ':');
-               Manager.UseDrugName [j] := Dest;
-            end;
-         end;
-          
-         Manager.Maper := TMaper.Create ('.\Smp\' + Manager.SmpName);
-         Manager.Phone := TFieldPhone.Create (Manager);
+| Attribute | 常量 | 实际规则摘要 |
+| ---: | --- | --- |
+| 1 | `MAP_TYPE_ICE` | `boChangeLife=true` 时按比例减活力；火属性装备可免除此项 |
+| 2 | `MAP_TYPE_FIRE` | 同上，按 `ChangeSize` 减活力；持有水类容器物品或装备冰属性物品可免除此项 |
+| 3 | `MAP_TYPE_FILL` | 持有补给物品（`FillItemCount<>0`）且启用属性变化时，周期恢复上述四项属性 |
+| 4 | `MAP_TYPE_BATTLE` | 对战地图，参与战场人数、结算及团队限制等分支 |
+| 5 | `MAP_TYPE_DONTTICKET` | 拒绝使用 `ITEM_KIND_TICKET` 传送物品 |
+| 6 | `MAP_TYPE_KILLONLYONE` | 地图刷新倒计时剩余 30 秒时调用地图脚本 `OnEventTimer`；名称不代表引擎自动只允许击杀一只怪 |
+| 7 | `MAP_TYPE_GUILDBATTLE` | 门派大战，使用战场复活与药品白名单等规则 |
+| 8 | `MAP_TYPE_POWERLEVEL` | 境界低于 2 且启用属性变化时按 `ChangeSize` 减活力 |
+| 9 | `MAP_TYPE_SPORTBATTLE` | 竞技场，使用战场复活与药品白名单等规则 |
 
-         Manager.MonsterList := TMonsterList.Create (Manager);
-         Manager.ItemList := TItemList.Create (Manager);
-         Manager.StaticItemList := TStaticItemList.Create (Manager);
-         Manager.DynamicObjectList := TDynamicObjectList.Create (Manager);
-         Manager.VirtualObjectList := TVirtualObjectList.Create (Manager);
-         Manager.MineObjectList := TMineObjectList.Create (Manager);
-         Manager.NpcList := TNpcList.Create (Manager);
+天气使用服务器当前月份：触发天气时，1 月为雪；2 月、12 月由 `Random(10)` 的 0、1、2 选择雪，即 **30%**，其余为雨；3 至 11 月为雨。概率是在选择一次天气类型时应用，不是每轮玩家更新都重新抽取。依据：[SVMain.pas](TGS核心源码/SVMain.pas) 的 `TimerRainTimer`、`MRainClick`，以及 [UUser.pas](TGS核心源码/UUser.pas) 的 `TUserList.SendRaining`。
 
-         Manager.SetScript (MapDB.GetFieldValueInteger (iName, 'Script'));
-         Manager.boShowMiniMap := MapDB.GetFieldValueBoolean (iName, 'boShowMiniMap');                  
-         Manager.boNotUseHideItem := MapDB.GetFieldValueBoolean (iName, 'boNotUseHideItem');
-         DataList.Add (Manager);
-      end;
-   end;
+属性变化依据：[UUser.pas](TGS核心源码/UUser.pas) 的 `TUser.Update`；物品白名单与传送符依据：[uUserSub.pas](TGS核心源码/uUserSub.pas) 的 `THaveItemClass.DblClickProcess`。
 
-   MapDB.Free;
+## 刷新、脚本与登录位置
 
-   Result := true;
-end;
+| 字段 | 类型 | 实际作用 |
+| --- | --- | --- |
+| `RegenInterval` | Integer | 地图整体刷新间隔，正值才自动刷新；例如 180000 tick 约 30 分钟。此类地图怪物死亡后走移除分支，等待整体重建 |
+| `TargetServerID`、`TargetX`、`TargetY` | Integer | 地图刷新时的传出目标；也用于该地图重新登录的回退位置 |
+| `SubMap` | String | 冒号分隔的子地图 ID；母图刷新时可把这些地图的玩家移到母图的 Target 位置。数组仅 10 项，加载循环无长度保护，不得超过 10 项 |
+| `MotherMap` | Integer | 母地图 ID；非 0 时本地图刷新不执行自身 Target 转出分支 |
+| `Script` | Integer | 地图脚本编号，绑定 `OnTimer`、`OnEventTimer`；地图 `OnTimer` 约每 6000 tick 调用一次，参数为空字符串 |
+| `LoginServerID`、`LoginX`、`LoginY` | Integer | 普通玩家重新登录时的转入位置，仅 X、Y 都非 0 才生效；权限达到 100 的 GM 跳过这组普通位置重定向 |
+| `boEvent` | Boolean | 启用登录时的年龄分流；仅当前面的 Login、定时刷新地图、PosByDie 分支都未选中时才检查 |
+| `EventAge` | Integer | 与 `GetLevel(Light+Dark)` 的返回值比较，严格大于才分流；不是武功修炼等级 |
+| `EventID` | Integer | 年龄分流的目标地图 ID |
+| `EventX`、`EventY` | String | 各最多 2 个冒号分隔坐标；随机选同一下标组成 `(X,Y)`，不是随机矩形。两组必须配齐 |
 
-// UUser.pas
-function TUserList.InitialLayer (aCharName: string; aConnector : TConnector) : Boolean;
-var
-   i, Age, nRandom : Integer;
-   xx, yy : Word;
-   User : TUser;
-   tmpManager : TManager;
-   ServerID : Integer;
-   rStr : String;
-begin
-   Result := false;
+刷新时先重置计时。只有 `SubMap` 第一项非 0 才遍历这 10 个子地图槽；自身玩家只有在 `TargetX>0`、`TargetY>0` 且 `MotherMap=0` 时才按 Target 转出。随后重载动态物件、怪物、NPC、虚拟物件、矿点，清空地面物品。不要把设置 Target 字段理解为无条件传送，也不要让玩家在刷新前继续依赖地面掉落。
 
-   if NameKey.Select (aCharName) <> nil then exit;
+登录位置不是地图出生点的简单覆盖：先处理囚禁状态；普通登录再依次考虑 Login 坐标、定时刷新地图 Target、`PosByDie`、Event 年龄分流。当前地图编号不存在则进入代码的回退地图分支。目标地图必须实际存在，坐标需合法。
 
-   User := TUser.Create;
+`Attribute=6` 的 `OnEventTimer` 判断是“剩余时、分为 0 且秒为 30”；源码没有只执行一次的锁，脚本应自行避免重复发奖或重复生成对象。详见 [OnTimer](../procedure/OnTimer.md)、[OnEventTimer](../procedure/OnEventTimer.md)。
 
+依据：[uManager.pas](TGS核心源码/uManager.pas) 的 `TManager.Update/Regen/SetScript`；[UUser.pas](TGS核心源码/UUser.pas) 的 `TUserList.InitialLayer`。
 
-   User.Connector := aConnector;
-   User.SysopScope := SysopClass.GetSysopScope (aCharName);
+## 表头中未读取的字段
 
-   tmpManager := nil;
-   rStr := PrisonClass.GetUserStatus (aCharName);
-   if rStr <> '' then begin
-      User.ServerID := User.Connector.CharData.ServerID;
-      for i := 0 to ManagerList.Count - 1 do begin
-         tmpManager := ManagerList.GetManagerByIndex (i);
-         if tmpManager.boPrison = true then begin
-            if User.ServerID <> tmpManager.ServerID then begin
-               ServerID := tmpManager.ServerID;
-               User.ServerID := ServerID;
-               User.Connector.CharData.ServerID := ServerID;
-               User.Connector.CharData.X := 61;
-               User.Connector.CharData.Y := 77;
-            end;
-            break;
-         end;
-         tmpManager := nil;
-      end;
-   end;
+| 字段 | 当前状态 |
+| --- | --- |
+| `boFirstPickUp` | 当前地图加载器未读取，不能靠此字段配置掉落优先拾取 |
+| `UseDay`、`StartHour`、`EndHour` | 当前地图加载器未读取，不能靠这些字段设置地图开放日期或时段；传送门开放时间使用独立配置 |
 
-   if tmpManager = nil then begin
-      ServerID := User.Connector.CharData.ServerID;
-      tmpManager := ManagerList.GetManagerByServerID (ServerID);
-      if tmpManager <> nil then begin
-         if User.SysopScope >= 100 then begin
-         end else if ( tmpManager.LoginX <> 0 ) and ( tmpManager.LoginY <> 0) then begin
-            ServerID := tmpManager.LoginServerID;
-            User.Connector.CharData.ServerId := ServerID;
-            User.Connector.CharData.X := tmpManager.LoginX;
-            User.Connector.CharData.y := tmpManager.LoginY;
-            tmpManager := ManagerList.GetManagerByServerID (ServerID);
-         end else if tmpManager.RegenInterval > 0 then begin
-            ServerID := tmpManager.TargetServerID;
-            User.Connector.CharData.ServerID := ServerID;
-            User.Connector.CharData.X := tmpManager.TargetX;
-            User.Connector.CharData.Y := tmpManager.TargetY;
-            tmpManager := ManagerList.GetManagerByServerID (ServerID);
-         end else if PosByDieClass.GetPosByDieData (tmpManager.ServerID, ServerID, xx, yy) = true then begin
-            User.Connector.CharData.ServerID := ServerID;
-            User.Connector.CharData.X := xx;
-            User.Connector.CharData.Y := yy;
-            tmpManager := ManagerList.GetManagerByServerID (ServerID);
-         end else if tmpManager.boEvent = TRUE then begin
-            Age := GetLevel (User.Connector.CharData.Light + User.Connector.CharData.Dark);
-            if Age > tmpManager.EventAge then begin
-               ServerID := tmpManager.EventID;
-               User.Connector.CharData.ServerId := ServerID;
-               nRandom := random (2);
-               User.Connector.CharData.X := tmpManager.EventX [nRandom];
-               User.Connector.CharData.Y := tmpManager.EventY [nRandom];
-               tmpManager := ManagerList.GetManagerByServerID (ServerID);
-            end;
-         end;
-      end else begin
-         ServerID := 1;
-         User.Connector.CharData.ServerId := ServerID;
-         User.Connector.CharData.x := 500;
-         User.Connector.CharData.y := 500;
-         tmpManager := ManagerList.GetManagerByServerID (ServerID);
-      end;
-   end;
-
-   User.SetManagerClass (tmpManager);
-   
-   User.AttribClass.SetAddExpFlag := tmpManager.boGetExp;
-   User.HaveMagicClass.SetAddExpFlag := tmpManager.boGetExp;
-   tmpManager.UserCount := tmpManager.UserCount + 1;
-   
-   Result := User.InitialLayer (aCharName);
-
-   User.Initial (aCharName);
-
-   NameKey.Insert (aCharName, User);
-   DataList.Add (User);
-
-   Result := true;
-end;
-```
-
-## 文件结构
-
-字段 | 类型 | 描述 | 示例
--|-|-|-
-MapID|integer| 地图ID，唯一编号，其中0为不可传纸条的新手村，1为主地图 | 0
-SmpName|string| 地图结构文件名，在服务端Smp目录（*.smp） | south.smp
-MapName|string| 地图文件名称，在客户端Map文件（*.map）可用工具转为smp文件 | south.map
-TilName|string| 地图地面（如地毯）文件名，在客户端Til文件（*til.til） | southtil.til
-ObjName|string| 地图物体（如树木）文件名，在客户端Obj文件（*obj.obj） | southobj.obj
-RofName|string| 地图顶层（如屋顶）文件名，在客户端Rof文件（*rof.obj） | southrof.obj
-SoundBase|string| 背景音乐基名，不写扩展名；进入地图时服务器固定追加 `.wav` 后发送给客户端 | 1001
-SoundEffect|int| 音效文件名，不需要`.wav`扩展名，文件在客户端Wav目录effect.atw中，由EffectInterval控制生效间隔 | 1002
-MapTitle|string| 地图标题，需要唯一不重复 | 侠客村
-boUseBowMagic|boolean| 是否可使用弓术和投术 | TRUE
-boUseChemistDrug|boolean| 是否可使用炼丹药品 | TRUE
-boUseDrug|boolean| 是否可使用药品 | TRUE
-boGetExp
-boBigSay
-boUsePowerItem|boolean|是否可用属性装备|TRUE
-boUseGuildMagic
-boUseMagic|boolean|是否可用一级武功|TRUE
-boUseRiseMagic|boolean|是否可用上层武功|TRUE
-boUseWindMagic|boolean|是否可用掌法|TRUE
-boUseBestMagic|boolean|是否可用绝世武功|TRUE
-boUseBestSpecialMagic|boolean|是否可用招式|TRUE
-boUsePowerLevel
-boUseEtcMagic|boolean|是否可用辅助武功（风灵旋类）|TRUE
-boCanChangeMagic
-boMakeGuild
-boItemDrop
-boPosDie| boolean | 死亡时是否异地重生，为TRUE时有PosByDie.sdb控制重生点 | TRUE
-boHit
-boWeather| boolean | 在TGS菜单上点Rain（需选中Weather）可下雨或雪（1月下雪，2和12月80%几率）| TRUE
-boPrison
-boChangeLife
-ChangePercentage
-ChangeDelay
-ChangeSize
-Attribute|int| 地图特殊属性，见下表 | 1
-RegenInterval|int| 地图刷新时间间隔，倒计时为0触发传送（在刷新之前地图Mop不会重生）|180000
-EffectInterval|int|地图声音音效播放间隔|3000
-TargetServerID|int| 传送服务器ID，在RegenInterval倒计时到0时触发传送，如果有SubMap，还会把所有子地图玩家传送 | 1
-TargetX|int| 传送目标X坐标，注意不要设置MotherMap | 10
-TargetY|int| 传送目标Y坐标，注意不要设置MotherMap | 10
-boDark|boolean|加载到 `TManager.boDark`，玩家进入地图时写入 `SM_NEWMAP.rboDark` 发给客户端|
-boRain|boolean|加载到 `TManager.boRain`，玩家进入地图时写入 `SM_NEWMAP.rboRain` 发给客户端；与服务端天气开关 `boWeather` 不是同一字段|
-boPick
-Script
-LoginServerID|int| 登录服务器ID，如果有设置，在玩家登录游戏时会触发（GM不会）|1
-LoginX|int| 登录服务器X坐标 |10
-LoginY|int| 登录服务器Y坐标 |10
-boSetGroupKey
-GroupKey
-boPK
-boEvent
-EventAge
-EventID
-EventX
-EventY
-boNotAllowPK
-boShop|boolean|可摆摊，指令@准备摆摊，未开放功能|
-SubMap
-MotherMap
-boNotUseHideItem
-boShowMiniMap|boolean|注意这个是对战用，显示团队成员，如果普通地图设置会不显示NPC和跳点|FALSE
-boFirstPickUp|boolean|当前 Pascal 源码没有读取此表头字段|FALSE
-UseDay||当前 Pascal 源码没有读取此表头字段|
-StartHour||当前 Pascal 源码没有读取此表头字段|
-EndHour||当前 Pascal 源码没有读取此表头字段|
-SoundStart
-SoundEnd
-UseDrugName
-boNotDeal
-
-
-### Attribute
-
-```
-   MAP_TYPE_ICE   = 1;   # 地图类型：冰属性（装备火属性物品不掉活力）
-   MAP_TYPE_FIRE  = 2;   # 地图类型：火属性（装备冰属性物品不掉活力）
-   MAP_TYPE_FILL  = 3;   # 地图类型：新手村（带五色药水增加活力、内力、外力、武功）
-   MAP_TYPE_BATTLE      = 4;   # 地图类型：大战场（击败对手比赛）
-   MAP_TYPE_DONTTICKET  = 5;   # 地图类型：无法使用传送符的区域
-   MAP_TYPE_KILLONLYONE = 6;   # 地图类型：只能击败一个指定的怪物（OnEventTimer事件）
-   MAP_TYPE_GUILDBATTLE = 7;   # 地图类型：门派大战 - 只能吃一种药（中国活动）
-   MAP_TYPE_POWERLEVEL  = 8;   # 地图类型：境界等级小于2级会消耗活力
-   MAP_TYPE_SPORTBATTLE = 9;   # 地图类型：竞技场
-```
-
-当 boChangeLife 为 TRUE 时，Attribute 属性相关代码：
-
-```pascal
-   if Manager.boChangeLife = true then begin
-      case Manager.MapAttribute of
-         MAP_TYPE_ICE :
-            begin
-               if WearItemClass.SpecialItemType <> ITEM_ATTRIBUTE_FIRE then begin
-                  if BasicData.Feature.rfeaturestate <> wfs_die then begin
-                     if ChangeLifeTick + Manager.ChangeDelay <= CurTick then begin
-                        AttribClass.CurLife := AttribClass.CurLife - ((AttribClass.Life div 100) * Manager.ChangePercentage);
-                        ChangeLifeTick := CurTick;
-                        SendClass.SendSideMessage (Conv('活力减少'));
-                        if AttribClass.CurLife = 0 then begin
-                           CommandChangeCharState (wfs_die);
-                           ChangeLifeTick := CurTick;
-                        end;
-                     end;
-                  end;
-               end;
-            end;
-         MAP_TYPE_FIRE :
-            begin
-               if (HaveItemClass.WaterCaseItemCount = 0)
-                  and (WearItemClass.SpecialItemType <> ITEM_ATTRIBUTE_ICE) then begin
-                  if BasicData.Feature.rfeaturestate <> wfs_die then begin
-                     if ChangeLifeTick + Manager.ChangeDelay <= CurTick then begin
-                        AttribClass.CurLife := AttribClass.CurLife - Manager.ChangeSize;
-                        ChangeLifeTick := mmAnsTick;
-                        SendClass.SendSideMessage (Conv('活力减少'));
-                        if AttribClass.CurLife = 0 then begin
-                           CommandChangeCharState (wfs_die);
-                        end;
-                     end;
-                  end else begin
-                     ChangeLifeTick := mmAnsTick;
-                  end;
-               end;
-            end;
-         MAP_TYPE_FILL :
-            begin
-               if BasicData.Feature.rfeaturestate <> wfs_die then begin
-                  if HaveItemClass.FillItemCount <> 0 then begin
-                     if ChangeLifeTick + Manager.ChangeDelay <= CurTick then begin
-                        AttribClass.CurLife := AttribClass.CurLife + Manager.ChangeSize; // 提升活力、内功、外功、武功
-                        AttribClass.CurInPower := AttribClass.CurInPower + Manager.ChangeSize;
-                        AttribClass.CurOutPower := AttribClass.CurOutPower + Manager.ChangeSize;
-                        AttribClass.CurMagic := AttribClass.CurMagic + Manager.ChangeSize;
-                        SendClass.SendSideMessage (Conv('喝口五色药水恢复活力'));
-                        ChangeLifeTick := CurTick;
-                     end;
-                  end;
-               end else begin
-                  ChangeLifeTick := CurTick;
-               end;
-            end;
-         MAP_TYPE_POWERLEVEL : begin
-            if PowerLevel < 2 then begin
-               if BasicData.Feature.rfeaturestate <> wfs_die then begin
-                  if ChangeLifeTick + Manager.ChangeDelay <= CurTick then begin
-                     AttribClass.CurLife := AttribClass.CurLife - Manager.ChangeSize;
-                     ChangeLifeTick := mmAnsTick;
-                     SendClass.SendSideMessage (Conv('活力减少'));
-                     if AttribClass.CurLife = 0 then begin
-                        CommandChangeCharState (wfs_die);
-                     end;
-                  end;
-               end else begin
-                  ChangeLifeTick := mmAnsTick;
-               end;
-            end;
-         end;
-      end;
-   end;
-
-```
-
-SoundEffect 和 EffectInterval 相关代码：
-
-```pascal
-      if SoundEffect <> '' then begin
-         if CurTick >= EffectTick + EffectInterval then begin
-            UserList.SendSoundMessage (format ('%s.wav', [SoundEffect]), ServerID);
-            EffectTick := CurTick;
-         end;
-      end;
-```
+相关资料：[地图文件格式](MapFiles.md)、[普通传送门](CreateGate.SDB.md)、[扩展传送门](CreateGateEx.SDB.md)、[运行资源加载](RuntimeResources.md)。

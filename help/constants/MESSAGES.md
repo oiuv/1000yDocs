@@ -2,7 +2,7 @@
 
 > 源码: `1000ydef/deftype.pas`
 
-本文档整理了服务间通信和场景消息的常量定义。这些常量主要用于服务端内部通信，脚本开发中一般不直接使用，但了解它们有助于理解系统架构。
+本文档整理客户端通信与服务端场景消息的常量定义。`CM_*`、`SM_*` 用于客户端通信，`FM_*` 用于场景内部消息分发；脚本开发中一般不直接发送这些编号。常量声明不等于所有入口都已启用，实际行为还要核对收发两端与当前状态。
 
 ---
 
@@ -48,7 +48,7 @@ Field Message — 场景内对象间通信消息，通过 `TFieldPhone.SendMessa
 | `FM_ADDWINDOFHANDEXP` | 24 | 增加掌风经验 |
 | `FM_ADDEXTRAEXP` | 25 | 增加额外经验 |
 | `FM_ADDITEM` | 27 | 添加物品 |
-| `FM_DELKEYITEM` | 28 | 删除关键物品 |
+| `FM_DELKEYITEM` | 28 | 按背包槽位和数量删除物品（`DeleteKeyItem`） |
 | `FM_ADDMONEY` | 29 | 增加金钱 |
 | `FM_DELMONEY` | 30 | 减少金钱 |
 | `FM_TURNDAMAGE` | 31 | 转身伤害（2003-10） |
@@ -85,14 +85,14 @@ Field Message — 场景内对象间通信消息，通过 `TFieldPhone.SendMessa
 | `FM_DBLCLICK` | 117 | 双击 |
 | `FM_CHANGEPROPERTY` | 118 | 改变属性 |
 | `FM_CHECKGUILDUSER` | 120 | 检查门派成员 |
-| `FM_LIFEPERCENT` | 124 | 生命百分比 |
+| `FM_LIFEPERCENT` | 124 | 活力百分比 |
 | `FM_IAMHERE` | 125 | 我在这里 |
 | `FM_ADDALLYGUILD` | 126 | 添加同盟门派 |
 | `FM_DELALLYGUILD` | 127 | 删除同盟门派 |
 | `FM_AGREEALLYGUILD` | 128 | 同意同盟门派 |
 | `FM_SELFSAY` | 129 | 自己说话 |
 | `FM_SPELL` | 130 | 法术 |
-| `FM_ADDVIRTUEEXP` | 131 | 增加道德经验 |
+| `FM_ADDVIRTUEEXP` | 131 | 增加浩然正气经验 |
 | `FM_APPROACH` | 132 | 接近 |
 | `FM_AWAY` | 133 | 离开 |
 | `FM_ZONEEFFECT` | 134 | 区域效果 |
@@ -107,9 +107,9 @@ Field Message — 场景内对象间通信消息，通过 `TFieldPhone.SendMessa
 | `FM_REPOSITION` | 143 | 重新定位 |
 | `FM_BACKMOVE` | 144 | 后退移动 |
 | `FM_SAYSYSTEM` | 145 | 系统说话 |
-| `FM_CHANGEDURAWATERCASE` | 146 | 改变水桶耐久 |
+| `FM_CHANGEDURAWATERCASE` | 146 | 补满水容器当前耐久 |
 | `FM_SETPOSITION` | 149 | 设置位置 |
-| `FM_FILLLIFE` | 150 | 恢复活力（新手村药水池） |
+| `FM_FILLLIFE` | 150 | 恢复区补给：活力、内功、外功、武功；指定绿洲类型还恢复元气 |
 | `FM_SETEFFECT` | 151 | 设置效果（2003-10） |
 | `FM_ADDLIFEORENERGY` | 153 | 增加活力或元气（2003-10） |
 | `FM_ADDMINEREXP` | 154 | 增加矿工经验 |
@@ -125,7 +125,7 @@ Field Message — 场景内对象间通信消息，通过 `TFieldPhone.SendMessa
 | `FM_DELITEM` | 75 | 删除物品 |
 | `FM_GATHERVASSAL` | 76 | 聚集仆从 |
 | `FM_SOUNDBASE` | 64 | 基础音效 |
-| `FM_ADDPROTECTEXP` | 102 | 增加护身经验 |
+| `FM_ADDPROTECTEXP` | 102 | 增加护体经验 |
 | `FM_ALLOWGUILDNAME` | 112 | 允许门派名 |
 | `FM_ALLOWGUILDSYSOPNAME` | 113 | 允许门派管理员名 |
 | `FM_REMOVEGUILDMEMBER` | 119 | 移除门派成员 |
@@ -148,7 +148,7 @@ Server Message — 服务端发送给客户端的消息。
 | `SM_CHATMESSAGE` | 4 | 聊天消息 |
 | `SM_SETCLIENTCONDITION` | 2 | 设置客户端条件 |
 | `SM_MSGANDCLOSE` | 252 | 消息并关闭 |
-| `SM_CONNECTTHRU` | 253 | 连接穿透（Balance返回Gate地址） |
+| `SM_CONNECTTHRU` | 253 | 连接重定向（Balance 返回 Gate 地址，不是 NAT 穿透） |
 | `SM_RECONNECT` | 254 | 重连 |
 | `SM_CLOSE` | 255 | 关闭 |
 | `SM_CHECK` | 52 | 检查 |
@@ -166,6 +166,7 @@ Server Message — 服务端发送给客户端的消息。
 | `SM_ATTRIB_LIFE` | 25 | 活力属性 |
 | `SM_EXTRAATTRIB_VALUES` | 87 | 额外属性值 |
 | `SM_ABILITYATTRIB` | 96 | 角色能力属性 |
+| `SM_CHANGEPROPERTY` | 46 | 改变对象属性的消息定义 |
 
 ### 场景消息
 
@@ -196,15 +197,15 @@ Server Message — 服务端发送给客户端的消息。
 |--------|---:|----------|
 | `SM_USEDMAGICSTRING` | 32 | 使用武功字符串 |
 | `SM_MOVINGMAGIC` | 33 | 飞行武功 |
-| `SM_BASICMAGIC` | 34 | 基础武功 |
+| `SM_BASICMAGIC` | 34 | 基本武功 |
 | `SM_SAYUSEMAGIC` | 36 | 使用武功说话 |
-| `SM_BOSHIFTATTACK` | 37 | BOSS偏移攻击 |
+| `SM_BOSHIFTATTACK` | 37 | 设置客户端 `boShiftAttack` 开关（Shift 攻击模式） |
 | `SM_HAVERISEMAGIC` | 61 | 持有上层武功 |
 | `SM_HAVEMYSTERY` | 76 | 持有掌法 |
 | `SM_HAVEBESTMAGIC` | 86 | 持有绝世武功 |
-| `SM_SHOWBESTATTACKMAGICWINDOW` | 88 | 显示绝世必杀窗口 |
-| `SM_SHOWBESTPROTECTMAGICWINDOW` | 89 | 显示绝世公力窗口 |
-| `SM_SHOWBESTSPECIALMAGICWINDOW` | 90 | 显示绝世超式窗口 |
+| `SM_SHOWBESTATTACKMAGICWINDOW` | 88 | 显示绝世攻击武功窗口 |
+| `SM_SHOWBESTPROTECTMAGICWINDOW` | 89 | 显示神功（绝世护体）窗口 |
+| `SM_SHOWBESTSPECIALMAGICWINDOW` | 90 | 显示招式武功窗口 |
 
 ### 窗口消息
 
@@ -240,7 +241,7 @@ Server Message — 服务端发送给客户端的消息。
 | `SM_SHOWMARKETCOUNT` | 79 | 个人销售数量窗口 |
 | `SM_SHOWINDIVIDUALMARKETWINDOW` | 80 | 个人购买窗口 |
 | `SM_CONFIRMMARKET` | 81 | 确认交易 |
-| `SM_SSAMZIEITEM` | 51 | 三三物品 |
+| `SM_SSAMZIEITEM` | 51 | 福袋物品 |
 | `SM_GUILDITEM` | 103 | 门派物品 |
 
 ### 门派消息
@@ -270,7 +271,7 @@ Server Message — 服务端发送给客户端的消息。
 | `SM_MINIMAP` | 57 | 小地图 |
 | `SM_SETSHORTCUT` | 59 | 设置快捷键 |
 | `SM_PASSWORD` | 60 | 密码（包裹密码/物品密码） |
-| `SM_SETPOWERLEVEL` | 62 | 设置元气等级 |
+| `SM_SETPOWERLEVEL` | 62 | 设置元气境界 |
 | `SM_SKILLWINDOW` | 68 | 技术窗口 |
 | `SM_JOBRESULT` | 69 | 职业结果 |
 | `SM_MATERIALITEM` | 70 | 材料物品 |
@@ -358,6 +359,17 @@ Client Message — 客户端发送给服务端的消息。
 | `CM_UNLOCKITEM` | 58 | 解锁物品 |
 | `CM_COMFIRMINVITATION` | 59 | 确认邀请 |
 | `CM_TEAMMEMBERLIST` | 60 | 队伍成员列表 |
+| `CM_MARRY` | 61 | 结婚请求 |
+| `CM_MARRYANSWER` | 62 | 结婚回应 |
+| `CM_UNMARRY` | 63 | 离婚请求 |
+| `CM_GUILDITEMPAGE` | 64 | 门派仓库翻页 |
+| `CM_INPUTGUILDNAME` | 65 | 提交门派名称 |
+| `CM_GUILDMONEYCHIP` | 66 | 门派银票操作 |
+| `CM_GUILDMONEYAPPLY` | 67 | 门派银票申请 |
+| `CM_GUILDSUBSYSOP` | 68 | 门派副掌门操作 |
+| `CM_ARENAWINDOW` | 99 | 擂台窗口操作 |
+| `CM_ARENAJOINWINDOW` | 100 | 擂台加入窗口操作 |
+| `CM_GUILDANSWERWINDOW` | 101 | 门派回复窗口操作 |
 | `CM_IPADDR` | 251 | IP地址 |
 
 ---
@@ -427,3 +439,5 @@ Action Message — 定义角色/怪物的动作类型。
 
 - [README.md](README.md) — 常量定义总览
 - [WINDOW.md](WINDOW.md) — 窗口类型常量
+- [TERMINOLOGY.md](../TERMINOLOGY.md) — 玩家属性与武功名称对照
+- [UUser.pas](../TGS核心源码/UUser.pas) — `FM_DELKEYITEM`、`FM_LIFEPERCENT`、`FM_ADDVIRTUEEXP` 处理分支

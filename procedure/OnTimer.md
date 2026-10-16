@@ -75,7 +75,7 @@ end;
 
 ### 示例 3：定期检查物品刷新（狐狸洞.txt）
 
-这是地图脚本用法，按 Manager 的 `OnTimer` 周期检查物品刷新，正常 tick 倍率下约每 60 秒执行一次。`checkitemregen` 只在 Manager 重载的 `CallEvent` 入口中处理；普通对象定时器不会执行该命令。最后的 `60` 是命令自己的刷新间隔参数，不改变地图 `OnTimer` 周期：
+这是地图脚本用法，按 Manager 的 `OnTimer` 周期检查物品刷新，正常 tick 倍率下约每 60 秒执行一次。`checkitemregen` 只在 Manager 重载的 `CallEvent` 入口中处理；普通对象定时器不会执行该命令。最后的 `60` 是数量循环上界，不是刷新间隔，也不是严格补足到 60：源码统计全地图同名地面物品对象数 `nCount`，再执行包含两端的 `for i := nCount to aCount`。例如当前为 0 时尝试生成 61 个，为 60 时仍尝试生成 1 个；实际生成还受落点等条件限制。详见 [checkitemregen](../print/物品交易命令/checkitemregen.md)。
 
 ```pascal
 procedure OnTimer (aStr : String);

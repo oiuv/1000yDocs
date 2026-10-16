@@ -2,7 +2,7 @@
 
 ## 资料归属
 
-本文说明官方炎黄新章源码的运行约束。行为以当前 Pascal 服务端源码为准，配置与数据以 `gameserver-tgs1000/bin` 的实际加载文件为准；[炎黄新章游戏资料](README.md) 用于核对玩家可见规则。
+本文说明官方炎黄新章源码的运行约束。行为以当前 Pascal 服务端源码为准，配置与数据以 `gameserver-tgs1000/bin` 的实际加载文件为准；[炎黄新章游戏资料](炎黄新章游戏资料/README.md) 用于核对玩家可见规则。
 
 `Script/` 中的云端千年神武奇章脚本是经授权保存的运营版参考，包含运营优化。它们不能证明原版神武奖励规则，也不能覆盖炎黄新章接口定义。迁移脚本必须核对函数入口、参数、事件上下文及目标版本的数据表。
 
@@ -20,17 +20,28 @@
 | `NpcSetting` | `DeallerSkill.ProcessMessage` 被注释；`BadIpAddr.txt` 有加载但未见拦截调用，不能用它替代防火墙。 |
 | 未启用数据 | `NpcFunc.SDB` 无随包数据及消费调用；`BestMagicEnergyPoint.sdb` 的加载代码被注释。 |
 | `TPacketSender.PutPacket` | Data 可达 8192 字节，但加密临时缓冲区同为 8192 字节。考虑 4/3 扩张及边界标记，安全 Data 上限为 6133 字节。 |
-| Gate 心跳 | `BalanceSendTick` 未更新，三秒判断在启动后持续成立，实际随一秒显示定时器发送。 |
-| Gate 限包 | 环形槽约每 80ms 覆盖；稳定运行时 `CheckTime >= 1000` 通常不成立，不能当作有效的一秒限包。 |
+| Gate 心跳 | `BalanceSendTick` 初值为 0 且未更新；比较的是 `timeGetTime` 系统毫秒计数，不是 Gate 启动后时长。正常运行时实际随一秒显示定时器发送，未实现三秒节流。 |
+| Gate 限包 | 连接分批轮询，8 槽采样周期随连接数和调度变化；理想 10ms 定时器下，40 个连接约 80ms，500 个连接约 1000ms。低负载时可能不执行包率判断，触发时也是采样周期平均值，不能当作持续的一秒硬上限。见[包频率限制](architecture.md#45-包频率限制)。 |
+| Gate 公网输入 | 加密接收未核对解密结果与声明包长的一致性，Gate 未完整校验内层长度及命令结构长度就复制、读取或转发。版本检查、自定义加密及异常捕获不能替代长度检查。见[接收校验缺口](protocol.md#44-缓冲区管理)。 |
+| Gate 计费 | 账号验证成功后，`PaidSender=nil` 或关闭计费检查会直接设置有效类型；`CHECKPAIDINFO=TRUE` 不保证计费后端不可用时拒绝登录。见[计费校验条件](architecture.md#55-计费校验条件)。 |
 | 矿物加载 | `TMineObjectClass.LoadFromFile` 清零 `TMineObjectAvailData` 时错误使用 `SizeOf(TMineObjectShapeData)`。 |
 | 后端接入检查 | SDB Login 接入不调用 IP 检查器；DB/SQL Login 在缺少 `IPList.txt` 时放行全部来源。后端必须隔离。 |
+| 脚本编号 | `Script.SDB` 按成功加载顺序绑定，而不是按 `Name` 建立映射。乱序、跳号或中间文件缺失可能导致后续脚本错绑，见[索引约束](Script.md#scriptsdb)。 |
+| 物品数量门槛 | `MaxCount` 的拾取检查只统计已有背包及技术窗数量，不包括本次新增数量和全部容器，不能作为通用最终持有量上限，见[物品限制](Init_item.sdb.md#物品限制的实际边界)。 |
+| 传送扣物品 | `DelItem` 数量 0 表示删除同名全部物品；扣除可能先于后续任务检查，传送失败不保证没有扣除，见[传送门](CreateGate.SDB.md)。 |
 
 ## 网络与持久化
 
 - 外部 Gateway 和 TGS 内部 `TfrmGate` 不是同一组件。角色保存由 TGS 的 DB 连接直接发送，不经过外部 Gateway。
-- 保存队列按 10 个 tick（100ms）尝试出队，一次一项，发送成功后移除；周期保存的 `rEnd=1` 对应 `DB_UPDATE_END`。
-- 角色列表先于 Paid 查询返回；启用计费校验时，付费确认后才能完成角色接入。
+- 保存队列按 10 个 tick（100ms）尝试出队，一次一项，进入网络发送缓冲后即移除；周期保存的 `rEnd=1` 对应 `DB_UPDATE_END`。DB 失败回包没有自动重试，正常关服不逐条等待 DB 确认，见[保存失败边界](architecture.md#66-保存失败与关服边界)。
+- 角色列表先于外部 Paid 查询返回；是否查询取决于发送器和计费类型，不能只看 `CHECKPAIDINFO`。`PM_CHECKPAID` 的 `ResultCode=0` 会让 Gate 结束该回包处理，不能套用 DB 查询的成功码语义。
+- `DB_LOCK` 维护 DB 的角色在线标记，不阻止普通 `DB_SELECT` 读取；重复登录由 TGS 的 `NameKey` 和 `WaitPlayerList` 判断。等待记录可在成功保存回包到达时提前解除，并非必须等待固定时长。
 - 只有 Balance 和 Gateway 应对外开放。Login、DB、Game、付费后端、管理接口及 UDP 日志接收端须限制来源。
+- Gate 的 `[GATE_SERVER] LOCALIP` 用于向 Balance 公布地址，不是监听绑定设置；`127.0.0.1` 配置不能替代防火墙隔离。
+
+## 物品入口一致性
+
+技术窗的普通拖入、数量确认与批量放料均须在服务端执行物品和当前状态检查。批量包应先验证全部条目，数量确认须重新读取背包槽，不能以客户端已检查为由省略；实际约束见 [技术窗放料](Material.md#技术窗放料与服务端校验)。这些入口校验不等于 `MaxCount` 已成为所有获取方式的最终持有量上限。
 
 ## 文档校核规范
 

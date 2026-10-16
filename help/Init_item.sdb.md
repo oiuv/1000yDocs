@@ -278,16 +278,22 @@ SuccessRate|int | 物品的成功率，对可制造的物品设置为100代表�
 boNotTrade| boolean | 物品是否不能和NPC交易| TRUE
 boNotExchange| boolean | 物品是否不能和玩家交易| TRUE
 boNotDrop| boolean | 物品是否不能丢弃| TRUE
-boNotSkill| boolean | 物品是否不能放到技能栏| TRUE
+boNotSkill| boolean | 禁止从背包放入技术窗的物品标志；拖拽、数量确认和批量材料入口均需检查，见下方限制说明 | TRUE
 boNotSSamzie| boolean | 物品是否不能放到福袋中| TRUE
-cLife| int | 增加玩家的活力值，仅限Kind为CHARM有效，对ITEM_SPKIND_ADDALLLIFE还会增加头手脚活力| 1000
+cLife| int | 背包内Kind为CHARM时增加活力上限；SpecialKind为ITEM_SPKIND_ADDALLLIFE时还增加头、手臂、腿部活力上限 | 1000
 Attribute|int | 物品的特殊属性，具体见下表Attribute | 1
 SpecialKind| int | 特殊类型，具体见下表SpecialKind | 4
 RoleType| int | 装备物品增加黄字属性的类型，值为1-4，对类种类ROLE | 1
 Script| Int | Kind为ITEM_KIND_USESCRIPT的物品双击调用的脚本编号，由Script/Script.SDB指定，事件限制为OnDblClick | 103
-MaxCount| int |可持有的物品最大数量，0为无限，超过限制后无法拾取物品|99999
-BoNotSave | boolean | 物品是否不保存到SDB备份文件 | TRUE
+MaxCount| int | 拾取前已有背包及技术窗同名物品的数量门槛；0 不启用此检查，不是所有容器的最终持有量硬上限 |99999
+BoNotSave | boolean | 背包序列化到角色记录时不保存此物品；影响普通存档，不限于备份 | TRUE
 ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
+
+### 物品限制的实际边界
+
+- `boNotSkill` 在背包放入技术窗的处理入口检查。材料移动还受物品锁、角色物品移动权限、地图 `boNotDeal`、摆摊、窗口状态及背包密码限制。数量确认必须重新读取当前槽位，再核对物品锁和禁止标志；不能只依赖打开数量窗口时的状态。批量材料请求须先完成全部校验，拒绝时不得先移动其中一部分。依据：[UUser.pas](TGS核心源码/UUser.pas) 的 `CM_DRAGDROP`、`CM_SELECTCOUNT`、`CM_SETMATERIAL` 分支及 [uUserSub.pas](TGS核心源码/uUserSub.pas) 的材料处理方法。
+- `MaxCount` 的这项检查位于 `TUser.FieldProc` 的 `FM_ADDITEM` 分支，计算 `HaveItemClass` 与 `HaveJobClass` 中已有的同名数量，达到门槛即拒绝。它不把本次待加入的堆叠数量相加，也不统计穿戴、福袋等全部容器。例如已有 4 个、门槛为 5 时，一次新增多个仍可通过这项检查；最终是否添加还受后续条件影响。不能用这个字段单独保证全局唯一性。
+- `BoNotSave` 的实际消费点是 `THaveItemClass.SaveToSdb(PTDBRecord)`：把对应背包槽的名称、数量及其它保存字段清空。普通下线和周期状态收集也使用它，不是“只跳过文本备份”。这个结论限于背包保存方法，不应推及所有容器。角色记录及落盘路径见[玩家数据库](database.md#6-数据持久化流程)。
 
 ### WearPos（装备部位）
 
@@ -371,7 +377,7 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 
 | Kind | Type      | 说明         | 示例   |
 |------|-----------|--------------|------|
-| 0    | NONE      | 无实物，技能用 | 无名火炉 |
+| 0    | NONE      | 无专用Kind处理；也用于制造工具，不能仅据此认定为空物品 | 无名火炉 |
 | 1    | COLORDRUG | 染色剂 | 紫色染剂 |
 | 2    | BOOK      | 书 | 太极拳 |
 | 3    |           | 钱币，游戏货币，实际由game.ini配置 | 钱币 |
@@ -397,23 +403,23 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 | 23   | SHOWSKILL | 透视符，可看穿隐身 | 透视符 |
 | 24   | WEARITEM2 | 除内衣内裤外的装备，可升级 | 女子梅花战袍 |
 | 25   | FOXMIRROR | | 妖华镜 |
-| 26   | GUILDLETTER | 可直接加入门派 | 门人推荐书 |
+| 26   | GUILDLETTER | 门派推荐书类型；当前双击加入门派的代码已注释，不应视为已启用功能 | 显示名以实际配置为准 |
 | 27   | PICKAX | 挖矿工具 | 象牙十字镐 |
 | 28   | MINERAL | 矿石，职业技能材料，此类物品价格固定为0（右键不显示价格），单击信息显示`('%s 数量: %d')` | 黄金 |
 | 29   | CAP | 类似6，装备，可升级，帽子类 | 男子流星帽 |
 | 30   | PROCESSDRUG | 加工试剂 | 桂圆丹 |
 | 31   | HELPDRUG | 提升加工成功率的药品 | 生死梦幻丹 |
 | 32   | GROWTHHERB | 草药类材料 | 千年地黄 |
-| 33   | SKILLROLLPAPER | 技术密笈，根据职业类型调用help目录对应文件 | 卷轴 |
+| 33   | SKILLROLLPAPER | 内部Name为“技术密笈”，根据职业类型调用help目录对应文件 | ViewName为“卷轴” |
 | 34   | QUESTITEM | 任务物品，可被deletequestitem删除 | 小佛 |
 | 35   | WATERCASE | 沙漠用的水桶 | 竹筒 |
-| 36   | CHARM | 能增加活力的物品（自动生效），可被deletequestitem删除 | 不灭 |
+| 36   | CHARM | 放在背包增加活力上限；SpecialKind=7还增加头、手臂、腿部活力上限，可被deletequestitem删除 | 不灭 |
 | 37   | QUESTLOG | 双击查看任务，可被deletequestitem删除，可根据currentquest调用任务详情 | 书函 |
 | 38   | SUBITEM | 子物品（装备特殊物品时才生效） | 太极牌 |
 | 39   | NAMEDPOSQUEST | 四大宝石 | 翡翠 |
 | 40   | QUESTITEM2 | 可叠加的任务物品，可被deletequestitem删除 | 石谷钥匙 |
 | 41   | FILL | 定时恢复活力/内/外/武功等属性，要求地图Attribute值为MAP_TYPE_FILL | 五色药水 |
-| 42   | SPECIALEFFECT | 类似太极牌和八卦牌的特殊效果物品 ||
+| 42   | SPECIALEFFECT | 背包属性加成；取第一个此Kind物品的rLifeData，不是画面特效 ||
 | 43   | ADDATTRIBITEM | 增加黄字属性的物品 | 霸王灵符 |
 | 44   | GOLDBAG | SpecialKind为5的任务物品，自动删除DelItem | 雨中客锦囊 |
 | 45   | DAGGEROFOS | SpecialKind为5的任务物品，自动删除DelItem | 玉仙的无情双刀 |
@@ -423,7 +429,7 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 | 49   | RECOVERYHUMAN | 恢复成人类，未实现功能 ||
 | 50   | GRADEUPQUESTITEM | 升级神功任务物品，可指定QuestNum，可由gethavegradequestitem判断 | 侠客任务卷轴 |
 | 51   | DURABILITY | 有耐久度的普通物品 | 万毒钥匙 |
-| 52   | TOPLETTER | 双击可以显示广播的物品 | |
+| 52   | TOPLETTER | 双击打开广播输入窗口并消耗一个物品；不表示此时已发送广播 | |
 | 53   | GUILDLOTTERY | 门派奖券 | |
 | 54   | SET | 套装加成属性| 从代码看Name只能是SetValue，加成装备属性 |
 | 55   | DBLRANDOM | 双击随机掉落RandomEventItem0.sdb中的物品 | |
@@ -453,19 +459,21 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
    ITEM_ATTRIBUTE_FIRE              = 1;  # 物品属性：火属性
    ITEM_ATTRIBUTE_WATER             = 2;  # 物品属性：水属性（无效）
    ITEM_ATTRIBUTE_ICE               = 3;  # 物品属性：冰属性
-   ITEM_ATTRIBUTE_FILL              = 4;  # 物品属性：恢复（增加活力、内力、外力、武功）
+   ITEM_ATTRIBUTE_FILL              = 4;  # 物品属性：恢复（增加活力、内功、外功、武功）
    ITEM_ATTRIBUTE_SET               = 5;  # 物品属性：套装，装备4件套加成SetValue物品的装备属性
    ITEM_ATTRIBUTE_DIRECT            = 6;  # 物品属性：直接放入物品栏（不会掉落地上） 040422 saset
-   ITEM_ATTRIBUTE_PAPERBESTPROTECT  = 7;  # 物品属性：防护卷轴
-   ITEM_ATTRIBUTE_PAPERBESTSPECIAL  = 8;  # 物品属性：特殊卷轴
+   ITEM_ATTRIBUTE_PAPERBESTPROTECT  = 7;  # 随包物品“招式全集”的属性标记
+   ITEM_ATTRIBUTE_PAPERBESTSPECIAL  = 8;  # 随包物品“四大神功全集”的属性标记
    ITEM_ATTRIBUTE_QUESTSIGN         = 9;  # 物品属性：任务标志（无效）
    ITEM_ATTRIBUTE_TAEGUK            = 199;  # 物品属性：太极
-   ITEM_ATTRIBUTE_LOWEST            = 201;  # 物品属性：最低
-   ITEM_ATTRIBUTE_LOWEER            = 202;  # 物品属性：更低
-   ITEM_ATTRIBUTE_NORMAL            = 203;  # 物品属性：正常
-   ITEM_ATTRIBUTE_HIGHER            = 204;  # 物品属性：更高
-   ITEM_ATTRIBUTE_HIGHEST           = 205;  # 物品属性：最高
+   ITEM_ATTRIBUTE_LOWEST            = 201;  # 低级属性材料
+   ITEM_ATTRIBUTE_LOWEER            = 202;  # 中级属性材料（保留源码拼写）
+   ITEM_ATTRIBUTE_NORMAL            = 203;  # 高级属性材料
+   ITEM_ATTRIBUTE_HIGHER            = 204;  # 最高级属性材料
+   ITEM_ATTRIBUTE_HIGHEST           = 205;  # 极品属性材料
 ```
+
+`Attribute` 不仅表示元素属性，也用于套装、直接获取和“废弃”按钮等功能。随包“招式全集”的 `Name`、`ViewName` 均为“招式全集”，配置 `Kind=4、Attribute=7`；“四大神功全集”配置 `Kind=56、Attribute=8、Script=103`。这两个中文名称以实际物品表为准，不从英文常量名推译；`Attribute=7/8` 在物品说明窗口中分别对应“废弃”按钮键 `0/1`。完整说明见[物品属性常量](constants/ITEM_ATTRIBUTE.md)。
 
 ### SpecialKind（特殊类型）
 
@@ -474,15 +482,17 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
    ITEM_SPKIND_MUNJANG        = 1;   # 物品特殊种类：属性灵符（工匠）
    ITEM_SPKIND_ZANGSIK        = 2;   # 物品特殊种类：属性饰品（裁缝）
    ITEM_SPKIND_JUMOON         = 3;   # 物品特殊种类：属性卷轴（铸造）
-   ITEM_SPKIND_GOLBANG        = 4;   # 物品特殊种类：可以制作其他物品的物品（玩家可以@item 指令制造）
+   ITEM_SPKIND_GOLBANG        = 4;   # 普通玩家@item制造许可标记
    ITEM_SPKIND_DELALLBYDURA   = 5;   # 物品特殊种类：当耐久度全耗尽时，连同delitem中指定的物品一起消失
-   ITEM_SPKIND_DONTDRUG       = 6;   # 物品特殊种类：由炼丹师制作的药，不能服用
-   ITEM_SPKIND_ADDALLLIFE     = 7;   # 物品特殊种类：从Item.sdb文件中的cLife字段中的一个数值，增加头部、手部、脚部的HP
+   ITEM_SPKIND_DONTDRUG       = 6;   # 地图boUseChemistDrug=false时禁止服用的药品标记
+   ITEM_SPKIND_ADDALLLIFE     = 7;   # Kind=36时，将cLife同时加到头、手臂、腿部活力上限
    ITEM_SPKIND_1              = 8;   # 物品特殊种类：珍珠
    ITEM_SPKIND_2              = 9;   # 物品特殊种类：翡翠
    ITEM_SPKIND_3              = 10;  # 物品特殊种类：水晶
    ITEM_SPKIND_4              = 11;  # 物品特殊种类：琥珀
 ```
+
+`Kind`、`Attribute`、`SpecialKind` 是三个独立字段。名称与条件不能仅按英文常量推测，详见[物品类型](constants/ITEM_KIND.md)、[物品属性](constants/ITEM_ATTRIBUTE.md)和[特殊类型](constants/ITEM_SPKIND.md)。
 
 ## 制造物品成功率
 

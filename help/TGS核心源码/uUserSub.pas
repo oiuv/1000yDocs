@@ -778,6 +778,7 @@ type
 
       function GetCurrentWindowStr : String;
       function GetUserWindowStateStr : String;
+      procedure PutOnMaterialCount (pcCount : PTCSelectCount);
    public
       SaleNpc, MarketUser : Pointer;
       SaleItemList : TList;      
@@ -3763,8 +3764,14 @@ var
    cSelectCount : TCSelectCount;
    ItemData : TItemData;
 begin
+   if not TUser (FBasicObject).AllowMaterialMove (swk_none) then exit;
+   if pcDragDrop^.rDestKey > PRODUCT_KEY then exit;
    if not ViewItem (pcDragDrop^.rsourkey, @ItemData) then exit;
    if ItemData.rName [0] = 0 then exit;
+   if ItemData.rLockState <> 0 then begin
+      FSendClass.SendChatMessage (Conv('物品锁定中,无法升级.'), SAY_COLOR_SYSTEM);
+      exit;
+   end;
    if ItemData.rboNotSkill = true then begin
       FSendClass.SendChatMessage (Conv('此物品无法放入'), SAY_COLOR_SYSTEM);
       exit;
@@ -3792,6 +3799,7 @@ begin
       cSelectCount.rdestkey := pcDragDrop^.rdestkey;
       cSelectCount.rCount := 1;
       cSelectCount.rCountid := DRAGACTION_FROMITEMTOSKILL;
+      aShowWindowClass.CountWindowState := DRAGACTION_FROMITEMTOSKILL;
       aShowWindowClass.FCurrentWindow := swk_count;
       aShowWindowClass.SelectCount (@cSelectCount);
    end else begin
@@ -3819,6 +3827,7 @@ begin
          cSelectCount.rdestkey := pcDragDrop^.rdestkey;
          cSelectCount.rCount := 1;
          cSelectCount.rCountid := DRAGACTION_FROMITEMTOSKILL;
+         aShowWindowClass.CountWindowState := DRAGACTION_FROMITEMTOSKILL;
          aShowWindowClass.FCurrentWindow := swk_count;
          aShowWindowClass.SelectCount (@cSelectCount);
       end else begin
@@ -11312,62 +11321,64 @@ end;
 
 procedure THaveJobClass.PutOnAutoMaterialProcess (pcSetMaterial : PTCSetMaterial);
 var
-   i : Integer;
-   ItemData : TItemData;
+   i, Key, Count : Integer;
+   Items : array [0..PRODUCT_KEY - 1] of TItemData;
+   Requested : array [0..HAVEITEMSIZE - 1] of Integer;
 begin
+   if pcSetMaterial = nil then exit;
+   if not TUser (FBasicObject).AllowMaterialMove (swk_none) then exit;
    if CheckBlankData = false then begin
       FSendClass.SendChatMessage (Conv ('请留出技术窗栏位'), SAY_COLOR_SYSTEM);
       exit;
    end;
-
+   FillChar (Requested, SizeOf (Requested), 0);
+   // Validate every entry before moving anything. The original client
+   // zero-fills unused pairs; (0, 0) is empty, not inventory slot 0.
    for i := 0 to PRODUCT_KEY - 1 do begin
-      if FHaveItemClass.ViewItem (pcSetMaterial^.rIdx [i], @ItemData) = false then exit;
-      if ItemData.rName [0] = 0 then exit;
-      // add by Orber at 2004-09-24 16:34
-      if (ItemData.rLockState <> 0) then begin
-         FSendClass.SendChatMessage ('物品锁定中,无法升级.', SAY_COLOR_SYSTEM);
+      Key := pcSetMaterial^.rIdx [i];
+      Count := pcSetMaterial^.rCount [i];
+      if Count = 0 then begin
+         if Key <> 0 then exit;
+         continue;
+      end;
+      if (Count < 1) or (Count > 10000) then exit;
+      if not FHaveItemClass.ViewItem (Key, @Items [i]) then exit;
+      if Items [i].rboNotSkill then begin
+         FSendClass.SendChatMessage (Conv('此物品无法放入'), SAY_COLOR_SYSTEM);
          exit;
       end;
-      if pcSetMaterial^.rCount [i] > ItemData.rCount then exit;
-
-      ItemData.rCount := pcSetMaterial^.rCount [i];
-      StrPCopy (@ItemData.rOwnerName, Conv ('@技术窗'));
-      if FHaveItemClass.DeletekeyItem (pcSetMaterial^.rIdx [i], pcSetMaterial^.rCount [i], @ItemData) = false then exit;
-      if AddMaterialItem (ItemData) = false then exit;
+      if Items [i].rLockState <> 0 then begin
+         FSendClass.SendChatMessage (Conv('物品锁定中,无法升级.'), SAY_COLOR_SYSTEM);
+         exit;
+      end;
+      Inc (Requested [Key], Count);
+      if Requested [Key] > Items [i].rCount then exit;
+      Items [i].rCount := Count;
+      StrPCopy (@Items [i].rOwnerName, Conv ('@技术窗'));
+   end;
+   // All five slots are empty, so at most four entries fit the four
+   // material slots. No other request is processed inside this loop.
+   for i := 0 to PRODUCT_KEY - 1 do begin
+      if pcSetMaterial^.rCount [i] = 0 then continue;
+      if not FHaveItemClass.DeletekeyItem (pcSetMaterial^.rIdx [i],
+         pcSetMaterial^.rCount [i], @Items [i]) then exit;
+      if not AddMaterialItem (Items [i]) then exit;
    end;
 end;
 
 function THaveJobClass.AddMaterialItem  (var aItemData: TItemData): Boolean;
 var
    i : Integer;
-begin                    
+begin
    Result := FALSE;
-
-   if CheckMaterialBlankData (aItemData) = -1 then exit;
-
-   if aItemData.rboDouble then begin
-      for i := 0 to HAVEMATERIALITEMSIZE - 1 do begin
-         if StrPas (@HaveMaterialArr[i].rName) <> StrPas (@aItemData.rName) then continue;
-         if HaveMaterialArr[i].rColor <> aItemData.rColor then continue;
-         if HaveMaterialArr[i].rUpgrade <> aItemData.rUpgrade then continue;
-         if HaveMaterialArr[i].rAddType <> aItemData.rAddType then continue;
-
-         HaveMaterialArr[i].rCount := HaveMaterialArr[i].rCount + aItemData.rCount;
-         FSendClass.SendMaterialItem (i, HaveMaterialArr[i]);
-
-         Result := TRUE;
-         exit;
-      end;
-   end;
-
-   for i := 0 to HAVEMATERIALITEMSIZE - 1 do begin
-      if HaveMaterialArr[i].rName[0] = 0 then begin
-         Move (aItemData, HaveMaterialArr[i], SizeOf (TItemData));
-         FSendClass.SendMaterialItem (i, HaveMaterialArr[i]);
-         Result := TRUE;
-         exit;
-      end;
-   end;
+   i := CheckMaterialBlankData (aItemData);
+   if i < 0 then exit;
+   if HaveMaterialArr [i].rName [0] = 0 then
+      HaveMaterialArr [i] := aItemData
+   else
+      Inc (HaveMaterialArr [i].rCount, aItemData.rCount);
+   FSendClass.SendMaterialItem (i, HaveMaterialArr [i]);
+   Result := TRUE;
 end;
 
 function THaveJobClass.AddKeyMaterialItem  (akey : Integer; var aItemData: TItemData): Boolean;
@@ -11592,6 +11603,7 @@ var
 begin
    Result := -1;
 
+   if aItemData.rName [0] = 0 then exit;
    if (aItemData.rCount <= 0) or (aItemData.rCount > 100000000) then exit; 
 
    for i := 0 to PRODUCT_KEY - 1 do begin
@@ -11604,7 +11616,9 @@ begin
          if StrPas (@HaveMaterialArr [i].rName) = StrPas (@aItemData.rName) then begin
             if HaveMaterialArr [i].rColor = aItemData.rColor then begin
                if HaveMaterialArr [i].rUpgrade = aItemData.rUpgrade then begin
-                  if HaveMaterialArr [i].rboDouble = true then begin
+                  if (HaveMaterialArr [i].rboDouble = true) and
+                     (HaveMaterialArr [i].rAddType = aItemData.rAddType) and
+                     (HaveMaterialArr [i].rCount <= 100000000 - aItemData.rCount) then begin
                      Result := i;
                      exit;
                   end;
@@ -12880,6 +12894,54 @@ begin
    FrmSockets.UdpObjectAddData (cnt, @usd);
 end;
 
+procedure TShowWindowClass.PutOnMaterialCount (pcCount : PTCSelectCount);
+var
+   srcKey, destKey : Integer;
+   ItemData : TItemData;
+begin
+   if CountWindowState <> DRAGACTION_FROMITEMTOSKILL then exit;
+   if FCurrentWindow <> swk_count then exit;
+   // The client closes its quantity dialog immediately after submitting.
+   // A rejected or cancelled confirmation must release this action too.
+   try
+      if not pcCount^.rboOk then exit;
+      if (pcCount^.rCount <= 0) or (pcCount^.rCount > 10000) then exit;
+      if not TUser (FUser).AllowMaterialMove (swk_count) then exit;
+      srcKey := pcCount^.rsourkey;
+      destKey := pcCount^.rdestkey;
+      if (destKey < 0) or (destKey > PRODUCT_KEY) then exit;
+      // Inventory may have changed while the quantity dialog was open.
+      if not FHaveItemClass.ViewItem (srcKey, @ItemData) then exit;
+      if ItemData.rLockState <> 0 then begin
+         FSendClass.SendChatMessage (Conv('物品锁定中,无法升级.'), SAY_COLOR_SYSTEM);
+         exit;
+      end;
+      if ItemData.rboNotSkill then begin
+         FSendClass.SendChatMessage (Conv('不能放入的物品'), SAY_COLOR_SYSTEM);
+         exit;
+      end;
+      if pcCount^.rCount > ItemData.rCount then exit;
+      ItemData.rCount := pcCount^.rCount;
+      if destKey = PRODUCT_KEY then begin
+         if (ItemData.rMaxUpgrade = 0) or (ItemData.rCount <> 1) then exit;
+         if not FHaveJobClass.CheckProductBlankData then exit;
+      end else begin
+         if FHaveJobClass.CheckMaterialBlankData (ItemData) < 0 then exit;
+      end;
+      StrPCopy (@ItemData.rOwnerName, Conv('@技术窗'));
+      if not FHaveItemClass.DeletekeyItem (srcKey, pcCount^.rCount, @ItemData) then exit;
+      if destKey = PRODUCT_KEY then begin
+         if not FHaveJobClass.AddKeyMaterialItem (destKey, ItemData) then exit;
+      end else begin
+         if not FHaveJobClass.AddMaterialItem (ItemData) then exit;
+      end;
+   finally
+      CountWindowState := DRAGACTION_NONE;
+      FCurrentWindow := swk_none;
+      FCurrentSubType := sst_none;
+   end;
+end;
+
 procedure TShowWindowClass.SelectCount (pcCount : PTCSelectCount);
 var
    i, ret, srcKey, destKey, Price, nCount, RealPrice : integer;
@@ -12892,6 +12954,10 @@ var
    pMarketItem : PTIndividualMarketItem;
    GuildObject : TGuildObject;
 begin
+   if pcCount^.rCountid = DRAGACTION_FROMITEMTOSKILL then begin
+      PutOnMaterialCount (pcCount);
+      exit;
+   end;
    if pccount^.rboOk = FALSE then begin
       CountWindowState := DRAGACTION_NONE;
       if (FCurrentWindow <> swk_exchange) and (FCurrentWindow <> swk_itemlog)
@@ -13354,52 +13420,7 @@ begin
             TradeDataArr [srcKey].rCount := TradeDataArr [srcKey].rCount + pcCount^.rCount;
             SetTradeItem;
          end;
-      DRAGACTION_FROMITEMTOSKILL :
-         begin
-            if FCurrentWindow <> swk_count then exit;
-            if (ItemData.rLockState <> 0) then begin
-               FSendClass.SendChatMessage (Conv('物品锁定中,无法升级.'), SAY_COLOR_SYSTEM);
-               exit;
-            end;
-            srcKey := pcCount^.rsourkey;
-            destKey := pcCount^.rdestkey;
-
-            if not FHaveItemClass.ViewItem (srcKey, @ItemData) then exit;
-            if ItemData.rboNotSkill = true then begin
-               FSendClass.SendChatMessage(Conv('不能放入的物品'),SAY_COLOR_SYSTEM);
-               FCurrentWindow := swk_none;
-               FCurrentSubType := sst_none;
-               exit;
-            end;
-
-            if pcCount^.rCount > ItemData.rCount then begin
-               FCurrentWindow := swk_none;
-               FCurrentSubType := sst_none;
-               exit;
-            end;
-
-            if destKey = PRODUCT_KEY then begin
-               if FHaveJobClass.CheckProductBlankData = false then begin
-                  FSendClass.SendChatMessage (Conv('无法继续添加'), SAY_COLOR_SYSTEM);
-                  exit;
-               end;
-               ItemData.rCount := pcCount^.rCount;
-               StrPCopy (@ItemData.rOwnerName, Conv('@技术窗'));
-               if FHaveItemClass.DeletekeyItem (srcKey, pcCount^.rCount, @ItemData) = false then exit;
-               if FHaveJobClass.AddKeymaterialItem (destKey, ItemData) = false then exit;
-            end else begin
-               if FHaveJobClass.CheckMaterialBlankData (ItemData) < 0 then begin
-                  FSendClass.SendChatMessage (Conv('无法继续添加'), SAY_COLOR_SYSTEM);
-                  exit;
-               end;
-               ItemData.rCount := pcCount^.rCount;
-               StrPCopy (@ItemData.rOwnerName, Conv('@技术窗'));               
-               if FHaveItemClass.DeletekeyItem (srcKey, pcCount^.rCount, @ItemData) = false then exit;
-               if FHaveJobClass.AddMaterialItem (ItemData) = false then exit;
-            end;
-            FCurrentWindow := swk_none;
-            FCurrentSubType := sst_none;
-         end;
+      DRAGACTION_FROMITEMTOSKILL : PutOnMaterialCount (pcCount);
       DRAGACTION_FROMSKILLTOITEM :
          begin
             if FCurrentWindow <> swk_count then exit;

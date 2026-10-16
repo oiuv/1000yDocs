@@ -44,17 +44,17 @@
 
 ## 装备部位 (ARR_*)
 
-定义装备穿戴的部位，对应 `WearItemArr` 数组索引。
+用于 `WearItemArr` 等穿戴与外观数组的索引；包含身体、头发等外观层，不是每个编号都对应可独立装备的物品槽。物品配置使用 `Item.sdb.WearPos`。
 
-| 常量名 | 值 | 中文说明 | 装备栏索引 |
+| 常量名 | 值 | 中文说明 | 随包示例或用途 |
 |--------|---:|----------|-----------|
-| `ARR_BODY` | 0 | 身体 | 上衣 |
-| `ARR_GLOVES` | 1 | 手套 | 手套 |
-| `ARR_UPUNDERWEAR` | 2 | 上身内衣 | 内衣（上） |
+| `ARR_BODY` | 0 | 身体 | 身体基础外观，不是上衣槽 |
+| `ARR_GLOVES` | 1 | 手臂防具 | 男子手套、男子铜鹰护腕等；不要与武器栏的拳套混淆 |
+| `ARR_UPUNDERWEAR` | 2 | 上身内衣 | 男子上衣、女子上衣等 |
 | `ARR_SHOES` | 3 | 鞋子 | 鞋 |
-| `ARR_DOWNUNDERWEAR` | 4 | 下身内衣 | 内衣（下） |
-| *(5 未使用)* | 5 | — | — |
-| `ARR_UPOVERWEAR` | 6 | 上身外衣 | 外套 |
+| `ARR_DOWNUNDERWEAR` | 4 | 下装 | 短裤、裙等 |
+| （无独立常量） | 5 | 手臂外观映射位 | `GetFeature` 将槽 1 的手臂防具外观映射到此层，不能写成未使用 |
+| `ARR_UPOVERWEAR` | 6 | 外衣 | 道服、铠甲等 |
 | `ARR_HAIR` | 7 | 头发 | 发型 |
 | `ARR_CAP` | 8 | 帽子 | 头饰 |
 | `ARR_WEAPON` | 9 | 武器 | 武器 |
@@ -65,7 +65,7 @@
 |--------|---:|------|
 | `ADDATTRIB_ARMOR` | 6 | 衣服附加属性 |
 | `ADDATTRIB_CAP` | 8 | 帽子附加属性 |
-| `ADDATTRIB_ARMARMOR` | 1 | 手臂护甲附加属性 |
+| `ADDATTRIB_ARMARMOR` | 1 | 护腕等手臂防具的附加属性 |
 | `ADDATTRIB_SHOES` | 3 | 鞋子附加属性 |
 | `ADDATTRIB_WEAPON` | 9 | 武器附加属性 |
 
@@ -73,7 +73,7 @@
 
 ## 角色定位 (ROLE_*)
 
-定义玩家的角色定位/职业方向。
+物品 `RoleType` 等数据使用的内部角色类型标记。下表中文是技术释义，不是玩家可选的制造职业名称；不能把它与铸造师、炼丹师、裁缝、工匠混为一谈。
 
 | 常量名 | 值 | 中文说明 | 详细说明 |
 |--------|---:|----------|----------|
@@ -108,3 +108,4 @@
 
 - [Init_monster.sdb.md](../Init_monster.sdb.md) — 怪物数据库
 - [Init_item.sdb.md](../Init_item.sdb.md) — 物品数据库
+- [uUserSub.pas](../TGS核心源码/uUserSub.pas) — `TWearItemClass.GetFeature` 的外观层映射

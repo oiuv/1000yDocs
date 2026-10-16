@@ -364,6 +364,7 @@ type
     
      constructor Create;
      destructor Destroy; override;
+      function AllowMaterialMove (aWindowKind : TSpecialWindowKind) : Boolean;
      function  InitialLayer (aCharName: String) : Boolean;
      procedure FinalLayer;
 
@@ -6977,6 +6978,7 @@ procedure TUser.DragProcess (var code: TWordComData);
 var
    pcDragDrop : PTCDragDrop;
 begin
+   if Code.Size <> SizeOf (TCDragDrop) then exit;
    pcDragDrop := @Code.Data;
    Case pcDragDrop^.rSourWindow of
       WINDOW_ITEMS :
@@ -7058,23 +7060,6 @@ begin
                   end;
                WINDOW_SKILL :
                   begin
-                     if (boMoveAllItem = false) or (boMoveItem = false) then begin
-                        SendClass.SendChatMessage (Conv ('现在不能移动物品'), SAY_COLOR_SYSTEM);
-                        exit;
-                     end;
-                     // add by Orber at 2004-09-10 10:53
-                     if HaveItemClass.HaveItemArr[pcDragDrop^.rsourkey].rLockState <> 0 then begin
-                        SendClass.SendChatMessage (Conv('物品加锁中，不能升级'), SAY_COLOR_SYSTEM);
-                        exit;
-                     end;
-                     if Manager.boNotDeal = true then exit;                  
-                     if ShowWindowClass.AllowWindowAction (swk_none) = false then exit;
-                     // if HaveMarketClass.boMarketing = true then exit;
-                     if BasicData.Feature.rfeaturestate = wfs_shop then exit;                     
-                     if PassWord <> '' then begin
-                        SendClass.SendChatMessage (Conv('有密码设定'), SAY_COLOR_SYSTEM);
-                        exit;
-                     end;
                      HaveItemClass.PutOnMaterialProcess (pcDragDrop, ShowWindowClass, HaveJobClass);
                   end;
                WINDOW_SALE :
@@ -7276,6 +7261,26 @@ begin
    end;
 end;
 
+function TUser.AllowMaterialMove (aWindowKind : TSpecialWindowKind) : Boolean;
+begin
+   Result := false;
+   if (boMoveAllItem = false) or (boMoveItem = false) then begin
+      SendClass.SendChatMessage (Conv ('现在不能移动物品'), SAY_COLOR_SYSTEM);
+      exit;
+   end;
+   if HaveItemClass.Locked then exit;
+   if Manager = nil then exit;
+   if Manager.boNotDeal then exit;
+   if (BasicData.Feature.rfeaturestate = wfs_die) or
+      (BasicData.Feature.rfeaturestate = wfs_shop) then exit;
+   if HaveMarketClass.boMarketing then exit;
+   if PassWord <> '' then begin
+      SendClass.SendChatMessage (Conv('有密码设定'), SAY_COLOR_SYSTEM);
+      exit;
+   end;
+   Result := ShowWindowClass.AllowWindowAction (aWindowKind);
+end;
+
 procedure TUser.MessageProcess (var code: TWordComData);
 var
    CurTick : integer;
@@ -7330,7 +7335,17 @@ begin
       (pckey^.rmsg <> CM_SAY) and
       (pcKey^.rMsg <> CM_WINDOWCONFIRM) and
       (pcKey^.rMsg <> CM_NETSTATE) and
-      (pcKey^.rMsg <> CM_GETTIME) then exit;
+       (pcKey^.rMsg <> CM_GETTIME) then begin
+      // A pending material dialog may be hidden by the client on death.
+      // Only finish that dialog; AllowMaterialMove still rejects the move.
+      if (pcKey^.rMsg = CM_SELECTCOUNT) and
+         (Code.Size = SizeOf (TCSelectCount)) then begin
+         pcSelectCount := PTCSelectCount (@Code.Data);
+         if pcSelectCount^.rCountid = DRAGACTION_FROMITEMTOSKILL then
+            ShowWindowClass.SelectCount (pcSelectCount);
+      end;
+      exit;
+   end;
 
    if (ShowWindowClass.CurrentWindow = swk_alert)
       and (ShowWindowClass.CurrentSubType = sst_gameagree) then begin
@@ -7428,11 +7443,15 @@ begin
          end;
       CM_SELECTCOUNT :
          begin
+            if Code.Size <> SizeOf (TCSelectCount) then exit;
             if CM_MessageTick[CM_SELECTCOUNT] + 50 > CurTick then exit;
             CM_MessageTick[CM_SELECTCOUNT] := CurTick;
             pcSelectCount := PTCSelectCount (@Code.Data);
 
-            if PassWord <> '' then begin
+            // Material confirmations must finish their pending dialog even
+            // when a password was enabled after it opened.
+            if (PassWord <> '') and
+               (pcSelectCount^.rCountid <> DRAGACTION_FROMITEMTOSKILL) then begin
                SendClass.SendChatMessage (Conv('有密码设定'), SAY_COLOR_SYSTEM);
                exit;
             end;
@@ -8387,11 +8406,11 @@ begin
          }
       end;
       CM_SETMATERIAL : begin
+         if Code.Size <> SizeOf (TCSetMaterial) then exit;
          if CM_MessageTick[CM_SETMATERIAL] + 50 > CurTick then exit;
          CM_MessageTick[CM_SETMATERIAL] := CurTick;
 
          pcSetMaterial := PTCSetMaterial (@Code.Data);
-         if ShowWindowClass.AllowWindowAction (swk_none) = false then exit;
          HaveJobClass.PutOnAutoMaterialProcess (pcSetMaterial);
       end;
       CM_ITEMBUTTON : begin

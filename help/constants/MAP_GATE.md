@@ -6,19 +6,19 @@
 
 ## 地图类型 (MAP_TYPE_*)
 
-定义地图的特殊属性，对应 `Init_map.sdb` 中的 `maptype` 字段。
+定义地图的特殊属性，对应 `Init/Map.sdb` 中的 `Attribute` 字段。类型名不等于完整规则；还需结合地图开关、人物状态和持有物品。详见[地图属性说明](../Init_map.sdb.md)。
 
 | 常量名 | 值 | 中文说明 | 详细说明 |
 |--------|---:|----------|----------|
-| `MAP_TYPE_ICE` | 1 | 冰属性地图 | 冰冷属性，影响冰系伤害 |
-| `MAP_TYPE_FIRE` | 2 | 火属性地图 | 滚烫属性，影响火系伤害 |
-| `MAP_TYPE_FILL` | 3 | 新手村 | 自动恢复活力/内/外/武功 |
+| `MAP_TYPE_ICE` | 1 | 冰属性地图 | 启用属性变化时按比例减活力；火属性装备可免除此项 |
+| `MAP_TYPE_FIRE` | 2 | 火属性地图 | 启用属性变化时减活力；水类容器或冰属性装备可免除此项 |
+| `MAP_TYPE_FILL` | 3 | 补给地图（新手村使用） | 启用属性变化且持有补给物品时恢复活力、内功、外功、武功 |
 | `MAP_TYPE_BATTLE` | 4 | 对战地图 | 分组对战（如砸瓶活动 031001） |
-| `MAP_TYPE_DONTTICKET` | 5 | 禁止传送 | 无法使用移动符的区域 |
-| `MAP_TYPE_KILLONLYONE` | 6 | 单一击杀 | 怪物锁定一个目标攻击 |
-| `MAP_TYPE_GUILDBATTLE` | 7 | 门派大战 | 门派对战（仅能使用一种药 040310） |
-| `MAP_TYPE_POWERLEVEL` | 8 | 元气等级 | 根据元气等级消耗活力 |
-| `MAP_TYPE_SPORTBATTLE` | 9 | 运动会 | 运动会对战（2005-01-19） |
+| `MAP_TYPE_DONTTICKET` | 5 | 禁止传送卷轴 | 禁用回城卷轴等 `ITEM_KIND_TICKET` 物品，不等于禁止所有传送 |
+| `MAP_TYPE_KILLONLYONE` | 6 | 特殊活动地图标记 | 刷新倒计时剩余 30 秒时调用 `OnEventTimer`；不能据名称推断怪物锁定规则 |
+| `MAP_TYPE_GUILDBATTLE` | 7 | 门派大战 | 使用战场复活和药品白名单等规则，不是仅限一种药 |
+| `MAP_TYPE_POWERLEVEL` | 8 | 元气境界限制地图 | 境界低于 2 且启用属性变化时按 `ChangeSize` 减活力 |
+| `MAP_TYPE_SPORTBATTLE` | 9 | 竞技场 | 使用战场复活和药品白名单等规则 |
 
 ---
 
@@ -37,8 +37,8 @@
 | `GATE_KIND_LIMITUSER` | 6 | 限制人数 | 限制进入人数（活动用 031224 驯鹿） |
 | `GATE_KIND_GUILDWAR` | 7 | 门派大战 | 中国门派大战传送门（040307） |
 | `GATE_KIND_FIXTIME` | 8 | 定时开放 | 仅在指定时间可通过 |
-| `GATE_KIND_SPORTSWAR` | 9 | 运动会大战 | 运动会传送门 |
-| `GATE_KIND_INTOZHUANG` | 10 | 进入山庄 | 进入玩家山庄的传送门 |
+| `GATE_KIND_SPORTSWAR` | 9 | 竞技场 | 竞技场入场传送门，使用红方、蓝方分组 |
+| `GATE_KIND_INTOZHUANG` | 10 | 进入聚贤庄 | 检查聚贤庄战争状态和门票，允许时传送；不是通用玩家住宅 |
 
 ---
 
@@ -51,7 +51,7 @@
 | `VIRTUALOBJ_KIND_NONE` | 0 | 无 | — |
 | `VIRTUALOBJ_KIND_OASIS` | 1 | 沙漠绿洲 | 帝王石窟沙漠绿洲 |
 | `VIRTUALOBJ_KIND_FILLLIFE` | 2 | 恢复区 | 新手村恢复活力/内/外/武功 |
-| `VIRTUALOBJ_KIND_FILLOASISLIFE` | 3 | 绿洲+恢复 | 综合型（竹筒加水 + 恢复属性） |
+| `VIRTUALOBJ_KIND_FILLOASISLIFE` | 3 | 绿洲与恢复区 | 补满水容器耐久，并恢复元气、活力、内功、外功、武功 |
 
 ---
 
@@ -65,10 +65,12 @@
 | `DYNOBJ_EVENT_HIT` | 1 | 打击事件 | 攻击时触发 |
 | `DYNOBJ_EVENT_ADDITEM` | 2 | 放入物品 | 放入物品时触发 |
 | `DYNOBJ_EVENT_SAY` | 4 | 说话事件 | 对话时触发 |
-| `DYNOBJ_EVENT_BOW` | 8 | 弓箭事件 | 火箭射击触发 |
+| `DYNOBJ_EVENT_BOW` | 8 | 弓箭事件 | 处理 `FM_BOW`；此分支没有限定为火箭 |
 | `DYNOBJ_EVENT_MOVETICK` | 9 | 定时移动 | 按 Tick 定时生成/消失 |
 
-### 事件组合（可叠加）
+### 事件组合与特殊值
+
+`HIT`、`ADDITEM`、`SAY`、`BOW` 使用按位检查；`MOVETICK=9` 另有相等判断的定时处理。9 同时含有 1 和 8 两个位，因此不能解释为排除打击、弓箭事件的独立位标记。
 
 | 值 | 组合说明 |
 |---:|----------|
@@ -80,8 +82,8 @@
 | 5 | 打击 + 说话 |
 | 6 | 放入物品 + 说话 |
 | 7 | 打击 + 放入物品 + 说话 |
-| 8 | 火箭射击触发 |
-| 9 | 定时生成/消失（非事件触发） |
+| 8 | 弓箭事件 |
+| 9 | 启用定时显示/再生处理；按位检查时也满足打击和弓箭事件条件 |
 
 ---
 
@@ -114,3 +116,5 @@
 - [CreateGate.SDB.md](../CreateGate.SDB.md) — 传送门配置
 - [CreateDynamicObject.SDB.md](../CreateDynamicObject.SDB.md) — 动态对象配置
 - [CreateMonster.SDB.md](../CreateMonster.SDB.md) — 怪物创建配置
+- [uManager.pas](../TGS核心源码/uManager.pas) — 地图 `Attribute` 加载与活动倒计时
+- [BasicObj.pas](../TGS核心源码/BasicObj.pas) — `GATE_KIND_SPORTSWAR` 的竞技场入场分支

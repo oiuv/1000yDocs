@@ -2,50 +2,50 @@
 
 > 源码: [deftype.pas](../deftype.pas) 第 329-355 行（`MAGICTYPE_*`）
 
-定义武功的武器/招式类型，对应 `Init_magic.sdb` 中的 `type` 字段。
+定义武功的武器、动作或特殊功能类型。`Init/Magic.sdb` 的字段名是 `MagicType`；加载时以 `MagicType mod 100` 取得类型，以 `MagicType div 100` 取得 `MAGICCLASS_*` 分类，不能把两者混用。
 
 ---
 
-## 基本武功类型
+## 武功动作类型
 
-| 常量名 | 值 | 中文说明 | 对应默认武功 |
+| 常量名 | 值 | 中文说明 | 随包示例或说明 |
 |--------|---:|----------|-------------|
-| `MAGICTYPE_WRESTLING` | 0 | 拳法 | 太极拳/拳法类 |
-| `MAGICTYPE_FENCING` | 1 | 剑法 | 剑术类 |
-| `MAGICTYPE_SWORDSHIP` | 2 | 刀法 | 刀术类 |
-| `MAGICTYPE_HAMMERING` | 3 | 锤法 | 锤术类 |
-| `MAGICTYPE_SPEARING` | 4 | 枪法 | 枪术类 |
-| `MAGICTYPE_BOWING` | 5 | 弓术 | 弓箭类 |
-| `MAGICTYPE_THROWING` | 6 | 投掷 | 飞镖/暗器类 |
-| `MAGICTYPE_RUNNING` | 7 | 轻功 | 身法/步法类 |
-| `MAGICTYPE_BREATHNG` | 8 | 呼吸 | 内功/调息类 |
-| `MAGICTYPE_PROTECTING` | 9 | 护身 | 防御/护体类 |
+| `MAGICTYPE_WRESTLING` | 0 | 拳法 | 无名拳法、太极拳 |
+| `MAGICTYPE_FENCING` | 1 | 剑法 | 无名剑法 |
+| `MAGICTYPE_SWORDSHIP` | 2 | 刀法 | 无名刀法 |
+| `MAGICTYPE_HAMMERING` | 3 | 槌法 | 无名槌法 |
+| `MAGICTYPE_SPEARING` | 4 | 枪法 | 无名枪术 |
+| `MAGICTYPE_BOWING` | 5 | 弓术 | 无名弓术 |
+| `MAGICTYPE_THROWING` | 6 | 投法 | 无名投法 |
+| `MAGICTYPE_RUNNING` | 7 | 步法（轻功） | 无名步法 |
+| `MAGICTYPE_BREATHNG` | 8 | 心法 | 无名心法、伏式气功；不是人物属性“内功” |
+| `MAGICTYPE_PROTECTING` | 9 | 护体 | 无名强身、黑沙刚体 |
 | `MAGICTYPE_ECT` | 10 | 其他 | 不属于以上分类的特殊武功 |
-| `MAGICTYPE_ONLYBOWING` | 11 | 专用弓术 | 仅限弓术使用的武功 |
-| `MAGICTYPE_SPECIAL` | 12 | 特殊武功 | 含特殊功能的武功（见 MAGICSPECIAL_*） |
+| `MAGICTYPE_ONLYBOWING` | 11 | 专用弓术 | 百鬼夜行术 |
+| `MAGICTYPE_SPECIAL` | 12 | 特殊功能武功 | 怪物特殊武功功能分派使用的类型，见 `MAGICSPECIAL_*` |
 | `MAGICTYPE_WINDOFHAND` | 13 | 掌风 | 远程掌法攻击 |
-| `MAGICTYPE_BESTSPECIAL` | 14 | 绝世特殊 | 绝世武功特殊类型 |
+| `MAGICTYPE_BESTSPECIAL` | 14 | 招式武功 | 凌波微步、乾坤大挪移等绝世武功中的招式 |
 
 ---
 
 ## 特殊武功功能 (MAGICSPECIAL_*)
 
-当 `MAGICTYPE = SPECIAL(12)` 时，此字段定义具体功能：
+`Magic.sdb` 中 `MagicType=12` 的记录以 `Function` 字段区分特殊功能；`uMopSub.pas` 的怪物武功表按该字段索引。下表列出随包记录的真实名称，不按英文常量猜测效果，也不表示玩家能学习这些武功。
 
-| 常量名 | 值 | 中文说明 | 详细说明 |
+| 常量名 | 值 | 随包武功名称 | 说明 |
 |--------|---:|----------|----------|
-| `MAGICSPECIAL_HIDE` | 0 | 隐身 | 隐身术 |
-| `MAGICSPECIAL_SAME` | 1 | 相同 | 变身相同外观 |
-| `MAGICSPECIAL_HEAL` | 2 | 治愈 | 治疗恢复类 |
-| `MAGICSPECIAL_SWAP` | 3 | 交换 | 位置交换类 |
-| `MAGICSPECIAL_EAT` | 4 | 吞噬 | 吞噬类技能 |
-| `MAGICSPECIAL_KILL` | 5 | 即死 | 一击必杀类 |
-| `MAGICSPECIAL_PICK` | 6 | 拾取 | 远程拾取类 |
-| `MAGICSPECIAL_BLOOD` | 7 | 吸血 | 吸血类技能 |
-| `MAGICSPECIAL_CALL` | 8 | 召唤 | 召唤类技能 |
-| `MAGICSPECIAL_DEADBLOW` | 9 | 致命一击 | 死亡打击类 |
-| `MAGICSPECIAL_SHOW` | 10 | 显示 | 显示/揭示类 |
-| `MAGICSPECIAL_LAST` | 11 | 最后 | 终极技能 |
+| `MAGICSPECIAL_HIDE` | 0 | 隐身术 | `Function=0` |
+| `MAGICSPECIAL_SAME` | 1 | 分身术 | `Function=1` |
+| `MAGICSPECIAL_HEAL` | 2 | 再生术 | `Function=2` |
+| `MAGICSPECIAL_SWAP` | 3 | 变身术 | `Function=3`，不能译为位置交换 |
+| `MAGICSPECIAL_EAT` | 4 | 医病术 | `Function=4`，不能译为吞噬 |
+| `MAGICSPECIAL_KILL` | 5 | 千斤锥 | `Function=5`，名称不代表一击必杀 |
+| `MAGICSPECIAL_PICK` | 6 | 搜集术 | `Function=6` |
+| `MAGICSPECIAL_BLOOD` | 7 | 吸血术、东王吸血术 | `Function=7` |
+| `MAGICSPECIAL_CALL` | 8 | 召唤术 | `Function=8` |
+| `MAGICSPECIAL_DEADBLOW` | 9 | 必杀技 | `Function=9` |
+| `MAGICSPECIAL_SHOW` | 10 | 透视 | `Function=10` |
+| `MAGICSPECIAL_LAST` | 11 | — | 数量边界；数组使用 `0..MAGICSPECIAL_LAST-1`，不是一种武功 |
 
 ---
 
@@ -98,10 +98,10 @@
 | `HITTYPE_WRESTLING` | 0 | 拳法命中 |
 | `HITTYPE_FENCING` | 1 | 剑法命中 |
 | `HITTYPE_SWORDSHIP` | 2 | 刀法命中 |
-| `HITTYPE_HAMMERING` | 3 | 锤法命中 |
+| `HITTYPE_HAMMERING` | 3 | 槌法命中 |
 | `HITTYPE_SPEARING` | 4 | 枪法命中 |
 | `HITTYPE_BOWING` | 5 | 弓术命中 |
-| `HITTYPE_THROWING` | 6 | 投掷命中 |
+| `HITTYPE_THROWING` | 6 | 投法命中 |
 | `HITTYPE_PICK` | 7 | 采矿命中 |
 | `HITTYPE_WINDOFHAND` | 8 | 掌风命中 |
 
@@ -153,3 +153,5 @@
 - [MAGICCLASS.md](MAGICCLASS.md) — 武功分类常量
 - [MAGIC_KIND.md](MAGIC_KIND.md) — 武功门派常量
 - [Init_magic.sdb.md](../Init_magic.sdb.md) — 武功数据库结构
+- [uMopSub.pas](../TGS核心源码/uMopSub.pas) — 特殊功能索引及怪物武功处理
+- [绝世武功介绍](../炎黄新章游戏资料/新手入门/武功介绍/绝世武功介绍.txt) — 招式武功名称

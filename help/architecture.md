@@ -29,7 +29,7 @@ Client ── TCP 3054 ──> Gate
 
 | 服务 | 源码目录 | 职责 |
 |------|----------|------|
-| **Balance** | `balance/` | 负载均衡器。接收客户端连接，根据最少连接数算法分配至可用 Gate，通过 UDP 接收 Gate 心跳 |
+| **Balance** | `balance/` | 接入调度器。根据 Gate 上报的连接数选择可用且启用的 Gate，向客户端返回其地址；不持续转发游戏流量 |
 | **Gate** | `gate_biscuit/` | 网关服务器。维护客户端连接和完整登录状态机，路由消息到 Game/DB/Login/Paid |
 | **Login** | `loginsdb_biscuit/` 或 `loginsql/` | 两个二选一实现：SDB 账号适配器，或通过 BDE/ODBC 连接 SQL Server |
 | **DB** | `db/` | 数据库服务器。管理角色数据持久化，使用自定义 FDB 文件格式存储 |
@@ -43,6 +43,8 @@ Client ── TCP 3054 ──> Gate
 - `Balance TCP 3053` — 客户端初始连接入口（短连接）
 - `Gate TCP 3054` — 客户端游戏连接入口（长连接）
 
+Balance 提供 Gate 地址，Gate 承接后续登录、选角和游戏通信。“Gate 是游戏业务入口”不等于只需对玩家开放 Gate 一个服务。上述端口为默认值，部署时以配置为准。
+
 因此生产部署通常只对外开放 Balance 和 Gate，其余服务应由防火墙限制在内网。DB 与 SQL Login 的客户端接入检查使用程序工作目录下的 `IPList.txt`，不是 `RemoteIP.txt`；文件不存在时检查器会禁用并允许所有来源。源码本身不能证明服务器当前的公网暴露状态：
 
 - SQL Login (`loginsql/sckAccept`) — `IPList.txt` 存在时按列表检查；缺失时允许全部来源
@@ -51,6 +53,10 @@ Client ── TCP 3054 ──> Gate
 - Game — 通过 Gate 间接访问，不直接对外
 
 DB 读取的 `RemoteIP.txt` 属于另一组远程连接器配置，不能代替接入白名单。无论文件是否存在，都应使用主机防火墙把 Login、DB、Game 和 Paid 限制在受信内网。
+
+`IPList.txt` 每行一个来源 IP，按整行精确匹配；不支持网段、通配符或行尾注释。空文件会拒绝全部来源，缺失文件则放行，二者不同；详见[配置文件说明](protocol.md#55-配置文件)。
+
+Gate 的 `[GATE_SERVER] LOCALIP` 用于向 Balance 公布连接地址；`FMain.FormCreate` 启动玩家监听时只设置 `Port`，没有使用该值绑定监听地址。因此，`LOCALIP=127.0.0.1` 不能作为“只监听本机”的安全保证。跨机器部署时，该值还必须是玩家可达的地址，见[Gate 配置说明](protocol.md#55-配置文件)。
 
 ---
 
@@ -93,6 +99,12 @@ DB 读取的 `RemoteIP.txt` 属于另一组远程连接器配置，不能代替�
 
 ## 3. 负载均衡（Balance）
 
+Balance 均衡的是**客户端到 Gate 的新连接**，不是把玩家分配到人数最少的游戏区服，也不选择角色数据库。客户端先连接 Balance，取得 Gate 地址后断开，再直接连接该 Gate；后续登录和游戏消息经过 Gate，不再经过 Balance。
+
+Gate 是接入网关，不等于独立游戏世界。同一游戏服可以部署多个 Gate，共同连接同一套 Login、DB 和 Game 服务。例如 Gate A 有 100 个连接、Gate B 有 50 个连接，Balance 会优先把新连接分配给 B；只要二者接入同一套后端，玩家仍在同一个世界，使用同一套账号和角色数据。实际后端由各 Gate 的配置决定，Balance 不检查或保证它们一致。
+
+增加 Gate 主要分担客户端连接和消息转发压力，不会自动分担 TGS 的游戏逻辑计算，也不会自动迁移已经连接的玩家。
+
 ### 3.1 核心数据结构
 
 ```delphi
@@ -102,7 +114,7 @@ TGateInfo = record
   boChecked   : Boolean;     // 管理员是否勾选启用
   RemoteIP    : String;      // Gate 的外网 IP
   RemotePort  : Integer;     // Gate 的客户端端口
-  UserCount   : Integer;     // 当前连接数
+  UserCount   : Integer;     // Gate 最近上报的连接数
   ReceiveTick : LongWord;    // 最后收到心跳的时间
 end;
 
@@ -111,7 +123,9 @@ MAX_AVAILABLE_GATE = 10;    // 最多支持 10 个 Gate
 
 ### 3.2 最少连接数算法
 
-当客户端连接到 Balance 时（`sckUserClientWrite`），遍历所有 Gate 寻找连接数最少的可用节点：
+客户端 TCP 连接可写时（`sckUserClientWrite`），Balance 从可用且管理员勾选启用的 Gate 中，选择最近上报连接数最少的节点。客户端不需要先发送获取 Gate 地址的请求报文。
+
+比较值来自 Gate 的 `ConnectorList.Count`，包含尚未进入游戏的连接，并非仅统计游戏中的角色（`PlayingUserCount`）。Balance 使用最近一次状态上报值；分配后不自行递增该值，连接数相同时优先选择列表中靠前的 Gate。
 
 ```delphi
 // balance/FMain.pas — sckUserClientWrite
@@ -157,7 +171,7 @@ if CurTick >= BalanceSendTick + 3000 then begin
 end;
 ```
 
-但当前源码没有任何位置更新 `BalanceSendTick`。程序运行时间超过三秒后，上述条件持续为真，而 `timerDisplay` 的间隔是 1000 毫秒，所以实际行为约为**每秒发送一次**，不是每三秒一次。这是确定的源码缺陷；文档和兼容服务不能只按条件字面推导周期。
+但当前源码没有任何位置更新 `BalanceSendTick`，该全局变量初值为 0。`CurTick` 来自 `timeGetTime`，是系统启动后的毫秒计数，不是 Gate 程序运行时长。因此正常运行时上述条件在每次定时器回调中成立；`timerDisplay` 的间隔是 1000 毫秒，实际约为**每秒发送一次**，并没有实现每三秒一次的节流。这是源码缺陷，不能根据条件字面推导发送周期或认定 Gate 启动后要先等待三秒。
 
 Balance 源码还监听 TCP 3000，并包含处理 `BM_GATEINFO` 的 `TGateConnector`；但当前仓库的 `gate_biscuit` 没有对应 TCP 客户端连接代码，因此不能把它描述为本版本 Gate 的有效注册通道。
 
@@ -173,7 +187,7 @@ end;
 
 ### 3.4 短连接设计（10 秒超时）
 
-Balance 与客户端的连接是**短连接**。客户端连接后，Balance 在 `OnWrite` 事件中立即发送 `SM_CONNECTTHRU` 重定向消息。连接创建后记录 `CreateTime`，10 秒后如果连接仍未关闭则强制断开：
+Balance 与客户端的连接是**短连接**。连接可写且选到可用 Gate 时，Balance 在 `OnWrite` 事件中发送 `SM_CONNECTTHRU` 重定向消息；没有可用 Gate 时不发送重定向。连接创建后记录 `CreateTime`，10 秒后如果连接仍未关闭则在定时检查中强制断开：
 
 ```delphi
 // balance/uConnect.pas — TConnectorList.Update
@@ -193,16 +207,16 @@ end;
 ```delphi
 // gate_biscuit/uConnector.pas
 TGameStatus = (
-  gs_none,         // 空闲/未登录
+  gs_none,         // 空闲：包括登录前和选角待命
   gs_login,        // 等待登录验证
   gs_agree,        // 仅声明；当前 Gate 流程未使用
-  gs_selectchar,   // 角色选择界面
+  gs_selectchar,   // 已提交选角，等待 DB 查询结果
   gs_gotogame,     // 正在进入游戏（等待 Game 确认）
   gs_playing,      // 游戏中
   gs_createchar,   // 创建角色中
   gs_deletechar,   // 删除角色中
-  gs_createlogin,  // 创建账号中
-  gs_changepass    // 修改密码中
+  gs_createlogin,  // 注册相关保留状态；客户端注册入口未启用
+  gs_changepass    // 修改密码相关保留状态
 );
 ```
 
@@ -210,12 +224,14 @@ TGameStatus = (
 
 ```
 gs_none ──(客户端发送登录)──► gs_login
-gs_login ──(LG_SELECT 成功，显示角色列表并发起 Paid 校验)──► gs_none
+gs_login ──(LG_SELECT 成功，显示角色列表并处理计费状态)──► gs_none
 gs_none ──(计费状态有效且客户端选择角色)──► gs_selectchar
-gs_selectchar ──(选择角色 + DB_SELECT 成功)──► gs_gotogame
+gs_selectchar ──(DB_SELECT 成功且角色归属等检查通过)──► gs_gotogame
 gs_gotogame ──(Game 回复 GM_CONNECT)──► gs_playing
-gs_playing ──(断开/顶号)──► gs_none
+连接断开 ──► 销毁该连接对象
 ```
+
+`GM_DUPLICATE` 分支会清空所选角色、恢复 `gs_none`，并使总连接超时检查到期；它不是返回选角后继续使用同一连接的流程，见[顶号机制](#54-顶号机制gm_duplicate)。
 
 ### 4.2 TClientWindow 窗口状态
 
@@ -265,12 +281,14 @@ else
 |------|----------|----------|
 | Game | `GameMessageProcess` | `GM_CONNECT`（进入游戏）、`GM_DISCONNECT`（断开）、`GM_SENDGAMEDATA`（游戏数据转发）、`GM_DUPLICATE`（顶号）、`GM_SENDALL`（全服广播）、`GM_SENDUSERDATA`（角色数据写入 DB） |
 | DB | `DBMessageProcess` | `DB_INSERT`（创建角色结果）、`DB_SELECT`（角色数据查询结果） |
-| Login | `LoginMessageProcess` | `LG_INSERT`（注册结果）、`LG_SELECT`（登录验证结果）、`LG_UPDATE`（账号信息更新） |
+| Login | `LoginMessageProcess` | `LG_INSERT`（保留的注册回包分支）、`LG_SELECT`（登录验证结果）、`LG_UPDATE`（账号信息更新） |
 | Paid | `PaidMessageProcess` | `PM_CHECKPAID`（计费验证结果） |
+
+当前 `MessageProcess` 对 `CM_CREATEIDPASS`、`CM_CREATEIDPASS2`、`CM_CREATEIDPASS3` 都直接退出，不向 Login 发起注册。保留消息常量、状态或回包处理函数，不代表客户端账号注册功能已经启用；这与 `CM_CREATECHAR` 创建游戏角色是两件事。
 
 ### 4.4 超时和断开机制
 
-**请求超时（60 秒）**：非游戏状态下，如果 60 秒内未完成操作，重置状态并提示超时：
+**请求超时（60 秒）**：仅在状态既非 `gs_none`、也非 `gs_playing` 时检查；距 `RequestTime` 达到 60 秒便重置状态并提示超时。该时间戳在客户端消息处理函数 `MessageProcess` 的尾部更新，不是每个后端请求各自独立的计时器：
 
 ```delphi
 // gate_biscuit/uConnector.pas — Update
@@ -284,7 +302,7 @@ if (FGameStatus <> gs_none) and (FGameStatus <> gs_playing) then begin
 end;
 ```
 
-**总连接超时（5 分钟）**：非游戏状态下，连接建立后 5 分钟内未完成登录则强制断开：
+**总连接超时（5 分钟）**：连接建立后达到 5 分钟且仍未进入 `gs_playing` 时强制断开；已通过账号验证、停留在角色选择界面的连接也在检查范围内：
 
 ```delphi
 if FGameStatus <> gs_playing then begin
@@ -314,7 +332,26 @@ if CheckTime >= 1000 then begin
 end;
 ```
 
-`LimitPacketCount` 在 `GATE.INI` 中配置，默认值为 10。不过 `Update` 由 10 毫秒定时器调用，8 槽环形索引约 80 毫秒便回到同一槽；槽位时间戳在检查前已参与本轮计算，因此稳定运行后 `CheckTime >= 1000` 通常不能成立。当前代码不能被视为持续有效的“一秒最多 10 包”防护，生产环境仍需外围限速，修复源码后才能依赖此阈值。
+`LimitPacketCount` 在 `GATE.INI` 中配置，默认值为 10。10 毫秒定时器调用的是连接列表更新；`TConnectorList.Update` 每轮只处理 `max(40, 连接数 * 4 div 100)` 个连接，遍历完一圈即停止，并非每个连接都每 10 毫秒更新。
+
+连接数稳定、每次定时器恰好间隔 10 毫秒时，单个连接的 8 槽采样周期如下：
+
+| 连接数 | 每轮处理数 | 8 槽采样周期 |
+| ---: | ---: | ---: |
+| 40 | 40 | 80ms |
+| 100 | 40 | 200ms |
+| 500 | 40 | 1000ms |
+| 1000 | 40 | 2000ms |
+
+实际周期还受定时器延迟和连接增减影响。低连接数、调度顺畅时，稳定运行后的 `CheckTime >= 1000` 可能一直不成立；连接数增加或调度变慢时又可能触发。触发后比较的是该采样周期内的平均包率，也不是任意一秒窗口的硬上限。当前代码不能被视为持续有效的“一秒最多 10 包”防护，生产环境仍需外围限速。
+
+### 4.6 接入校验边界
+
+Gate 检查新连接的版本和地区、登录密码及选角归属，但不能据此认为公网输入已经完整校验：
+
+- 客户端包的 `RequestID` 递增检查在 `TConnector.Update` 中被注释。原生客户端仍按连接维护递增序号，这是发送行为，不是当前 Gate 实际执行的拒绝条件。
+- `TPacketReceiver.Update` 没有核对解密结果长度与声明包长的一致性；Gate 随后复制载荷，并直接使用 `TWordComData.Size` 转发或按命令结构读取，缺少完整的嵌套长度检查。详见[接收流程与校验缺口](protocol.md#44-缓冲区管理)。
+- 进入 `gs_playing` 后，游戏命令以 `GM_SENDGAMEDATA` 转交 TGS，物品、战斗等游戏规则仍需由 TGS 验证。版本字段和自定义加密封装不等于客户端身份认证，也不能代替输入校验。
 
 ---
 
@@ -334,10 +371,10 @@ end;
  7   Gate → Login             LG_SELECT (ConnectID, LoginID)        —
  8   Login → Gate             LG_SELECT 结果 (TLGRecord 含角色列表)  —
  9   Gate                     比对 PrimaryKey 和 PassWord           —
-10   Gate → Login             LG_UPDATE (IP、LastDate 等账号信息)    —
-11   Gate → Client            隐藏 cw_login，显示 cw_selectchar      gs_none
-12   Gate → Client            SM_CHARINFO (角色列表)                 —
-13   Gate → Paid              PM_CHECKPAID（启用计费校验时）          —
+10   Gate → Client            隐藏 cw_login，显示 cw_selectchar      cw_selectchar
+11   Gate → Login             LG_UPDATE (IP、LastDate 等账号信息)    —
+12   Gate → Client            SM_CHARINFO (角色列表)                 随后恢复 gs_none
+13   Gate → Paid              PM_CHECKPAID（需要外部查询时）          —
 14   Paid → Gate              返回付费类型和有效期                   gs_none
 15   Client → Gate            CM_SELECTCHAR (角色名 + 服务器)        gs_selectchar
 16   Gate → DB                DB_SELECT (角色名)                    —
@@ -357,9 +394,9 @@ end;
 | 账号验证 | Gate ↔ Login | `LG_SELECT` |
 | 角色列表 | Gate ↔ Login、Gate → Client | `LG_SELECT` 返回角色槽位，`SM_CHARINFO` 下发列表 |
 | 角色加载 | Gate ↔ DB | `DB_SELECT` 读取选中的角色数据 |
-| 计费验证 | Gate ↔ Paid | `PM_CHECKPAID` / `PM_CHECKPAID2` |
+| 计费验证 | Gate ↔ Paid | 当前 Gate 使用 `PM_CHECKPAID`；`PM_CHECKPAID2` 未在此实现中使用 |
 | 进入游戏 | Gate ↔ Game | `GM_CONNECT` |
-| 角色锁定 | Gate → DB | `DB_LOCK` |
+| 角色在线标记 | Gate → DB | `DB_LOCK` |
 
 ### 5.3 角色锁定机制（DB_LOCK）
 
@@ -377,7 +414,9 @@ begin
 end;
 ```
 
-`DB_LOCK` 在 DB 服务器中标记角色为已锁定状态，防止同一角色被多次登录。角色下线时通过 `DB_UNLOCK` 释放锁。
+`DB_LOCK` 向 DB 的 `CurrentCharList` 添加角色在线标记，`DB_UNLOCK` 移除标记。普通 `DB_SELECT` 直接调用 `DBProvider.Select` 读取记录并检查 CRC，不检查该列表，因此这个“锁”不是阻止重复登录的互斥锁。重复登录由 TGS 的角色名称索引 `NameKey` 和 `WaitPlayerList` 处理。
+
+正常角色下线时，TGS 的 `TConnector.Destroy` 发送 `DB_UNLOCK`；外部 Gate 析构函数中的同名发送代码已被注释，不能把解锁职责完全归给外部 Gate。
 
 ### 5.4 顶号机制（GM_DUPLICATE）
 
@@ -415,7 +454,22 @@ begin
 end;
 ```
 
-另外，Game 还维护一个 `WaitPlayerList`（等待列表），角色断开后在 `WAITPLAYERTICK`（默认 100 秒，可在 `sv1000.Ini` 配置）内不允许同一角色重新登录，防止数据冲突。
+Game 还维护 `WaitPlayerList`（等待列表）。角色连接销毁时加入记录；记录仍存在时，同名角色的新接入会收到 `GM_DUPLICATE`。等待记录通过以下任一路径解除：
+
+- TGS 收到 `DB_UPDATE_END` 的成功回包，按角色名立即调用 `WaitPlayerList.Release`。
+- `WaitPlayerList.Update` 检测到等待时间到期，清理记录。
+
+超时值 `WAITPLAYERTICK` 从 `sv1000.Ini` 的 `[SERVER] WAITPLAYERTIME` 读取，缺省为 10000 个 `mmAnsTick`，按默认每 tick 10ms 计算约为 100 秒。实际等待时间受保存回包、配置和 tick 单位影响，不是断线后必须等满 100 秒。超时清理本身也不证明存档成功。
+
+### 5.5 计费校验条件
+
+Gate 在账号验证成功后先发送角色列表，再处理计费状态。标准 `CM_IDPASS` 登录是否查询外部 Paid，由当时的发送器和计费状态共同决定：
+
+- `PaidSender=nil` 或 `CHECKPAIDINFO=FALSE` 时，直接把 `FPaidData.rPaidType` 设为 `pt_validate`，不等待外部计费回包。
+- 仅在上述处理后类型仍为 `pt_none` 时，向 Paid 发送 `PM_CHECKPAID`。其他已有非 `pt_none` 的类型不走此查询；例如 `CM_IDPASSAZACOM` 分支会预设 `pt_timepay`。
+- 选角时若类型为 `pt_none`，提示等待；若为 `pt_invalidate`，拒绝继续。外部 `PM_CHECKPAID` 回包的 `ResultCode=0` 会直接结束处理，不应用其计费数据；非零回包仍要核对账号并按付费模式处理，不能等同于自动放行。
+
+因此，`CHECKPAIDINFO=TRUE` 不保证 Paid 不可用时拒绝登录。文档描述的是当前分支行为，不代表已实现计费故障时的拒绝策略。
 
 ---
 
@@ -508,6 +562,18 @@ if SaveBuffer.Count > 0 then begin
   end;
 end;
 ```
+
+### 6.6 保存失败与关服边界
+
+`AddSendDBServerData` 返回成功，只表示 `TPacketSender.PutPacket` 接受数据；调用端据此将保存队列出队，不代表 DB 已写盘。`FGate.DBMessageProcess` 收到 `DB_UPDATE` / `DB_UPDATE_END` 失败回包时只记录 `User Data Save Failed`，没有将记录重新加入保存队列。DB 连接断开会释放该连接的收发缓冲，也没有为已出队记录建立逐条确认后的重放队列。
+
+保存入队同样有容量限制：`TConnectorList.AddSaveData` 没有检查 `SaveBuffer.Put` 的返回值。因此不能把这条链路描述成保证送达的持久化队列，或认为自动重连会自动恢复所有失败保存。
+
+正常退出入口 `TFrmMain.Exit1Click` 设置关闭标志，并启动关服检查。`TimerCloseTimer` 等待角色列表、连接列表和 `SaveBuffer` 均为空后，将检查间隔从 1 秒改为 5 秒；下一次条件仍满足才关闭。它不以 DB 未确认请求数或网络发送缓冲是否排空作为退出条件。
+
+维护时先阻止新登录，保持 Gate、DB 连接可用，确认角色下线、保存队列处理及 DB 成功回包，再结束写入服务并备份。仅看到队列为 0、等待时间到期或 TGS 进程退出，不能单独证明最后一次保存成功。详见 [TGS 运行与生命周期](TGSRuntime.md#正常关服与保存确认)。
+
+依据：`uConnect.pas` 的 `AddSaveData`、`Update`（队列处理节选见上一节），[FGate.pas](TGS核心源码/FGate.pas) 的 `AddSendDBServerData`、`DBMessageProcess`、`sckDBConnectDisconnect`，[SVMain.pas](TGS核心源码/SVMain.pas) 的 `Exit1Click`、`TimerCloseTimer`。
 
 ---
 
@@ -615,12 +681,15 @@ end;
 
 | 常量 | 值 | 说明 |
 |------|-----|------|
-| `DB_INSERT` | 0 | 创建角色 |
+| `DB_INSERT` | 0 | DB 返回创建角色结果；作为请求发送时，当前 DB 实现直接拒绝 |
 | `DB_SELECT` | 1 | 查询角色数据 |
 | `DB_UPDATE` | 3 | 更新角色数据 |
-| `DB_LOCK` | 4 | 锁定角色 |
-| `DB_UNLOCK` | 5 | 解锁角色 |
+| `DB_LOCK` | 4 | 添加角色在线标记 |
+| `DB_UNLOCK` | 5 | 移除角色在线标记 |
 | `DB_UPDATE_END` | 9 | 更新角色数据（结束标记，释放 WaitPlayer） |
+| `DB_CREATENEW` | 10 | Gate 发起创建角色请求，结果以 `DB_INSERT` 回包 |
+
+请求与回复方向、通信记录和磁盘记录的区别见[玩家数据库文档](database.md)。
 
 ### Gate ↔ Login 消息
 
@@ -653,7 +722,7 @@ end;
 
 ```delphi
 // PROGRAM_VERSION = 39; // 源码中保留的旧值
-PROGRAM_VERSION = 40;    // 仓库当前启用值
+PROGRAM_VERSION = 40;    // 公开源码基线值
 ```
 
-版本检查针对 Gate 的实际构建值。用户确认当前线上炎黄 Gate 已更新为 40，与仓库源码当前启用值一致。客户端连接具体服务器时必须发送该 Gate 实际要求的值。
+版本检查针对 Gate 的实际构建值。公开源码基线为 40，不代表任一线上部署的版本；客户端连接具体服务器时必须发送该 Gate 实际要求的值。

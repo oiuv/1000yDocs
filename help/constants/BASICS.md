@@ -10,7 +10,7 @@
 
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
-| `PROGRAM_VERSION` | 40 | 程序版本号 |
+| `PROGRAM_VERSION` | 40 | 公开源码基线的通信版本，不是 EXE 文件版本或线上部署证明 |
 
 ## 国家版本 (NATION_*)
 
@@ -34,9 +34,9 @@
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
 | `HAVEITEMSIZE` | 30 | 背包物品格数 |
-| `HAVEMATERIALITEMSIZE` | 5 | 材料栏格数 |
+| `HAVEMATERIALITEMSIZE` | 5 | 技术窗物品数组容量：4 格材料和 1 格加工物品/产物，不能全部用于放料 |
 | `HAVEMARKETITEMSIZE` | 10 | 个人商店栏格数 |
-| `MONEYMAX` | 61000 | 金钱上限 |
+| `MONEYMAX` | 61000 | 保留常量；当前客户端与 TGS 未检出引用，不能作为实际金钱上限 |
 
 ### 武功容量
 
@@ -46,24 +46,26 @@
 | `HAVEMAGICSIZE` | 30 | 普通武功最大数量 |
 | `HAVERISEMAGICSIZE` | 30 | 上层武功最大数量 |
 | `HAVEMYSTERYMAGICSIZE` | 30 | 掌法武功最大数量 |
-| `HAVEBESTSPECIALMAGICSIZE` | 15 | 绝世超式武功最大数量 |
-| `HAVEBESTPROTECTMAGICSIZE` | 5 | 绝世公力武功最大数量 |
-| `HAVEBESTATTACKMAGICSIZE` | 5 | 绝世必杀武功最大数量 |
+| `HAVEBESTSPECIALMAGICSIZE` | 15 | 招式武功最大数量 |
+| `HAVEBESTPROTECTMAGICSIZE` | 5 | 神功（绝世护体）最大数量 |
+| `HAVEBESTATTACKMAGICSIZE` | 5 | 绝世攻击武功最大数量 |
 | `TOTALBESTMAGICNUM` | 25 | 绝世武功总数上限 |
 
 ### 视野与地图
 
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
-| `VIEWRANGEWIDTH` | 10 | 视野宽度（格） |
-| `VIEWRANGEHEIGHT` | 8 | 视野高度（格） |
+| `VIEWRANGEWIDTH` | 10 | 视野横向半径（格） |
+| `VIEWRANGEHEIGHT` | 8 | 视野纵向半径（格） |
+
+公开原版的 `TBasicObject.isRange` 按 `x±10`、`y±8` 判断，包含边界，完整矩形为 21×17 格，并非 10×8 格。`OnApproach` / `OnAway` 使用另一套 `x±2`、`y±2` 的近身判断。依据：[BasicObj.pas](../TGS核心源码/BasicObj.pas) 的 `isRange`、`isApproach`；运行关系见 [地图、视野与对象生命周期](../TGSWorld.md)。
 
 ### 名称长度
 
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
-| `NAME_SIZE` | 19 | 角色名最大字节数（韩文9字/中文9字） |
-| `CAPTION_SIZE` | 40 | 标题最大字节数（韩文20字/中文20字） |
+| `NAME_SIZE` | 19 | `TNameString` 的字节容量；零结尾字符串需留 1 字节，最多容纳 18 字节文本（如 9 个 GBK 双字节汉字） |
+| `CAPTION_SIZE` | 40 | `TCaptionString` 的字节容量；零结尾字符串需留 1 字节，不能等同于允许输入 20 个汉字 |
 
 ---
 
@@ -73,7 +75,7 @@
 |--------|---:|------|
 | `DEFAULTEXP` | 10000 | 事件获得的基本经验值 |
 | `OBJECTUPDATETICK` | 20 | 怪物/NPC 更新的最小 TICK 间隔 |
-| `BOSSVIRTUEVALUE` | 10000 | BOSS 道德值 |
+| `BOSSVIRTUEVALUE` | 10000 | 怪物 `VirtueValue` 的 BOSS 判定阈值，用于部分 AI 分支 |
 | `STARTNEWID` | 10000 | 新 ID 起始值 |
 | `USERMANAGERPOST` | 1000 | 用户管理器端口偏移 |
 | `FIELDPOST` | 100 | 场景端口偏移 |
@@ -82,12 +84,14 @@
 
 ---
 
-## 电话/邮递系统
+## 场景消息路由标识
+
+`TFieldPhone.SendMessage` 使用这些值选择接收对象，是服务端内部消息路由，不是玩家电话或邮件功能。
 
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
-| `NOTARGETPHONE` | 0 | 无目标电话 |
-| `MANAGERPHONE` | 1 | 管理器电话 |
+| `NOTARGETPHONE` | 0 | 无指定目标；向发送者及周边分区中的对象分发，再由接收者检查范围和状态 |
+| `MANAGERPHONE` | 1 | 转交 `ManagerList.FieldProc` 处理 |
 
 ---
 
@@ -103,7 +107,7 @@
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
 | `BTEFFECT_KIND_NONE` | 0 | 无战斗效果 |
-| `BTEFFECT_KIND_DECLIFE` | 1 | 减少生命效果 |
+| `BTEFFECT_KIND_DECLIFE` | 1 | 减少活力的区域效果 |
 
 ---
 
@@ -124,13 +128,13 @@
 | `DEFAULT_WRESTLING` | 0 | 拳法 |
 | `DEFAULT_FENCING` | 1 | 剑法 |
 | `DEFAULT_SWORDSHIP` | 2 | 刀法 |
-| `DEFAULT_HAMMERING` | 3 | 锤法 |
+| `DEFAULT_HAMMERING` | 3 | 槌法 |
 | `DEFAULT_SPEARING` | 4 | 枪法 |
 | `DEFAULT_BOWING` | 5 | 弓术 |
-| `DEFAULT_THROWING` | 6 | 投掷 |
-| `DEFAULT_RUNNING` | 7 | 轻功 |
-| `DEFAULT_BREATHNG` | 8 | 呼吸 |
-| `DEFAULT_PROTECTING` | 9 | 护身 |
+| `DEFAULT_THROWING` | 6 | 投法 |
+| `DEFAULT_RUNNING` | 7 | 步法（轻功） |
+| `DEFAULT_BREATHNG` | 8 | 心法 |
+| `DEFAULT_PROTECTING` | 9 | 护体 |
 
 ---
 
@@ -147,13 +151,13 @@
 | 常量名 | 值 | 说明 |
 |--------|---:|------|
 | `RET_CLOSE_NONE` | 0 | 无 |
-| `RET_CLOSE_RUNNING` | 1 | 轻功关闭 |
-| `RET_CLOSE_BREATHNG` | 2 | 呼吸关闭 |
+| `RET_CLOSE_RUNNING` | 1 | 步法关闭 |
+| `RET_CLOSE_BREATHNG` | 2 | 心法关闭 |
 | `RET_CLOSE_ATTACK` | 3 | 攻击关闭 |
-| `RET_CLOSE_PROTECTING` | 4 | 护身关闭 |
-| `RET_CLOSE_BESTSPECIAL` | 5 | 绝世超式关闭（2003-10） |
+| `RET_CLOSE_PROTECTING` | 4 | 护体关闭 |
+| `RET_CLOSE_BESTSPECIAL` | 5 | 招式武功关闭 |
 | `RET_CLOSE_ECTMAGIC` | 6 | 其他武功关闭 |
-| `RET_CLOSE_BESTPROTECT` | 7 | 绝世公力关闭 |
+| `RET_CLOSE_BESTPROTECT` | 7 | 神功关闭 |
 
 ---
 
@@ -176,8 +180,8 @@
 | `DRAGACTION_NONE` | 0 | 无 |
 | `DRAGACTION_ADDEXCHANGEITEM` | 15 | 添加到交换 |
 | `DRAGACTION_DROPITEM` | 2 | 丢弃物品 |
-| `DRAGACTION_FROMITEMTOLOG` | 16 | 物品→日志 |
-| `DRAGACTION_FROMLOGTOITEM` | 17 | 日志→物品 |
+| `DRAGACTION_FROMITEMTOLOG` | 16 | 背包→福袋 |
+| `DRAGACTION_FROMLOGTOITEM` | 17 | 福袋→背包 |
 | `DRAGACTION_FROMITEMTOTRADE` | 18 | 物品→交易 |
 | `DRAGACTION_FROMTRADETOITEM` | 19 | 交易→物品 |
 | `DRAGACTION_FROMITEMTOSKILL` | 20 | 物品→制造 |
@@ -218,3 +222,6 @@
 ## 相关文档
 
 - [README.md](README.md) — 常量定义总览
+- [TERMINOLOGY.md](../TERMINOLOGY.md) — 玩家可见术语
+- [地图、视野与对象生命周期](../TGSWorld.md) — 场景消息分发与接收对象的范围检查
+- [uUserSub.pas](../TGS核心源码/uUserSub.pas) — `DRAGACTION_FROMITEMTOLOG`、`DRAGACTION_FROMLOGTOITEM` 的福袋物品移动分支

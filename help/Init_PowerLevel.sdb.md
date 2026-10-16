@@ -19,7 +19,7 @@ CSV 格式，逗号分隔，首行为列名。
 | Name | Integer | 等级编号（1-13） | 行索引，`PowerLevelArr[sn-1]` |
 | ViewName | String | 境界名称 | `PowerLevelArr[sn-1].Name := TempDB.GetFieldValueString(iName, 'ViewName')` |
 | PowerValue | Integer | 该境界所需的元气值 | `PowerLevelArr[sn-1].PowerValue := TempDB.GetFieldValueInteger(iName, 'PowerValue')` |
-| LimitEnergy | Integer | 该境界的元气上限 | `PowerLevelArr[sn-1].LimitEnergy := TempDB.GetFieldValueInteger(iName, 'LimitEnergy')` |
+| LimitEnergy | Integer | 降低当前境界时，掌法伤害公式所用的元气折算上限；不是直接限制人物元气属性 | `PowerLevelArr[sn-1].LimitEnergy := TempDB.GetFieldValueInteger(iName, 'LimitEnergy')` |
 | Damage | Integer | 攻击力加成值 | `PowerLevelArr[sn-1].Damage := TempDB.GetFieldValueInteger(iName, 'Damage')` |
 | Armor | Integer | 防御力加成值 | `PowerLevelArr[sn-1].Armor := TempDB.GetFieldValueInteger(iName, 'Armor')` |
 | AttackSpeed | Integer | 攻击速度加成；当前表内为空，加载为 0 | `GetPowerLevelAttackSpeed` 返回该值 |
@@ -30,7 +30,7 @@ CSV 格式，逗号分隔，首行为列名。
 
 ### 境界等级列表
 
-| 等级 | 名称 | 元气值 | 元气上限 | 攻击加成 |
+| 等级 | 名称 | 元气值 | LimitEnergy | 攻击加成 |
 |------|------|--------|---------|---------|
 | 1 | 出入境 | 4000 | 7999 | 75 |
 | 2 | 造化境 | 8000 | 11999 | 150 |
@@ -49,14 +49,25 @@ CSV 格式，逗号分隔，首行为列名。
 ### 属性应用
 
 元气等级影响武功的实际伤害和防御计算：
+
 - 攻击力：`DamageBody += MagicClass.GetPowerLevelDamage(FCurPowerLevel)`
 - 防御力：`ArmorBody += MagicClass.GetPowerLevelArmor(FCurPowerLevel)`
 - 攻速、闪避、恢复、命中和维持恢复也分别通过 `GetPowerLevel*` 加入 `THaveMagicClass.AddPowerLevelLifeData`。当前配置列为空，所以本仓库数据下实际增量为 0。
 
+### LimitEnergy 的实际用途
+
+`TUserObject.CommandWindOfHand_new` 计算掌法伤害时，用 `n` 表示该次计算采用的元气：
+
+```text
+t = 当前元气 + 本次已消耗元气
+若 CurPowerLevel = PowerLevel：n = t
+否则：n = min(t, 当前境界的 LimitEnergy)
+```
+
+这里的 `n` 只参与掌法伤害计算，不会把人物 `Energy` 或 `CurEnergy` 改成 `LimitEnergy`。修改这一列不等于修改角色最大元气。人物元气和可用最高境界由武功相关累计值计算；当前使用境界可以通过 `PowerLevelUP/PowerLevelDOWN` 调整。
+
 ## 相关源码
 
-- `svClass.pas` — 加载逻辑（第 3806 行）
-- `svClass.pas` — `TPowerLevelData` 记录定义（第 73 行）
-- `svClass.pas` — `GetPowerLevelDamage/Armor/AttackSpeed` 等函数（第 197-207 行）
-- `uUserSub.pas` — `THaveMagicClass.AddPowerLevelLifeData`（第 5895 行）
-- `uUserSub.pas` — `PowerLevelUP/PowerLevelDOWN`（第 413-414 行）
+- [svClass.pas](TGS核心源码/svClass.pas) — `TPowerLevelData`、`TMagicClass.ReLoadFromFile`、`CalcPowerLevel`、`GetPowerLevel*`。
+- [uUserSub.pas](TGS核心源码/uUserSub.pas) — `THaveMagicClass.LoadFromSdb`、`AddPowerLevelLifeData`、`PowerLevelUP/PowerLevelDOWN`。
+- [UUser.pas](TGS核心源码/UUser.pas) — `TUserObject.CommandWindOfHand_new` 的元气伤害计算。

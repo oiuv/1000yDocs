@@ -2,7 +2,7 @@
 
 > 源码: [deftype.pas](../deftype.pas) 第 316-319 行（`MAGICCLASS_*`）
 
-定义武功的大分类，对应 `Init_magic.sdb` 中的武功级别分类。
+定义武功的大分类。服务端加载 `Init/Magic.sdb` 时，以 `MagicType div 100` 取得分类，以 `MagicType mod 100` 取得动作类型；参见 [武功数据库](../Init_magic.sdb.md)。
 
 ---
 
@@ -13,7 +13,7 @@
 | `MAGICCLASS_MAGIC` | 0 | 普通武功 | 客户端分类标签为“武功”，例如无影脚、打狗棒法 |
 | `MAGICCLASS_RISEMAGIC` | 1 | 上层武功 | 二级武功，在普通武功基础上的更高境界 |
 | `MAGICCLASS_MYSTERY` | 2 | 掌法 | 掌法系统（2002-11-12 新增） |
-| `MAGICCLASS_BESTMAGIC` | 3 | 绝世武功 | 绝世武学（2003-09-18 新增），含公力/超式/必杀技 |
+| `MAGICCLASS_BESTMAGIC` | 3 | 绝世武功 | 包括神功、招式武功及绝世攻击武功 |
 
 ---
 
@@ -45,9 +45,9 @@
 | 神功名称 | 门派 | 对应绝世武功 |
 |----------|------|-------------|
 | **日月神功** | 邪派 | 寒阴指（拳）、狂风刀法（刀）、凤凰雷电戟（枪） |
-| **北冥神功** | 邪派 | 玉霄剑法（剑）、昭巫枪法（枪）、蓉沼抉（槌） |
+| **北冥神功** | 正派 | 玉霄剑法（剑）、昭巫枪法（枪）、蓉沼抉（槌） |
 | **紫霞神功** | 正派 | 金刚指（拳）、六脉神剑（剑）、罗汉刀法（刀） |
-| **血天魔功** | 正派 | 金蛇剑法（剑）、乌龙索命枪（枪）、五狐断刎槌（槌） |
+| **血天魔功** | 邪派 | 金蛇剑法（剑）、乌龙索命枪（枪）、五狐断刎槌（槌） |
 
 ### 元气境界表
 
@@ -68,13 +68,15 @@
 
 ---
 
-## 绝世武功子分类 (MAGICBEST_*)
+## 内部分类声明 (MAGICBEST_*)
+
+以下常量存在于共享定义，但当前客户端与 TGS 未检出其调用。不能据此推导玩家可见的武功名称或生效规则；实际数据分类见 `MagicType` 及下方容量、关系类型。
 
 | 常量名 | 值 | 中文说明 | 详细说明 |
 |--------|---:|----------|----------|
 | `MAGICBEST_NONE` | 0 | 无 | — |
-| `MAGICBEST_PROTECT` | 1 | 公力 | 公力初段及以上，防御型绝世武功 |
-| `MAGICBEST_CRITICAL1` | 2 | 必杀技 | 超强打/强打等聚集气力的动作，攻击型必杀技 |
+| `MAGICBEST_PROTECT` | 1 | 护体型标记 | 内部声明，不是具体武功名称 |
+| `MAGICBEST_CRITICAL1` | 2 | 攻击型标记 | 内部声明，不能据名称认定具体武功或效果 |
 
 ---
 
@@ -86,9 +88,9 @@
 | `HAVEMAGICSIZE` | 30 | 普通武功最大数量 |
 | `HAVEMYSTERYMAGICSIZE` | 30 | 掌法武功最大数量 |
 | `HAVERISEMAGICSIZE` | 30 | 上层武功最大数量 |
-| `HAVEBESTSPECIALMAGICSIZE` | 15 | 绝世超式武功最大数量 |
-| `HAVEBESTPROTECTMAGICSIZE` | 5 | 绝世公力武功最大数量 |
-| `HAVEBESTATTACKMAGICSIZE` | 5 | 绝世必杀武功最大数量 |
+| `HAVEBESTSPECIALMAGICSIZE` | 15 | 招式武功最大数量 |
+| `HAVEBESTPROTECTMAGICSIZE` | 5 | 神功（绝世护体）最大数量 |
+| `HAVEBESTATTACKMAGICSIZE` | 5 | 绝世攻击武功最大数量 |
 | `TOTALBESTMAGICNUM` | 25 | 绝世武功总数上限 |
 
 ---
@@ -100,8 +102,8 @@
 | `TYPE_MAGICRELATION_NONE` | 0 | 独立 |
 | `TYPE_MAGICRELATION_BASIC` | 1 | 普通武功关系 |
 | `TYPE_MAGICRELATION_RISE` | 2 | 上层武功关系 |
-| `TYPE_MAGICRELATION_BESTPROTECT` | 3 | 绝世公力关系 |
-| `TYPE_MAGICRELATION_BESTATTACK` | 4 | 绝世必杀关系 |
+| `TYPE_MAGICRELATION_BESTPROTECT` | 3 | 神功关系 |
+| `TYPE_MAGICRELATION_BESTATTACK` | 4 | 绝世攻击武功关系 |
 
 ---
 
