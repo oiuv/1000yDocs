@@ -13,5 +13,5 @@
 
 ## 校验依据
 
-- 表头：`gameserver-tgs1000/bin/Setting/CreateMirror.sdb`
-- 加载器：`gameserver-tgs1000/BasicObj.pas` 的 `TMirrorList.LoadFromFile`
+- 表头：`tgs1000/bin/Setting/CreateMirror.sdb`
+- 加载器：`tgs1000/BasicObj.pas` 的 `TMirrorList.LoadFromFile`

@@ -26,5 +26,5 @@
 
 ## 校验依据
 
-- 表头：`gameserver-tgs1000/bin/Init/EventParam.SDB`
-- 结构、加载与执行：`gameserver-tgs1000/uEvent.pas` 的 `TEventParamData`、`LoadFromFile`、`RunDynObjDieEvent`、`RunMopDieEvent`
+- 表头：`tgs1000/bin/Init/EventParam.SDB`
+- 结构、加载与执行：`tgs1000/uEvent.pas` 的 `TEventParamData`、`LoadFromFile`、`RunDynObjDieEvent`、`RunMopDieEvent`

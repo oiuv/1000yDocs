@@ -12,7 +12,7 @@
 .\build_all.bat -NoPause
 .\build_all.bat -NoPause -LogDir "D:\Build Logs"
 .\build_all.bat -NoPause -Project game
-.\gate_biscuit\build.bat -NoPause
+.\gate\build.bat -NoPause
 ```
 
 无参数编译全部七个目标，交互输入时只在结束后暂停一次；重定向输入自动跳过暂停。`-NoPause` 显式关闭暂停，适合终端和自动化。`-Help` 不编译、不创建日志，也不要求编译器已配置。
@@ -23,9 +23,9 @@
 | --- | --- | --- |
 | `balance` | `balance/` | `Balance.dpr` |
 | `db` | `db/` | `db.dpr` |
-| `game` | `gameserver-tgs1000/` | `tgs1000.dpr` |
-| `gate` | `gate_biscuit/` | `gate.dpr` |
-| `login-sdb` | `loginsdb_biscuit/` | `login.dpr` |
+| `game` | `tgs1000/` | `tgs1000.dpr` |
+| `gate` | `gate/` | `gate.dpr` |
+| `login-sdb` | `loginsdb/` | `login.dpr` |
 | `login-sql` | `loginsql/` | `login.dpr` |
 | `client` | `client/` | `Client.dpr` |
 

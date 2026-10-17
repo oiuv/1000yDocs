@@ -56,4 +56,4 @@ end;
 - 伤害分支先按护体功类别和熟练度修正 `m`，再计算 `damageBody - damageBody * m div 100`，随后还有其他防御计算。因此表值不是最终伤害减免百分比。
 - 原始相性值为 60 时进入元气吸收分支，吸收量还与掌法消耗、护体类别及熟练度有关。
 
-依据：`gameserver-tgs1000/svClass.pas:3874-3879`；`gameserver-tgs1000/UUser.pas:3206-3243` 的 `CommandAttackedMagic`。
+依据：`tgs1000/svClass.pas:3874-3879`；`tgs1000/UUser.pas:3206-3243` 的 `CommandAttackedMagic`。

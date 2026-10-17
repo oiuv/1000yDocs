@@ -32,7 +32,7 @@
 
 ## 校验依据
 
-- 表头：`gameserver-tgs1000/bin/Init/MagicParam.SDB`
-- 加载与索引：`gameserver-tgs1000/svClass.pas` 的 `TMagicParamClass`
-- 消费逻辑：`gameserver-tgs1000/uMopSub.pas` 的 `TMopHaveMagicClass`
+- 表头：`tgs1000/bin/Init/MagicParam.SDB`
+- 加载与索引：`tgs1000/svClass.pas` 的 `TMagicParamClass`
+- 消费逻辑：`tgs1000/uMopSub.pas` 的 `TMopHaveMagicClass`
 - 常量：`1000ydef/deftype.pas` 的 `MAGICSPECIAL_*`

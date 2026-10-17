@@ -668,7 +668,7 @@ end;
 
 长度匹配需考虑编码补齐：每 4 个加密字节解码为 3 字节，正常解码长度是 `3 * ceil(PacketSize / 3)`，末尾可能含 0～2 个补齐字节，不应要求它与 `PacketSize` 无条件相等。例如声明包长 68 字节，正常解码长度为 69 字节。
 
-`gate_biscuit/uConnector.pas` 随后按 `PacketSize - 8` 复制载荷；游戏状态下直接按内层 `TWordComData.Size` 转发，非游戏状态下按 `CM_*` 结构读取字段，未完整核对内层长度是否落在实际收到的载荷内、是否足够容纳对应命令。异常捕获并关闭连接不能替代这些长度检查。
+`gate/uConnector.pas` 随后按 `PacketSize - 8` 复制载荷；游戏状态下直接按内层 `TWordComData.Size` 转发，非游戏状态下按 `CM_*` 结构读取字段，未完整核对内层长度是否落在实际收到的载荷内、是否足够容纳对应命令。异常捕获并关闭连接不能替代这些长度检查。
 
 兼容实现应在复制、类型转换或转发前，核实解密成功、实际长度与声明长度、目标缓冲区容量及业务结构所需长度。以上是当前源码的检查缺口和维护要求，不是已修复的行为；自定义加密也不能使不可信输入自动变得安全。
 
@@ -759,7 +759,7 @@ Gate 定期向 Balance 的 UDP 3030 端口发送状态信息：
 UDP 报文总长度 = N + 7
 ```
 
-长度字段均按小端读取，文本不要求尾部 NUL。依据是 `1000ydef/deftype.pas` 的 `TComData`、`TStringData`，以及 `gameserver-tgs1000/FSockets.pas` 的 `Size := cnt` 与 `SendBuffer(..., cnt + 4)`；Gate 状态上报使用独立 `TBalanceData`，不带此日志外层。
+长度字段均按小端读取，文本不要求尾部 NUL。依据是 `1000ydef/deftype.pas` 的 `TComData`、`TStringData`，以及 `tgs1000/FSockets.pas` 的 `Size := cnt` 与 `SendBuffer(..., cnt + 4)`；Gate 状态上报使用独立 `TBalanceData`，不带此日志外层。
 
 | 日志类型 | 端口 | 说明 |
 |---------|:----:|------|
@@ -832,7 +832,7 @@ DB → Game 内部 FGate
   │ DB_UPDATE_END 成功时释放 WaitPlayerList 中的角色
 ```
 
-`gameserver-tgs1000/FGate.pas` 的 `TfrmGate` 属于 TGS 进程。该保存路径不经过外部 `gate_biscuit`；外部 Gate 保留的 `GM_SENDUSERDATA` 转发代码是另一分支。主定时器每 10ms 检查队列，但默认 tick 下约每 100ms 只尝试发送一条，成功排队后才出队，见[保存队列处理](architecture.md#65-保存队列处理)。
+`tgs1000/FGate.pas` 的 `TfrmGate` 属于 TGS 进程。该保存路径不经过外部 `gate`；外部 Gate 保留的 `GM_SENDUSERDATA` 转发代码是另一分支。主定时器每 10ms 检查队列，但默认 tick 下约每 100ms 只尝试发送一条，成功排队后才出队，见[保存队列处理](architecture.md#65-保存队列处理)。
 
 ### 5.5 配置文件
 
@@ -919,7 +919,7 @@ RemotePort=1024
 ItemRemotePort=1020
 ```
 
-**SDB Login 的 login.ini**（`loginsdb_biscuit`）：
+**SDB Login 的 login.ini**（`loginsdb`）：
 ```ini
 [ODBC]
 DSN=account1000y

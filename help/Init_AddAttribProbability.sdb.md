@@ -69,4 +69,4 @@ end;
 
 例如品质为最低、`aMaxRange=2` 时，只在前两行抽取：属性编号 1 权重 60，编号 2 权重 50，总权重 110；不会根据同一行的五列随机抽取品质。品质常量是 `ITEM_ATTRIBUTE_LOWEST`、`ITEM_ATTRIBUTE_LOWEER`（源码拼写）、`ITEM_ATTRIBUTE_NORMAL`、`ITEM_ATTRIBUTE_HIGHER`、`ITEM_ATTRIBUTE_HIGHEST`。
 
-依据：`gameserver-tgs1000/svClass.pas:9043-9103`；`gameserver-tgs1000/uUserSub.pas:12067-12079`。
+依据：`tgs1000/svClass.pas:9043-9103`；`tgs1000/uUserSub.pas:12067-12079`。

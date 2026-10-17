@@ -2,7 +2,7 @@
 
 > 本文介绍账号与角色存档的分工、二进制布局、读写流程及备份注意事项。字节布局以文中注明的结构定义和编译对齐方式为准；不同程序中的同名 `TDBRecord` 不能混用。
 >
-> 主要参考源码：`db/FMain.pas`、`db/uConnector.pas`、`db/uRecordDef.pas`、`Common/uDBRecordDef.pas`、`Common/uDBProvider.pas`、`Common/uCookie.pas`、`Common/Usersdb.pas`、`Common/uLGRecordDef.pas`、`loginsql/uDBAdapter.pas`、`loginsdb_biscuit/uDBAdapter.pas`
+> 主要参考源码：`db/FMain.pas`、`db/uConnector.pas`、`db/uRecordDef.pas`、`Common/uDBRecordDef.pas`、`Common/uDBProvider.pas`、`Common/uCookie.pas`、`Common/Usersdb.pas`、`Common/uLGRecordDef.pas`、`loginsql/uDBAdapter.pas`、`loginsdb/uDBAdapter.pas`
 
 ---
 
@@ -11,13 +11,13 @@
 | 数据库类型 | 文件扩展名 | 用途 | 使用模块 | 说明 |
 |-----------|-----------|------|---------|------|
 | **MSSQL** | — | SQL 登录实现的账号数据 | `loginsql/uDBAdapter.pas` | 通过 BDE `TQuery` 操作 `account1000y` 表 |
-| **SDB** | `.sdb` | SDB 登录实现的账号数据 / 游戏配置 | `loginsdb_biscuit/uDBAdapter.pas`、`Common/UserSdb.pas` | 纯文本 CSV 格式，`TUserStringDB` 类操作 |
+| **SDB** | `.sdb` | SDB 登录实现的账号数据 / 游戏配置 | `loginsdb/uDBAdapter.pas`、`Common/UserSdb.pas` | 纯文本 CSV 格式，`TUserStringDB` 类操作 |
 | **FDB** | `.fdb` | 角色数据持久化 | `Common/uDBProvider.pas`、`db/uRecordDef.pas` | 自定义二进制格式，支持多文件扩展 |
 
 ### 1.1 各数据库的使用场景
 
 - **FDB**：DB 服务器（默认端口 3051）使用 `TDBProvider` 管理角色数据。文件命名规则为 `XXX00.fdb`、`XXX01.fdb`……打开时最多扫描 64 个连续编号文件（`MAX_OPEN_FILE = 64`）；每个文件的槽位容量按 1 GiB 除以记录大小计算。
-- **SDB**：`loginsdb_biscuit` 使用 `TUserStringDB` 存储账号数据，文件位于 `.\Data\Login.sdb`。游戏配置数据（物品、怪物、地图等）也使用 SDB 格式。
+- **SDB**：`loginsdb` 使用 `TUserStringDB` 存储账号数据，文件位于 `.\Data\Login.sdb`。游戏配置数据（物品、怪物、地图等）也使用 SDB 格式。
 - **MSSQL**：`loginsql` 使用 MSSQL 数据库，表名 `account1000y`。源码提供了两套 Login 实现，但没有把它们定义为通用的“开发/正式”模式；具体部署应以服务器实际启动的程序为准。
 
 ### 1.2 源码职责与同名结构
@@ -387,7 +387,7 @@ TUserStringDB
 
 ### 4.4 SDB 在账号系统中的应用
 
-`loginsdb_biscuit/uDBAdapter.pas` 中的 `TSDBAdapter` 使用 `TUserStringDB` 存储账号数据。运行时读取工作目录下的 `Data/Login.sdb`；随源码提供的模板为 `loginsdb_biscuit/bin/Data/_Login.sdb`，表头为：
+`loginsdb/uDBAdapter.pas` 中的 `TSDBAdapter` 使用 `TUserStringDB` 存储账号数据。运行时读取工作目录下的 `Data/Login.sdb`；随源码提供的模板为 `loginsdb/bin/Data/_Login.sdb`，表头为：
 
 ```
 PrimaryKey,Password,CharInfo0,CharInfo1,CharInfo2,CharInfo3,CharInfo4,IpAddr,UserName,Birth,Telephone,MakeDate,LastDate,Address,Email,NativeNumber,MasterKey,PtName,PtNativeNumber,
@@ -502,7 +502,7 @@ end;
 1. **定期收集内存状态**：`UUser.pas` 每约 **10 分钟**（`10 * 60 * 100` 个默认 10ms tick）把角色状态写入 `Connector.CharData`，以下代码本身不发送 DB 请求。
 
    ```pascal
-   // gameserver-tgs1000/UUser.pas
+   // tgs1000/UUser.pas
    if CurTick >= SaveTick + 10 * 60 * 100 then begin
       SaveTick := CurTick;
       SaveUserData(Name);
@@ -523,7 +523,7 @@ end;
 
 ### 6.2 保存数据收集流程
 
-`TUser.SaveUserData` 方法（`gameserver-tgs1000/UUser.pas`）收集以下数据到 `Connector.CharData`（即 `TDBRecord`）：
+`TUser.SaveUserData` 方法（`tgs1000/UUser.pas`）收集以下数据到 `Connector.CharData`（即 `TDBRecord`）：
 
 1. 密码（`Password`）
 2. 团体编号（`GroupKey`）
@@ -552,7 +552,7 @@ TGS 发送通信记录（5888 字节）
 ### 6.4 DB 服务器写入流程
 
 ```
-1. 接收游戏服务器通过其自身 DB 连接发来的保存请求（`gameserver-tgs1000/FGate.pas`）
+1. 接收游戏服务器通过其自身 DB 连接发来的保存请求（`tgs1000/FGate.pas`）
 2. 设置 boUsed=1，将通信数据复制到磁盘记录的 PrimaryKey 起始位置
 3. DB_UPDATE_END 时重算 oz_CRC32 → 写入 CRCKey
 4. IndexClass 查找角色名 → (FileNo, RecordNo)；UpdateDisk 读取旧记录并核对主键
@@ -578,7 +578,7 @@ TGS 发送通信记录（5888 字节）
 
 ### 6.6 创建角色请求与回复
 
-> 来源：`gate_biscuit/uConnector.pas` 的建角发送分支，以及 `db/uConnector.pas` 的 `MessageProcess`。
+> 来源：`gate/uConnector.pas` 的建角发送分支，以及 `db/uConnector.pas` 的 `MessageProcess`。
 
 | 方向 | 消息 | 当前处理 |
 |------|------|----------|

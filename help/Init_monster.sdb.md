@@ -130,8 +130,8 @@ FallItemRandomCount = 500
 
 `Virtue`/`VirtueLevel` 经 `uMonster.pas:291-292` 写入怪物的 `VirtueValue`/`VirtueLevel`。战斗经验分支在 `uSkills.pas:714-739` 用人物浩然正气等级差修正奖励，并通过 `FM_ADDVIRTUEEXP` 交给 `UUser.pas:8746-8748` 的 `AttribClass.AddVirtue`。
 
-- 配置表头：`gameserver-tgs1000/bin/Init/Monster.SDB`
-- 加载器：`gameserver-tgs1000/svClass.pas` 的 `TMonsterClass.LoadMonsterData`
+- 配置表头：`tgs1000/bin/Init/Monster.SDB`
+- 加载器：`tgs1000/svClass.pas` 的 `TMonsterClass.LoadMonsterData`
 - 数据结构与常量：`1000ydef/deftype.pas` 的 `TMonsterData`、`MOP_KIND_*`
 - 掉落参数加载与周期算法：[svClass.pas](TGS核心源码/svClass.pas) 的 `TMonsterClass.LoadMonsterData`、`TRandomClass.AddData/GetChance`、`TItemClass.GetCheckItemData`
 - 参数传递与实际发放：[uMonster.pas](TGS核心源码/uMonster.pas)、[uMopSub.pas](TGS核心源码/uMopSub.pas) 的 `AddDropItem`、`AddFallItem`、`DropItemGround`；10/5 项上限由该单元常量和加载器共同限定

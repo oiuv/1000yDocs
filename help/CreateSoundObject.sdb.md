@@ -14,5 +14,5 @@
 
 ## 校验依据
 
-- 表头：`gameserver-tgs1000/bin/Setting/CreateSoundObject.sdb`
-- 加载与播放逻辑：`gameserver-tgs1000/uDoorGen.pas` 的 `TSoundObjList.LoadFromFile`、`TSoundObj.Update`
+- 表头：`tgs1000/bin/Setting/CreateSoundObject.sdb`
+- 加载与播放逻辑：`tgs1000/uDoorGen.pas` 的 `TSoundObjList.LoadFromFile`、`TSoundObj.Update`

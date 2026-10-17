@@ -23,17 +23,17 @@ Client ── TCP 3054 ──> Gate
                                         └── UDP ──> 七路日志目标
 ```
 
-以上箭头表示主动连接或发送方向；TCP 建立后可双向传输。公网入口是 Balance 与 Gate，其余服务与日志目标应位于受信内网。UDP 日志配置示例为 ITEM 6001、MOUSEEVENT 6010、MONITER 6011、CONNECT 6022、PAY 6000、OBJECT 3003、RELATION 3005。Balance 另保留 TCP 3000 监听，本版本 `gate_biscuit` 不使用该注册通道。
+以上箭头表示主动连接或发送方向；TCP 建立后可双向传输。公网入口是 Balance 与 Gate，其余服务与日志目标应位于受信内网。UDP 日志配置示例为 ITEM 6001、MOUSEEVENT 6010、MONITER 6011、CONNECT 6022、PAY 6000、OBJECT 3003、RELATION 3005。Balance 另保留 TCP 3000 监听，本版本 `gate` 不使用该注册通道。
 
 ### 1.2 各服务职责
 
 | 服务 | 源码目录 | 职责 |
 |------|----------|------|
 | **Balance** | `balance/` | 接入调度器。根据 Gate 上报的连接数选择可用且启用的 Gate，向客户端返回其地址；不持续转发游戏流量 |
-| **Gate** | `gate_biscuit/` | 网关服务器。维护客户端连接和完整登录状态机，路由消息到 Game/DB/Login/Paid |
-| **Login** | `loginsdb_biscuit/` 或 `loginsql/` | 两个二选一实现：SDB 账号适配器，或通过 BDE/ODBC 连接 SQL Server |
+| **Gate** | `gate/` | 网关服务器。维护客户端连接和完整登录状态机，路由消息到 Game/DB/Login/Paid |
+| **Login** | `loginsdb/` 或 `loginsql/` | 两个二选一实现：SDB 账号适配器，或通过 BDE/ODBC 连接 SQL Server |
 | **DB** | `db/` | 数据库服务器。管理角色数据持久化，使用自定义 FDB 文件格式存储 |
-| **Game** | `gameserver-tgs1000/` | 游戏服务器。处理游戏逻辑、地图管理、怪物/NPC 更新、用户交互 |
+| **Game** | `tgs1000/` | 游戏服务器。处理游戏逻辑、地图管理、怪物/NPC 更新、用户交互 |
 | **Paid** | （外部服务） | 计费服务器。验证用户付费状态和到期时间 |
 
 ### 1.3 建议的部署边界
@@ -48,7 +48,7 @@ Balance 提供 Gate 地址，Gate 承接后续登录、选角和游戏通信。�
 因此生产部署通常只对外开放 Balance 和 Gate，其余服务应由防火墙限制在内网。DB 与 SQL Login 的客户端接入检查使用程序工作目录下的 `IPList.txt`，不是 `RemoteIP.txt`；文件不存在时检查器会禁用并允许所有来源。源码本身不能证明服务器当前的公网暴露状态：
 
 - SQL Login (`loginsql/sckAccept`) — `IPList.txt` 存在时按列表检查；缺失时允许全部来源
-- SDB Login (`loginsdb_biscuit/sckAccept`) — 当前实现不调用 `IPChecker`，直接接受连接
+- SDB Login (`loginsdb/sckAccept`) — 当前实现不调用 `IPChecker`，直接接受连接
 - DB (`sckAccept`) — `IPList.txt` 存在时按列表检查；缺失时允许全部来源
 - Game — 通过 Gate 间接访问，不直接对外
 
@@ -154,12 +154,12 @@ sConnectThru.rPort := GateInfo[nIndex].RemotePort;
 
 ### 3.3 网关注册和心跳机制
 
-当前 `gate_biscuit` 通过 UDP 向 Balance 注册：
+当前 `gate` 通过 UDP 向 Balance 注册：
 
 **UDP 心跳**（主要方式）：代码用 `BalanceSendTick + 3000` 表达三秒阈值，通过 UDP 发送 `BM_GATEINFO`：
 
 ```delphi
-// gate_biscuit/FMain.pas — timerDisplayTimer
+// gate/FMain.pas — timerDisplayTimer
 if CurTick >= BalanceSendTick + 3000 then begin
   udpBalance.RemoteHost := BalanceConnectInfo.RemoteIP;
   udpBalance.RemotePort := BalanceConnectInfo.RemotePort;
@@ -173,7 +173,7 @@ end;
 
 但当前源码没有任何位置更新 `BalanceSendTick`，该全局变量初值为 0。`CurTick` 来自 `timeGetTime`，是系统启动后的毫秒计数，不是 Gate 程序运行时长。因此正常运行时上述条件在每次定时器回调中成立；`timerDisplay` 的间隔是 1000 毫秒，实际约为**每秒发送一次**，并没有实现每三秒一次的节流。这是源码缺陷，不能根据条件字面推导发送周期或认定 Gate 启动后要先等待三秒。
 
-Balance 源码还监听 TCP 3000，并包含处理 `BM_GATEINFO` 的 `TGateConnector`；但当前仓库的 `gate_biscuit` 没有对应 TCP 客户端连接代码，因此不能把它描述为本版本 Gate 的有效注册通道。
+Balance 源码还监听 TCP 3000，并包含处理 `BM_GATEINFO` 的 `TGateConnector`；但当前仓库的 `gate` 没有对应 TCP 客户端连接代码，因此不能把它描述为本版本 Gate 的有效注册通道。
 
 **超时判定**：Balance 每秒检查，如果 5 秒未收到某 Gate 的心跳，标记为不可用：
 
@@ -205,7 +205,7 @@ end;
 ### 4.1 TGameStatus 状态转换
 
 ```delphi
-// gate_biscuit/uConnector.pas
+// gate/uConnector.pas
 TGameStatus = (
   gs_none,         // 空闲：包括登录前和选角待命
   gs_login,        // 等待登录验证
@@ -236,7 +236,7 @@ gs_gotogame ──(Game 回复 GM_CONNECT)──► gs_playing
 ### 4.2 TClientWindow 窗口状态
 
 ```delphi
-// gate_biscuit/uConnector.pas
+// gate/uConnector.pas
 TClientWindow = (
   cw_none,         // 无窗口
   cw_login,        // 登录窗口
@@ -291,7 +291,7 @@ else
 **请求超时（60 秒）**：仅在状态既非 `gs_none`、也非 `gs_playing` 时检查；距 `RequestTime` 达到 60 秒便重置状态并提示超时。该时间戳在客户端消息处理函数 `MessageProcess` 的尾部更新，不是每个后端请求各自独立的计时器：
 
 ```delphi
-// gate_biscuit/uConnector.pas — Update
+// gate/uConnector.pas — Update
 if (FGameStatus <> gs_none) and (FGameStatus <> gs_playing) then begin
   if RequestTime + 60000 <= CurTick then begin
     RequestTime := 0;
@@ -318,7 +318,7 @@ end;
 Gate 使用环形缓冲区记录每个连接的包频率（`PacketCountBufferSize = 8` 个采样点）：
 
 ```delphi
-// gate_biscuit/uConnector.pas
+// gate/uConnector.pas
 CheckTime := CurTick - PacketCount[PCIndex].Tick;
 PacketCount[PCIndex].Count := PacketReceiver.Count;
 PacketCount[PCIndex].Tick := CurTick;
@@ -403,7 +403,7 @@ Gate 检查新连接的版本和地区、登录密码及选角归属，但不能
 当角色成功进入游戏后（步骤 21），Gate 向 DB 发送 `DB_LOCK`：
 
 ```delphi
-// gate_biscuit/uConnector.pas — GameMessageProcess
+// gate/uConnector.pas — GameMessageProcess
 GM_CONNECT:
 begin
   FGameStatus := gs_playing;
@@ -423,7 +423,7 @@ end;
 当同一角色重复登录时，Game 服务器执行顶号逻辑：
 
 ```delphi
-// gameserver-tgs1000/uConnect.pas — TConnectorList.CreateConnect
+// tgs1000/uConnect.pas — TConnectorList.CreateConnect
 Connector := NameKey.Select(StrPas(@pcd^.PrimaryKey));
 if Connector <> nil then begin
   // 断开旧连接
@@ -444,7 +444,7 @@ end;
 Gate 收到 `GM_DUPLICATE` 后的处理：
 
 ```delphi
-// gate_biscuit/uConnector.pas — GameMessageProcess
+// gate/uConnector.pas — GameMessageProcess
 GM_DUPLICATE:
 begin
   SendStatusMessage(MESSAGE_SELCHAR, '접속해제 되었습니다');
@@ -495,14 +495,14 @@ DB (TDBProvider)
   ▼
 ```
 
-此处 `TfrmGate` 定义于 `gameserver-tgs1000/FGate.pas`，是 TGS 自身的通信窗口；其 `sckDBConnect` 直接连接 DB。外部 `gate_biscuit` 仍保留 `GM_SENDUSERDATA` 转发分支，但上述 SaveBuffer 保存路径不经过它。
+此处 `TfrmGate` 定义于 `tgs1000/FGate.pas`，是 TGS 自身的通信窗口；其 `sckDBConnect` 直接连接 DB。外部 `gate` 仍保留 `GM_SENDUSERDATA` 转发分支，但上述 SaveBuffer 保存路径不经过它。
 
 ### 6.2 环形缓冲区批量写入
 
 Game 服务器使用 `TPacketBuffer` 作为保存队列（4MB 容量）：
 
 ```delphi
-// gameserver-tgs1000/uConnect.pas — TConnectorList
+// tgs1000/uConnect.pas — TConnectorList
 SaveBuffer := TPacketBuffer.Create(1024 * 1024 * 4);  // 4MB 缓冲区
 ```
 
@@ -516,7 +516,7 @@ SaveBuffer := TPacketBuffer.Create(1024 * 1024 * 4);  // 4MB 缓冲区
 每个在线角色每 10 分钟触发一次保存（`60 * 10 * 100` 个 10ms tick）：
 
 ```delphi
-// gameserver-tgs1000/uConnect.pas — TConnector.Update
+// tgs1000/uConnect.pas — TConnector.Update
 if SaveTick + 60 * 10 * 100 < CurTick then begin
   Move(CharData, rCharData, SizeOf(TDBRecord));
   rCharData.rEnd := 1;
@@ -532,7 +532,7 @@ end;
 角色断开连接时（`TConnector.Destroy`），执行最终保存：
 
 ```delphi
-// gameserver-tgs1000/uConnect.pas — TConnector.Destroy
+// tgs1000/uConnect.pas — TConnector.Destroy
 if CharName <> '' then begin
   if BattleConnectState = bcs_none then EndLayer;
   Move(CharData, rCharData, SizeOf(TDBRecord));
@@ -549,7 +549,7 @@ end;
 TGS 主定时器每 10ms 调用 `TConnectorList.Update()`，但发送分支还要求经过 10 个 `mmAnsTick`。`Common/uAnsTick.pas` 默认每 10ms 增加 1，因此有待保存记录时，约每 100ms 尝试发送一条到 DB；只有成功写入发送缓冲区才出队。窗口定时器调度及连接状态可能延长间隔。
 
 ```delphi
-// gameserver-tgs1000/uConnect.pas — TConnectorList.Update
+// tgs1000/uConnect.pas — TConnectorList.Update
 if SaveBuffer.Count > 0 then begin
   if CurTick >= SaveTick + 10 then begin
     if SaveBuffer.View(@CharData) = true then begin
@@ -628,7 +628,7 @@ Game 服务器通过 UDP 向外部日志服务推送数据，共 7 个日志通�
 **Gate 的自动重连**：Gate 的 `timerDisplayTimer`（每秒执行）检查所有后端连接状态，断线后自动重连：
 
 ```delphi
-// gate_biscuit/FMain.pas — timerDisplayTimer
+// gate/FMain.pas — timerDisplayTimer
 if sckGameConnect.Active = false then begin
   shpGameConnected.Brush.Color := clRed;
   sckGameConnect.Socket.Close;

@@ -45,6 +45,6 @@
 
 ## 校验依据
 
-- 配置表头：`gameserver-tgs1000/bin/Init/Magic.SDB`
-- 加载器：`gameserver-tgs1000/svClass.pas` 的 `TMagicClass.LoadMagicData`
+- 配置表头：`tgs1000/bin/Init/Magic.SDB`
+- 加载器：`tgs1000/svClass.pas` 的 `TMagicClass.LoadMagicData`
 - 数据结构与类别常量：`1000ydef/deftype.pas` 的 `TMagicData`、`MAGICCLASS_*`

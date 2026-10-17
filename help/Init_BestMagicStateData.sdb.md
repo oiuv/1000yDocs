@@ -79,4 +79,4 @@ t = statePoint
 
 例如身体攻击状态点为10、系数为88时：第一轮扣除10，第二轮得到 `n=10`，附加值为 `14*88 div 100=12`，不是直接增加88。实际结果还取决于调用时的基础 `rcLifeData`。
 
-依据：`gameserver-tgs1000/svClass.pas:2603-2619` 的转换函数及 `:3410-3444` 的 `GetStateDataofBestMagic`。
+依据：`tgs1000/svClass.pas:2603-2619` 的转换函数及 `:3410-3444` 的 `GetStateDataofBestMagic`。

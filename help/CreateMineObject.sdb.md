@@ -13,5 +13,5 @@
 
 ## 校验依据
 
-- 实例表头：`gameserver-tgs1000/bin/Setting/CreateMineObject1.sdb`
-- 加载器：`gameserver-tgs1000/BasicObj.pas` 的 `TMineObjectList.ReLoadFromFile`
+- 实例表头：`tgs1000/bin/Setting/CreateMineObject1.sdb`
+- 加载器：`tgs1000/BasicObj.pas` 的 `TMineObjectList.ReLoadFromFile`

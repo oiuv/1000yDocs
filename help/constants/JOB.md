@@ -53,7 +53,7 @@
 | `JOB_GRADE_MASTER` | 5 | 名人 | 80.00-99.98 | 2品 | 能力1级 |
 | `JOB_GRADE_VIRTUEMAN` | 6 | 神工 | 99.99+任务 | 1品 | 最高品级，需完成神工任务 |
 
-上表的晋升要求来自游戏帮助资料；当前源码判级需另行区分：`GetJobGrade` 使用100～9998的硬编码分段，其余值（包括0～99）均返回神工，不是按 `JobGrade.SDB.StartLevel/EndLevel` 查表。数据与执行逻辑的差异见 [JobGrade.sdb](../Init_JobGrade.sdb.md)。依据：`gameserver-tgs1000/uUserSub.pas:11262-11264`、`gameserver-tgs1000/svClass.pas:7099-7110`。
+上表的晋升要求来自游戏帮助资料；当前源码判级需另行区分：`GetJobGrade` 使用100～9998的硬编码分段，其余值（包括0～99）均返回神工，不是按 `JobGrade.SDB.StartLevel/EndLevel` 查表。数据与执行逻辑的差异见 [JobGrade.sdb](../Init_JobGrade.sdb.md)。依据：`tgs1000/uUserSub.pas:11262-11264`、`tgs1000/svClass.pas:7099-7110`。
 
 ### 品级上限
 
@@ -107,7 +107,7 @@ begin
 end;
 ```
 
-此示例只说明命令格式和制造职业查询，不用于判断采矿资格。接口依据：`gameserver-tgs1000/uScriptManager.pas:164-172,226-228,350-351,425-430,595-596`。
+此示例只说明命令格式和制造职业查询，不用于判断采矿资格。接口依据：`tgs1000/uScriptManager.pas:164-172,226-228,350-351,425-430,595-596`。
 
 ---
 

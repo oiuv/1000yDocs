@@ -4,7 +4,7 @@
 
 ## 版本与证据来源
 
-- `gameserver-tgs1000/bin/Script/`：炎黄新章随包脚本，与当前源码配套核对。
+- `tgs1000/bin/Script/`：炎黄新章随包脚本，与当前源码配套核对。
 - [`docs/Script/`](Script/README.md)：云端千年神武奇章线上优化版脚本，适合参考业务流程，但定制内容和接口必须先做兼容检查。
 - `uScriptManager.pas`、`ScriptCls.pas`、`Common/ScriptBasic.pas`：当前接口和解释器语义的最终标准。
 

@@ -59,4 +59,4 @@ n = n * (100 - DecValue) div 100
 
 `div` 为整数除法，`DecValue` 来自人物对象的减耗值；当前元气不足 `n` 时使用失败，否则扣除 `n`。随包系数 0～80 对应减耗修正前的比例 15%～7%，不能解释为消耗 0%～80%。
 
-依据：`gameserver-tgs1000/svClass.pas` 的 `TMagicClass.GetSkillConsumeEnergy`；`gameserver-tgs1000/uUserSub.pas:7294-7305` 的 `MAGICCLASS_MYSTERY` 分支。
+依据：`tgs1000/svClass.pas` 的 `TMagicClass.GetSkillConsumeEnergy`；`tgs1000/uUserSub.pas:7294-7305` 的 `MAGICCLASS_MYSTERY` 分支。

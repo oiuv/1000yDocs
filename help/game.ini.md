@@ -23,5 +23,5 @@
 
 ## 校验依据
 
-- 实际配置：`gameserver-tgs1000/bin/game.ini`
-- 加载器：`gameserver-tgs1000/svClass.pas` 的 `LoadGameIni`
+- 实际配置：`tgs1000/bin/game.ini`
+- 加载器：`tgs1000/svClass.pas` 的 `LoadGameIni`

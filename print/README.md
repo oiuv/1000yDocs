@@ -1,6 +1,6 @@
 # Print 命令参考
 
-> 权威依据：`gameserver-tgs1000/uScriptManager.pas` 中当前有效的 `TScriptManager.CommandScript`（另含 `checkitemregen` 的入口专用处理） 分支。
+> 权威依据：`tgs1000/uScriptManager.pas` 中当前有效的 `TScriptManager.CommandScript`（另含 `checkitemregen` 的入口专用处理） 分支。
 
 ## 调用格式
 

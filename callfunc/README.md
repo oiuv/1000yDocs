@@ -1,6 +1,6 @@
 # CallFunc 函数参考
 
-> 权威依据：`gameserver-tgs1000/uScriptManager.pas` 中当前有效的 `TScriptManager.CallFunction` 分支。
+> 权威依据：`tgs1000/uScriptManager.pas` 中当前有效的 `TScriptManager.CallFunction` 分支。
 
 ## 调用格式
 
