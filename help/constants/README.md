@@ -13,7 +13,7 @@
 | 文档 | 内容 |
 |------|------|
 | [BASICS.md](BASICS.md) | 包边界、容量、颜色、国家版本等基础常量 |
-| [ITEM_KIND.md](ITEM_KIND.md) | 物品功能类型常量 |
+| [ITEM_KIND.md](ITEM_KIND.md) | 物品功能类型、任务清理范围、背包/穿戴耐久及使用损耗 |
 | [ITEM_ATTRIBUTE.md](ITEM_ATTRIBUTE.md) | 物品属性常量 |
 | [ITEM_SPKIND.md](ITEM_SPKIND.md) | 物品特殊类型 |
 | [MAGICCLASS.md](MAGICCLASS.md) | 武功分类 |

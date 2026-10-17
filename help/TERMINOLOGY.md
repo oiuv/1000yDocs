@@ -121,6 +121,7 @@
 |---|---|---|
 | `WINDOW_SSAMZIEITEM`、`SM_SSAMZIEITEM`、`swk_itemlog` | 福袋／物品保管窗 | 个人储物；服务端窗口标题为“物品保管窗”，不是日志窗口 |
 | `WINDOW_GUILDITEMLOG` | 门派仓库 | 门派共享物品容器，不与个人福袋混用 |
+| `ITEM_KIND_CHARM=36` | 护符类 | `Charm` 意为护符、护身符；这是类别译名，不是单件物品名。活力加成及耐久计时取决于配置和专门逻辑，见[护符类说明](constants/ITEM_KIND.md#护符类kind36) |
 | `ITEM_ATTRIBUTE_PAPERBESTPROTECT=7` | 招式全集 | 随包物品显示名；不能由常量英文名反推为神功书 |
 | `ITEM_ATTRIBUTE_PAPERBESTSPECIAL=8` | 四大神功全集 | 随包物品显示名；双击用途由该物品的 `Kind=56`、`Script=103` 决定 |
 | `ITEM_KIND_GOLDBAG` | 雨中客锦囊 | 随包任务物品，不泛称金币袋 |

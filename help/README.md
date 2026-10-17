@@ -17,6 +17,7 @@
 - [sv1000.Ini 运维配置](sv1000.ini.md)
 - [game.ini 游戏参数](game.ini.md)
 - [常量索引](constants/README.md)
+- [特殊物品内部名称与专用机制](SpecialItems.md)：固定名称、配置指定名称、触发条件、消耗和未启用分支。
 - [Pascal 脚本说明](Pascal.md)、[Script.SDB 与脚本入口](Script.md)
 - [事件配置](Event.md)、[任务公告](QuestNotice.md)、[ITEMLOG 福袋数据](ITEMLOG.md)
 - [制造配置](manufacture.md)、[材料配置](Material.md)

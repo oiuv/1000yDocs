@@ -2,7 +2,17 @@
 
 这是游戏中所有物品的数据文件，包括物品的属性、物品的描述、物品的图标等。
 
-在炎黄新章中名称有特殊含义和作用的物品，例如：疾速靴、补血石、九转金丹、噬月刀、门派钱令、巨象石、河马石、金鸡石、人龙石、花窟石、玉犬石、玉猿石、玉蟾石、血狮石、血陵石、砸门锤等，直接根据名称判断物品的特殊功能，而不是根据Kind确认效果。
+部分物品还有按内部名称 `Name` 实现的专用逻辑，例如疾速靴、九转金丹、噬月刀和门石。名称判断可能与 `Kind`、穿戴位置、地图、任务条件共同生效，不能只靠类别或物品描述推断。完整名单、配置名称及未启用分支见[特殊物品内部名称与专用机制](SpecialItems.md)。
+
+## 配置一致性检查
+
+- `Name` 是内部键，改类别、排序或说明时保持名称不变，并核对任务脚本、配方与按名称判断的专用逻辑。
+- 没有命名常量的 3、4、5、17 按[数据分类约定](constants/ITEM_KIND.md#预留类型与数据分类约定)维护；不能通过改类别替代药效、穿戴、计时或任务实现。
+- `Kind=13` 的每件药品必须在 [ItemDrug.sdb](Init_ItemDrug.sdb.md) 有同名有效记录。说明按实际恢复/加成字段编写，不凭名称宣称反弹、免疫、打断武功等功能。
+- 普通加工的成功率表按 `MaxUpgrade=3/4` 分支，属性重算支持的加工上限为 4。不要把普通装备配置成 `MaxUpgrade=5`；这不会新增第五段属性或普通加工成功率表。四大宝石直升同样须遵守可计算的加工等级范围。
+- 性别限定装备须同时核对 `Sex`、`WearPos` 和外观资源；任务凭证不要误填成可穿戴装备。婚戒用于脚本兑换礼服，和礼服自身的穿戴记录是两类物品。
+- 保留 `boNotSkill`、交易、丢弃等安全标志；`boDouble` 是堆叠，不是允许双击。布尔列使用 `TRUE/FALSE` 或既有空值，避免拼写错误静默落到默认值。
+- 上线更新前核对存档兼容：载入会按名称取得当前模板，但已佩戴物品所在槽位和保存的加工等级不会仅因改表自动迁移。若存在已穿戴婚戒或旧的五段日月装备，需先核对并处理对应存档；不要直接删除玩家物品。
 
 ## 相关代码
 
@@ -225,14 +235,14 @@ NotHaveItem| string | 持有任一列出的物品名时禁止拾取；格式及�
 DelItem| string | 拾取时按列出的名称取物品模板并调用DeleteItem，不使用配置子项数量；SpecialKind为ITEM_SPKIND_DELALLBYDURA时跳过此删除分支；格式及上限同NeedItem|葫芦2:1
 AddItem| string | 拾取时按列出的名称添加物品，数量采用被拾取地面物品的rCount，不使用配置子项数量；格式及上限同NeedItem|收了魂的葫芦2:1
 boDouble| boolean | 是否可堆叠，如钱币可以，装备不可以，可叠加物品数量最大值为100000000 | TRUE
-boColoring| boolean | 是否可染色，针对装备类物品 | TRUE
-Shape| int | 物品的形状，具体编号由客户端文件item.atz控制 | 1
+boColoring| boolean | 是否允许通过染剂改变物品颜色；穿戴和地面物品染色入口检查此项，不控制初始配色显示，见[物品图标与颜色](#物品图标与颜色) | TRUE
+Shape| int | 客户端根目录 `item.atz` 中的图像索引，编号从0开始；物品栏中0表示不显示图标，见[物品图标与颜色](#物品图标与颜色) | 1
 WearPos| int | 装备的部位，0-9，9=武器 8=帽子 7=头发 6=衣服 4=裤裙 3=鞋子 2=上衣 1=护腕 | 9
 WearShape| int | 装备的形状，具体由客户端sprite目录下文件控制 | 1
 ActionImage| int | 物品的动作图片，主要是针对箭和飞刀类| 1
 HitMotion| int | 物品的攻击动作，主要是针对装备类| 2
 HitType| int | 物品的攻击类型，主要是针对装备类| 1
-Color| int | 物品的颜色，主要是针对可染色类，参考染色染 | 1  
+Color| int | 物品初始配色色表编号，范围0～255；不是RGB值，实际效果取决于图像中的可染色区域，见[物品图标与颜色](#物品图标与颜色) | 1
 Sex| int | 装备类物品的性别限制，1-男，2-女，为空不限制 | 1
 Weight| int | 当前 `TItemClass` 加载器不读取此表头字段| 1
 NeedGrade| int | 加载到 `TItemData.rNeedGrade`；当前 Pascal 源码没有找到该成员的消费位置| 6
@@ -268,11 +278,11 @@ JobKind|int | 合成物品所需的职业类型，1铸造师、2炼丹师、3裁
 boUpgrade| boolean | 物品是否可升段 | TRUE
 MaxUpgrade | int | 物品的最大升段等级，默认技能装备3，系统装备4（MaxUpgrade为4的装备制造成功率减半） | 4
 boTalentExp| boolean | 物品制造是否可以增加天赋（职业技能）经验 | TRUE
-boDurability| boolean | 物品是否可磨损，仅限Kind为 WATERCASE、CHARM、FILL、GOLDBAG、DAGGEROFOS、DURABILITY、EIGHTANGLES、WEARITEM（限炎黄版本）、PICKAX和DURAWEAPON 有效| TRUE
-Durability | int | 物品的耐久度| 100
+boDurability| boolean | 耐久计时开关；还要求当前耐久和DecDelay大于0。背包只处理指定Kind，穿戴栏计时无Kind筛选；攻击、采矿的按次损耗不检查此开关。见[耐久度处理](constants/ITEM_KIND.md#耐久度处理)| TRUE
+Durability | int | 新建物品模板的耐久上限及初始当前耐久；初始为0不会因计时自动删除，不能据此判断所有类型的使用损耗| 100
 DecDelay| int | 物品耐久度每次减少的间隔，单位为 `mmAnsTick` tick；默认 1 tick 约 10 ms，因此 5000 约为 50 秒。背包和装备耐久检查本身每 500 tick（约 5 秒）轮询一次| 5000
-DecSize|int | 物品耐久度减少的数值| 1
-Abrasion| int | 物品的磨损值，目前只有十字镐类装备有设置，这里是维修磨损，而不是随时间磨损 | 960
+DecSize|int | 每次计时扣减量，正常消耗应为正数；不是攻击、采矿按次扣减的数值| 1
+Abrasion| int | 普通十字镐（Kind=27）修理时扣除的耐久上限；不是随时间磨损，也不是所有类型修理都使用| 960
 ToolConst,
 SuccessRate|int | 物品的成功率，对可制造的物品设置为100代表必定成功（否则根据职业等级计算成功率），对HELPDRUG类药品为增加的升段成功率 | 100
 boNotTrade| boolean | 物品是否不能和NPC交易| TRUE
@@ -280,7 +290,7 @@ boNotExchange| boolean | 物品是否不能和玩家交易| TRUE
 boNotDrop| boolean | 物品是否不能丢弃| TRUE
 boNotSkill| boolean | 禁止从背包放入技术窗的物品标志；拖拽、数量确认和批量材料入口均需检查，见下方限制说明 | TRUE
 boNotSSamzie| boolean | 物品是否不能放到福袋中| TRUE
-cLife| int | 背包内Kind为CHARM时增加活力上限；SpecialKind为ITEM_SPKIND_ADDALLLIFE时还增加头、手臂、腿部活力上限 | 1000
+cLife| int | 护符类（Kind=36）在背包中的活力上限加成值；为空或为0时不加成。SpecialKind=7时还增加头、手臂、腿部活力上限，不是回复当前活力 | 1000
 Attribute|int | 物品的特殊属性，具体见下表Attribute | 1
 SpecialKind| int | 特殊类型，具体见下表SpecialKind | 4
 RoleType| int | 装备物品增加黄字属性的类型，值为1-4，对类种类ROLE | 1
@@ -288,6 +298,62 @@ Script| Int | Kind为ITEM_KIND_USESCRIPT的物品双击调用的脚本编号，�
 MaxCount| int | 拾取前已有背包及技术窗同名物品的数量门槛；0 不启用此检查，不是所有容器的最终持有量硬上限 |99999
 BoNotSave | boolean | 背包序列化到角色记录时不保存此物品；影响普通存档，不限于备份 | TRUE
 ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
+
+### 物品图标与颜色
+
+`Shape` 选择图片，`Color` 选择配色，`boColoring` 决定是否允许使用染剂。三者不能混为一谈。
+
+#### 图标来源与染色条件
+
+服务端从 `Item.sdb` 读取物品模板，将物品的 `Shape`、`Color` 发送给客户端。客户端不直接读取服务端物品表，而是按收到的编号绘制图标。
+
+客户端启动时将工作目录切换到 `Client.exe` 所在目录，随后以相对路径 `item.atz` 加载物品图库。因此图库位于客户端根目录，不在 `etc/` 或 `ect/` 下。物品栏按 `Shape` 直接取图库索引；不同版本的图库内容和数量可能不同，不能直接套用其它客户端的编号。`WearShape` 则用于人物穿戴外观，不是物品栏图标编号。
+
+`Color` 是客户端 `ColorDataTable` 的索引，支持 **0～255**。每个编号对应一组色调和亮度补充值，不是RGB值，也不表示第几张图片。
+
+物品图标染色只处理**非透明且红、蓝通道均为0的像素**，即图片中预留的纯绿色区域。绘制时按这些像素的绿色强度换算目标颜色，保留明暗层次；其它像素维持原来的颜色。
+
+- 图片没有这类像素时，修改 `Color` 不会改变图标外观；不能通过继续更换编号实现整张图片变色。
+- `boColoring=FALSE` 不会关闭图标配色。它是服务端染剂操作的许可条件，具体槽位和目标限制见[染色使用规则](constants/ITEM_KIND.md#双击染色弹药和穿戴)。
+- 在物品图标绘制中，`Color=1` 将可染色区域处理成灰色，不是“保持原图颜色”；`Color=0` 对应黑色／近黑色，也不是“不染色”开关。
+
+#### 常用配色编号
+
+以下色名用于说明色调，实际深浅取决于原图的绿色强度。编号以当前炎黄客户端的 `ColorDataTable` 为准。
+
+| Color | 色调或用途 |
+|---:|---|
+| 0 | 黑色／近黑色 |
+| 1 | 灰色，物品表中常用的配色 |
+| 2 | 绿色 |
+| 3 | 褐色 |
+| 4 | 蓝灰色 |
+| 5 | 红色偏橙 |
+| 6 | 青绿色 |
+| 7 | 淡紫色 |
+| 8 | 土黄色 |
+| 9 | 深紫红色 |
+| 10 | 天蓝色 |
+| 11 | 深灰色 |
+| 12 | 纯红色 |
+| 13 | 纯绿色 |
+| 14 | 纯蓝色 |
+| 15 | 白色 |
+| 16～31 | 分别对应0～15的提亮版本，亮度补充值为3 |
+| 32～255 | 扩展配色，部分编号效果重复，按目标客户端色表及实际图标预览选择 |
+
+#### 炎黄图库示例
+
+以下示例对应 **ATZ1格式、734幅图像、857932字节**的炎黄 `item.atz`，不作为其它版本图库的通用编号约定。
+
+| Shape | 使用示例 | 非透明像素 | 可染色像素 | 修改Color的效果 |
+|---:|---|---:|---:|---|
+| 88 | 仙豆、糖果、比比路 | 120 | 118 | 大部分图标随配色变化 |
+| 517 | 天书 | 407 | 0 | 图标外观不变 |
+
+例如糖果使用 `Color=86`、比比路使用 `Color=69`，可以通过同一张88号图片显示不同配色。517号图片没有可染色区域，无法仅靠 `Color` 变色。若需要另一种外观，可选择合适的其它图标或新增图像；直接修改已有图像会影响所有使用该 `Shape` 的物品。
+
+客户端源码定位：`FMain.pas` 的 `TFrmM.FormCreate`、`AtzCls.pas` 的 `TAtzClass.Create/GetItemImage`、`FAttrib.pas` 的 `TFrmAttrib.MessageProcess/SetItemLabel`、`CharCls.pas` 的 `GetGreenColorAndAdd`、`CTable.pas` 的 `ColorDataTable`，以及 `Lib/ALib/A2Img.pas` 的 `TA2Image.DrawImageGreenConvert`。物品模板及染剂规则依据：[svClass.pas](TGS核心源码/svClass.pas) 的 `TItemClass.ReLoadFromFile/GetItemData`、[uUserSub.pas](TGS核心源码/uUserSub.pas) 的 `TWearItemClass.AddColorDrug` 和 [BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TItemObject.FieldProc`。
 
 ### 物品限制的实际边界
 
@@ -413,22 +479,22 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 | 33   | SKILLROLLPAPER | 内部Name为“技术密笈”，根据职业类型调用help目录对应文件 | ViewName为“卷轴” |
 | 34   | QUESTITEM | 任务物品，可被deletequestitem删除 | 小佛 |
 | 35   | WATERCASE | 沙漠用的水桶 | 竹筒 |
-| 36   | CHARM | 放在背包增加活力上限；SpecialKind=7还增加头、手臂、腿部活力上限，可被deletequestitem删除 | 不灭 |
+| 36   | CHARM | 护符类；支持按cLife增加活力上限和可配置的耐久计时消耗，不保证每件物品都有加成或时限；可被deletequestitem删除 | 不灭、侠客指环、九转金丹 |
 | 37   | QUESTLOG | 双击查看任务，可被deletequestitem删除，可根据currentquest调用任务详情 | 书函 |
 | 38   | SUBITEM | 子物品（装备特殊物品时才生效） | 太极牌 |
 | 39   | NAMEDPOSQUEST | 四大宝石 | 翡翠 |
-| 40   | QUESTITEM2 | 可叠加的任务物品，可被deletequestitem删除 | 石谷钥匙 |
+| 40   | QUESTITEM2 | 任务物品2，可被deletequestitem删除；堆叠仍由boDouble等检查决定 | 石谷钥匙 |
 | 41   | FILL | 定时恢复活力/内/外/武功等属性，要求地图Attribute值为MAP_TYPE_FILL | 五色药水 |
 | 42   | SPECIALEFFECT | 背包属性加成；取第一个此Kind物品的rLifeData，不是画面特效 ||
 | 43   | ADDATTRIBITEM | 增加黄字属性的物品 | 霸王灵符 |
-| 44   | GOLDBAG | SpecialKind为5的任务物品，自动删除DelItem | 雨中客锦囊 |
-| 45   | DAGGEROFOS | SpecialKind为5的任务物品，自动删除DelItem | 玉仙的无情双刀 |
+| 44   | GOLDBAG | 背包计时耗尽删除；SpecialKind=5时按DelItem第一项名称触发关联清理 | 雨中客锦囊 |
+| 45   | DAGGEROFOS | 背包计时耗尽删除；SpecialKind=5时按DelItem第一项名称触发关联清理 | 玉仙的无情双刀 |
 | 46   | DUBU | 从流放地释放出来时会删除此类物品 ||
 | 47   | DELATTRIBITEM | 清除物品黄字属性 | 北海冰玉 |
 | 48   | TRANSMONSTER | 变身成怪物，未实现功能 ||
 | 49   | RECOVERYHUMAN | 恢复成人类，未实现功能 ||
 | 50   | GRADEUPQUESTITEM | 升级神功任务物品，可指定QuestNum，可由gethavegradequestitem判断 | 侠客任务卷轴 |
-| 51   | DURABILITY | 有耐久度的普通物品 | 万毒钥匙 |
+| 51   | DURABILITY | 普通耐久物品，背包计时耗尽删除；不被deletequestitem清理 | 万毒钥匙、血红色的玛瑙石 |
 | 52   | TOPLETTER | 双击打开广播输入窗口并消耗一个物品；不表示此时已发送广播 | |
 | 53   | GUILDLOTTERY | 门派奖券 | |
 | 54   | SET | 套装加成属性| 从代码看Name只能是SetValue，加成装备属性 |
@@ -437,7 +503,7 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 | 57   | HIGHPICKAX || 高级象牙十字镐 |
 | 58   | SEAL | 封印符咒，可封印Kind为4的Monster，并触发Event.sdb中同名Mop死亡事件 | 封印符 |
 | 59   | EIGHTANGLES | 类似SUBITEM和SPECIALEFFECT类型，增加玩家属性 | 八卦牌 |
-| 60   | DURAWEAPON（WEARITEM_GUILD） | 有耐久度的武器（使用时才消耗） | 不羁浪人剑 |
+| 60   | DURAWEAPON（WEARITEM_GUILD） | 耐久武器；近身攻击按次消耗，穿戴时也可按配置计时消耗 | 不羁浪人剑 |
 | 200  | EVENT1 | 活动道具，加工窗口中加工时有几率获得随机物品 | |
 | --   | -- | -以下无效- | -- |
 | 61   | ScripterSay | 脚本物品 ||
@@ -451,6 +517,12 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 | 134  | GOLD_D | 代币 | |
 
 > kind非常重要，ITEM_KIND_WEARITEM, ITEM_KIND_WEARITEM2, ITEM_KIND_CAP, ITEM_KIND_PICKAX, ITEM_KIND_HIGHPICKAX, ITEM_KIND_DURAWEAPON 都是可装备物品
+
+`CHARM` 译为“护符类”，不等于“必定增加活力的物品”。例如九转金丹的 `cLife` 为空，不提供活力加成；具体条件见[护符类说明](constants/ITEM_KIND.md#护符类kind36)。血红色的玛瑙石采用普通耐久物品 `Kind=51`，保留任务脚本按名称发放、交付和耐久到期清除的用途。
+
+`deletequestitem` 会清空背包中 **34、36、37、40** 类的全部槽位，不按当前任务或剩余耐久过滤，也不受禁止丢弃标记保护。完整边界见[任务清理范围](constants/ITEM_KIND.md#任务清理范围)。
+
+耐久字段不是某一种 Kind 的专属功能。背包计时支持 **6、35、36、41、44、45、51、59**；其中35保留空容器，59耗尽不删除。穿戴计时、攻击/采矿损耗和修理使用不同入口，详见[耐久度处理](constants/ITEM_KIND.md#耐久度处理)，其中也说明了计时起点、轮询间隔及初始耐久为0的行为。
 
 ### Attribute（属性）
 
@@ -483,7 +555,7 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
    ITEM_SPKIND_ZANGSIK        = 2;   # 物品特殊种类：属性饰品（裁缝）
    ITEM_SPKIND_JUMOON         = 3;   # 物品特殊种类：属性卷轴（铸造）
    ITEM_SPKIND_GOLBANG        = 4;   # 普通玩家@item制造许可标记
-   ITEM_SPKIND_DELALLBYDURA   = 5;   # 物品特殊种类：当耐久度全耗尽时，连同delitem中指定的物品一起消失
+   ITEM_SPKIND_DELALLBYDURA   = 5;   # Kind=44/45背包计时耗尽时，按DelItem第一项名称触发关联清理
    ITEM_SPKIND_DONTDRUG       = 6;   # 地图boUseChemistDrug=false时禁止服用的药品标记
    ITEM_SPKIND_ADDALLLIFE     = 7;   # Kind=36时，将cLife同时加到头、手臂、腿部活力上限
    ITEM_SPKIND_1              = 8;   # 物品特殊种类：珍珠
@@ -587,11 +659,11 @@ end;
 3|十字镐耐久度小于磨损值，没有修理的必要了
 4|修理成功
 
-减少耐久度相关代码`print ('changesendercurdurabyname 物品 耐久度')`
+直接设置背包当前耐久：`print ('changesendercurdurabyname 物品 当前耐久')`。这是赋值，不是扣减；设为0不会在此命令内删除，后续计时分支也要求当前耐久大于0。详见[命令说明](../print/物品交易命令/changesendercurdurabyname.md)。
 
 类型为27的十字镐，每次修理会减少`Abrasion`的耐久度上限，修理价格为固定的`RepairPrice`
 
-类型为57的高级十字镐、类型为59的八卦牌和类型为60的装备修理不减耐久度，修理价格为`RepairPrice * 需恢复的耐久度`
+穿戴栏中类型为57的高级十字镐、60的耐久武器，以及背包中类型为59的八卦牌，修理时不降低耐久上限，将当前耐久补满，修理价格为`RepairPrice * 需恢复的耐久度`。
 
 ## 关于@item指令
 

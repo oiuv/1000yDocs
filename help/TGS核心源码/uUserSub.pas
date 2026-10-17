@@ -1167,10 +1167,9 @@ begin
    aLifeData.armorArm       := aLifeData.armorArm       + (aLifeData.armorArm * DrugAttribLifeData.armorArm div 100);
    aLifeData.armorLeg       := aLifeData.armorLeg       + (aLifeData.armorLeg * DrugAttribLifeData.armorLeg div 100);
 
-   {
-   aLifeData.AttackSpeed    := aLifeData.AttackSpeed    + (aLifeData.AttackSpeed;
-   aLifeData.recovery       := aLifeData.recovery       + (aLifeData.recovery;
-   }
+   // Recovery is a delay: a positive potion bonus shortens the delay.
+   aLifeData.Recovery := aLifeData.Recovery - (aLifeData.Recovery * DrugAttribLifeData.Recovery div 100);
+   if aLifeData.Recovery < 0 then aLifeData.Recovery := 0;
    aLifeData.avoid          := aLifeData.avoid          + (aLifeData.avoid * DrugAttribLifeData.Avoid div 100);
    aLifeData.Accuracy       := aLifeData.Accuracy       + (aLifeData.Accuracy * DrugAttribLifeData.Accuracy div 100);
    aLifeData.KeepRecovery   := aLifeData.KeepRecovery   + (aLifeData.KeepRecovery * DrugAttribLifeData.KeepRecovery div 100);
@@ -2056,7 +2055,7 @@ begin
 
                n := InPower * ItemDrugArr[i].rEventInPower div 100;
                CurInPower := CurInPower + (n div ItemDrugArr [i].rUseCount);
-               n := InPower * ItemDrugArr[i].rEventInPower div 100;
+               n := OutPower * ItemDrugArr[i].rEventOutPower div 100;
                CurOutPower := CurOutPower + (n div ItemDrugArr [i].rUseCount);
                n := Magic * ItemDrugArr[i].rEventMagic div 100;
                CurMagic := CurMagic + (n div ItemDrugArr [i].rUseCount);

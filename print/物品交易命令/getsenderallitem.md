@@ -1,100 +1,39 @@
 # getsenderallitem
 
-## 功能描述
-回收玩家背包中指定名称的**全部**物品。与 `getsenderitem` 不同，此命令不需要指定数量，会将玩家身上该名称的所有物品全部删除。
+按物品内部名称，在当前触发玩家的背包、个人商店和技术材料栏中，分别尝试删除**首个匹配槽位的全部数量**。函数名中的 `all` 不代表遍历删除所有同名槽位。
 
-## 语法格式
-```pascal
-print('getsenderallitem 物品名');
-```
-
-## 参数说明
-- **物品名**：String - 要回收的物品名称，不需要指定数量
-
-## 源码实现
-基于 `uScriptManager.pas` 第269-270行：
+## 语法
 
 ```pascal
-end else if cmd = 'getsenderallitem' then begin
-   TBasicObject (aSender).SGetAllItem (Params [0]);
+print('getsenderallitem <物品名>');
 ```
 
-基于 `UUser.pas` 第10419-10422行的实现：
+只有物品名参数，不使用 `名称:数量` 格式。
 
-```pascal
-procedure TUser.SGetAllItem (aItem : String);
-begin
-   DeleteAllItembyName (aItem);
-end;
-```
+## 实际范围
 
-**实现细节：**
-- 直接调用 `DeleteAllItembyName`，遍历整个背包删除所有匹配名称的物品
-- 不需要解析数量参数
-- 会删除玩家身上该物品的所有堆叠
+调用链：`uScriptManager` 的 `getsenderallitem` 分派 → `TUser.SGetAllItem` → `TUserObject.DeleteAllItembyName`。
+
+| 容器 | 查找与删除 |
+|---|---|
+| 背包 | `HaveItemClass.FindItemKeybyName` 找首个同名槽位，再用 `DeleteItem(index)` 清空 |
+| 个人商店 | `HaveMarketClass.FindItemKeybyName`、`DeleteKeyMarketItem`；`NATION_CHINA_1` 和 `NATION_CHINA_1_TEST` 分支不执行查找/删除 |
+| 技术材料栏 | `HaveJobClass.FindItemKeybyName` 找首个同名槽位，再用 `DeletekeyMaterialItem(index)` 清空 |
+| 穿戴栏、福袋 | 不处理 |
+
+每个容器最多删除一个匹配槽位。该槽有多个堆叠数量时一并删除，但同一容器后面还有同名槽位时，不会继续查找。例如背包第一个同名槽位有2个、第二个有3个，本次只删除前2个。
+
+源码依据：[UUser.pas](../../help/TGS核心源码/UUser.pas) 的 `SGetAllItem`、`DeleteAllItembyName`；[uUserSub.pas](../../help/TGS核心源码/uUserSub.pas) 中三个容器的 `FindItemKeybyName` 与对应单槽删除方法。
 
 ## 使用示例
 
-### 初始化时清空所有任务相关物品
-基于 `quest玉仙.txt` 中的使用：
-
 ```pascal
-// 清空所有任务相关物品
-print ('getsenderallitem 布条');
-print ('getsenderallitem 男尸的魂魄');
-print ('getsenderallitem 东海野兽王内丹');
-print ('getsenderallitem 死者灵魂');
-print ('getsenderallitem 石大王内丹');
-print ('getsenderallitem 石巨人心脏');
-print ('getsenderallitem 四臂金刚内丹');
-print ('getsenderallitem 千年冰玉1');
-print ('getsenderallitem 北方魔人内丹');
-print ('getsenderallitem 蜘蛛血');
-print ('getsenderallitem 北方魔人魂');
-print ('getsenderallitem 石大王魂');
-print ('getsenderallitem 四臂金刚魂');
-print ('getsenderallitem 东海野兽王魂');
-print ('getsenderallitem 玩具');
+// 分别尝试回收三个容器中首个同名槽位；并非全容器清空
+print('getsenderallitem 布条');
 ```
 
-### 放弃任务时回收物品
-基于 `quest风兄.txt` 中的使用：
+如果任务要求精确回收背包中的指定数量，应检查持有数量并使用 [getsenderitem](getsenderitem.md)。如果希望按类别清理整个背包，应先确认 [deletequestitem](deletequestitem.md) 的固定四类范围，尤其是其中包含护符类。
 
-```pascal
-// 放弃任务时：回收全部布条，退还材料书札
-print ('getsenderallitem 布条');
-print ('getsenderitem 风兄材料书札:1');
-```
+## 耐久关联调用
 
-### 任务完成时回收收集品
-基于 `quest上古雨中客.txt` 中的使用：
-
-```pascal
-// 回收锦囊和全部灵符
-print ('getsenderitem 雨中客锦囊:1');
-print ('getsenderallitem 疾风灵符');
-// 给予奖励
-print ('putsendermagicitem 龙虎灵符:2 @上古雨中客 3');
-```
-
-### 迷宫任务回收
-基于 `quest迷宫老侠客.txt` 中的使用：
-
-```pascal
-// 回收任务武器和全部召唤物
-print ('getsenderitem 玉仙的无情双刀:1');
-print ('getsenderallitem 黑马武士');
-```
-
-## 注意事项
-
-1. **无需数量**：与 `getsenderitem` 不同，参数只有物品名，不需要冒号和数量
-2. **全部删除**：会删除玩家背包中该名称的所有物品，包括多个堆叠
-3. **谨慎使用**：因为会删除全部数量，使用前应确保这是预期行为
-4. **常见用途**：任务初始化清理、放弃任务回收、收集类任务完成时清空收集品
-
-## 相关命令
-- `getsenderitem` - 回收玩家指定数量的物品
-- `getsenderitem2` - 回收玩家物品（方式2）
-- `deletequestitem` - 删除任务物品
-- `putsendermagicitem` - 给予玩家物品
+背包中44、45类物品计时耗尽且 `SpecialKind=5` 时，也调用同一个 `DeleteAllItembyName`，参数取 `DelItem` 第一项的名称。因此这条耐久联动同样受上述单槽和容器范围限制；不会自动遍历所有 `DelItem` 配置项。详见[耐久度处理](../../help/constants/ITEM_KIND.md#耐久度处理)。
