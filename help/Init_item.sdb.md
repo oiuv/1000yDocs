@@ -667,12 +667,22 @@ end;
 
 ## 关于@item指令
 
-玩家可制造特殊类型为ITEM_SPKIND_GOLBANG的物品，GM可制造所有物品。
+普通玩家只允许创建 `SpecialKind=ITEM_SPKIND_GOLBANG` 的物品；权限达到 100 的 GM 可指定物品表中的物品及数量。物品加入操作者自己的背包，非叠加物品强制数量为 1，仍需背包能容纳。普通玩家不走 GM 数量设置分支。
 
-    @item Name Count
-    // 以下神武端无效
-    @item Name Count Upgrade AddType
-    @item Name Count Upgrade CurDurability Durability
+中国版本使用：
+
+```text
+@item Name Count
+```
+
+以下额外参数仅在 `NATION_KOREA`、`NATION_KOREA_TEST` 条件下处理；中国、台湾版本不会应用这些升级、附加属性或耐久参数，不能仅凭游戏章节名称判断支持情况：
+
+```text
+@item Name Count Upgrade AddType
+@item Name Count Upgrade CurDurability Durability
+```
+
+其它管理命令及危险操作见 [GM 管理命令](GMCommands.md)。
 
 ```pascal
    SAYCOMMAND_MAKEITEM: // Conv('@item')   //制造物品

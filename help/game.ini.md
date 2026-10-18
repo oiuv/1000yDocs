@@ -17,6 +17,14 @@
 
 ## 修改规则
 
+### 聊天命令名称
+
+`STRINGS/WHO` 决定在线人数/门派信息命令字，`STRINGS/SERCHSKILL` 决定探查命令字。配置使用 `/who`、`@探查` 时，分别按这两个名称输入；缺项则使用源码默认的 `/WHO`、`@SERCHSKILL`。
+
+中国版本的在线人数查询要求 `SysopScope >= 99`，但同一命令中的门派信息另行判断。探查命令对 GM 提供地图标题和坐标查询，普通玩家走探查限制分支。其它 GM 指令不由这两个配置项定义，也没有通用 `Command.ini` 重命名入口。详见 [GM 管理命令](GMCommands.md)。
+
+### 配置维护
+
 - 键名中的历史拼写是协议的一部分，例如 `SERCHSKILL`、`BREATHNG`，不要自行纠正。
 - `MAGIC_VALUES` 与 `RISEMAGIC_VALUES` 会直接参与 `Magic.SDB` 加载和技能计算；修改前应对照 [Magic.SDB](Init_magic.sdb.md) 及 `svClass.pas` 公式分支。
 - 配置缺项时使用 `ReadString`/`ReadInteger` 的源码默认值；空白数值会按 INI 读取行为落到默认值或 0，不应把表面空列解释为未加载。

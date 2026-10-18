@@ -4,6 +4,8 @@
 源码英文名与客户端中文名遵循 [统一术语表](help/TERMINOLOGY.md)；脚本事件可从
 [过程事件索引](procedure/README.md) 和 [返回值事件索引](function/README.md) 查阅。
 
+游戏内管理员指令见 [GM 管理命令](help/GMCommands.md)，包含权限、参数、影响范围及当前实现限制。
+
 ## 基本介绍
 
 古老的千年使用的是pascal语言，开发相关目录结构如下：

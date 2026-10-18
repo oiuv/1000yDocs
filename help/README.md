@@ -7,6 +7,7 @@
 - [统一术语表](TERMINOLOGY.md)
 - [系统架构与登录链路](architecture.md)
 - [TGS 运行与生命周期](TGSRuntime.md)：启动、主调度、角色接入、保存与关服边界。
+- [GM 管理命令](GMCommands.md)：权限、参数、作用范围、危险操作及当前不可可靠使用的入口。
 - [TGS 战斗与角色状态](TGSCombat.md)：攻击与资源检查、武功、药效、经验和死亡复活。
 - [TGS 世界与怪物运行](TGSWorld.md)：场景广播、视野、近身事件、AI、尸体和地图刷新。
 - [Windows 全量编译与构建日志](build.md)

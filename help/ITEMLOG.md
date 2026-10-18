@@ -28,6 +28,8 @@
 
 目录必须事先存在。当前 GM 分支 `@储存保管窗` 会导出 `./ITEMLOG/ITEMLOG.SDB`；命令文本还经过 `Conv()`，实际客户端输入应以当前 ACS 本地化结果为准。
 
+`@锁定保管窗` 切换当前 TGS 的 `ItemLog.Enabled`：开启时执行会关闭，关闭时执行会开启，并向操作者提示结果。它不是只执行锁定的幂等命令，也不提供备份或恢复功能。权限和其它注意事项见 [GM 管理命令](GMCommands.md#重载福袋与物品流转开关)。
+
 SDB 是检查/迁移快照，源码没有把它作为启动主库载入。恢复主库不能简单把 `.SDB` 改名为 `.BIN`。
 
 源码依据：`uItemLog.pas` 的 `TItemLog.LoadFromFile`、`SaveToSDB`，`SVMain.pas` 的每日备份分支，以及 `UUser.pas` 的 GM 命令。
