@@ -1,0 +1,5 @@
+# Documentation and code examples use LF, retaining their existing encoding.
+* text=auto eol=lf
+
+# Compiled help files are binary.
+*.[cC][hH][mM] binary !eol
