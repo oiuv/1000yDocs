@@ -32,6 +32,8 @@ Str := Format('.\questnotice\%d.txt', [aData.rQuestNumber]);
 
 七个文件的字段为 `No, ItemName, ItemCount, TotalRandom, randomrate, MaxValue, Kind`。具体奖项和概率必须直接查看部署文件，本文不复制易失效的数据行。
 
+抽取使用首行的 `MaxValue` 和各行累计阈值 `TotalRandom`，不是直接读取 `randomrate`。缺表、空表、上限非正、未命中区间或命中项名称/数量无效时返回空字符串；脚本须判空后再发奖。物品名是否有效仍需对照物品表。接口与示例见 [getquestitem](../callfunc/物品背包函数/getquestitem.md)。
+
 ## 任务状态接口
 
 - `changesendercurrentquest` / `getsendercurrentquest`

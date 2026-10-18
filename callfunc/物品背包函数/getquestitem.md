@@ -34,6 +34,8 @@ if Item <> '' then begin
 end;
 ```
 
-非法编号会走空分支，但有效编号对应的列表为空时源码仍会直接访问第 1 项；随机阈值未覆盖完整范围时也没有可靠保护。部署前应确认文件存在、列表非空、物品名存在于 `Init/Item.SDB`，且累计阈值覆盖 `0..MaxValue-1`。
+非法编号、缺文件或空表、非正数 `MaxValue`、随机值未命中累计区间、命中项名称为空或数量非正时，返回空字符串，不补发其它奖项。脚本应先检查返回值，再执行发奖。
+
+读取奖池时不校验物品名是否存在于 `Init/Item.SDB`。部署前仍应核对物品内部名称、正整数数量和累计阈值；若希望每次必中奖，阈值须覆盖 `0..MaxValue-1`。
 
 完整配置说明见 [QuestNotice 任务公告与奖励](../../help/QuestNotice.md)。源码依据：`uScriptManager.pas` 的 `getquestitem` 分派及 `svClass.pas` 的 `TRandomEventItemList.GetQuestItembyRandom`。
