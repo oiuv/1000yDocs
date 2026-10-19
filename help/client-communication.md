@@ -6,6 +6,8 @@
 
 ## 1. 源码入口
 
+客户端公开源码见 [Cl1000](https://github.com/oiuv/Cl1000)。下表的 `client/` 对应其仓库根目录，`1000ydef/` 对应 `Kor/1000ydef/`；共享定义须与所研究客户端版本配套。目录映射及版本证据要求见 [公开源码与引用说明](source-reference.md)。
+
 | 职责 | 代码位置 |
 |---|---|
 | 程序与窗口初始化 | `client/Client.dpr` |
