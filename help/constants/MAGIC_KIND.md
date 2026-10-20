@@ -17,7 +17,7 @@
 | `MAGIC_KIND_JUNGPA1` | 4 | 紫霞神功 | 正派 — 紫霞神功 |
 | `MAGIC_KIND_JUNGPA2` | 5 | 北冥神功 | 正派 — 北冥神功 |
 
-> 数据来源：`Init/Magic.sdb.Kind`、`MAGIC_KIND_SAPA*` / `MAGIC_KIND_JUNGPA*` 定义，以及[四大神功介绍](../炎黄新章游戏资料/新手入门/武功介绍/四大神功介绍.txt)。例如金蛇剑法为 `Kind=2`，寒阴指为 `3`，金刚指为 `4`，玉霄剑法为 `5`。
+> 数据来源：`Init/Magic.sdb.Kind`、`MAGIC_KIND_SAPA*` / `MAGIC_KIND_JUNGPA*` 定义，以及[四大神功介绍](../炎黄新章游戏资料/新手入门/武功介绍/四大神功介绍.md)。例如金蛇剑法为 `Kind=2`，寒阴指为 `3`，金刚指为 `4`，玉霄剑法为 `5`。
 
 ---
 

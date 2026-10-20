@@ -154,4 +154,4 @@
 - [MAGIC_KIND.md](MAGIC_KIND.md) — 武功门派常量
 - [Init_magic.sdb.md](../Init_magic.sdb.md) — 武功数据库结构
 - [uMopSub.pas](../TGS核心源码/uMopSub.pas) — 特殊功能索引及怪物武功处理
-- [绝世武功介绍](../炎黄新章游戏资料/新手入门/武功介绍/绝世武功介绍.txt) — 招式武功名称
+- [绝世武功介绍](../炎黄新章游戏资料/新手入门/武功介绍/绝世武功介绍.md) — 招式武功名称

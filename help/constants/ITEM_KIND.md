@@ -287,7 +287,7 @@ end;
 ## 相关文档
 
 - 源码依据：[uUserSub.pas](../TGS核心源码/uUserSub.pas) 的 `THaveItemClass.DblClickProcess`、`SetAttribData`、`SetEffectItemLifeData`、`PutOnExchangeProcess`，以及 `TWearItemClass.AddColorDrug`、`GetFeature`。
-- 名称依据：随包 `Init/Item.sdb`；加工试剂说明见[职业技能简介](<../炎黄新章游戏资料/职业技能/【职业技能】简介.txt>)。
+- 名称依据：随包 `Init/Item.sdb`；加工试剂说明见[职业技能简介](<../炎黄新章游戏资料/职业技能/【职业技能】简介.md>)。
 - [Init_item.sdb.md](../Init_item.sdb.md) — 物品数据库结构
 - [ITEM_ATTRIBUTE.md](ITEM_ATTRIBUTE.md) — 物品属性常量
 - [ITEM_SPKIND.md](ITEM_SPKIND.md) — 物品特殊类型

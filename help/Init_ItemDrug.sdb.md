@@ -112,4 +112,4 @@ ITEMDRUG_MUL_EVENTLEGLIFE  = 15;
 - [svClass.pas](TGS核心源码/svClass.pas) — `TItemDrugClass.ReLoadFromFile`、`GetItemDrugData`；字段表中的倍率表达式仅用于 Type 0，其他类型直接加载原值。
 - [uUserSub.pas](TGS核心源码/uUserSub.pas) — `DRUGARR_SIZE`、`TAttribClass.AddItemDrug`、`TAttribClass.Update`。
 - [deftype.pas](deftype.pas) — `TItemDrugData` 记录与药品类型常量；加载倍率在 [svClass.pas](TGS核心源码/svClass.pas) 的 `ITEMDRUG_MUL_*`、`ITEMDRUG_DIV_VALUE` 中定义。
-- [药材原始资料](<炎黄新章游戏资料/新手入门/【物品】简介/【物品】简介：药材.txt>) — 汤药等药品的原始字段值；实际效果还需应用加载倍率和运行分支。
+- [药材原始资料](<炎黄新章游戏资料/新手入门/【物品】简介/【物品】简介：药材.md>) — 汤药等药品的原始字段值；实际效果还需应用加载倍率和运行分支。

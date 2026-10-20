@@ -8,7 +8,7 @@
 
 定义玩家的生活/生产职业，对应 `TDBRecord.JobKind` 字段。
 
-> 数据来源: `docs/help/炎黄新章游戏资料/职业技能/【职业技能】简介.txt`
+> 数据来源: `docs/help/炎黄新章游戏资料/职业技能/【职业技能】简介.md`
 
 | 常量名 | 值 | 中文说明 | 详细说明 |
 |--------|---:|----------|----------|
@@ -41,7 +41,7 @@
 
 定义制造职业的晋升等级。人物职业来自 `TDBRecord.JobKind`，`THaveJobClass` 以人物 `Talent` 技能值调用 `TJobClass.GetJobGrade` 计算 `FJobGrade`，不是读取 `TDBRecord.ExtJobKind`（后者属于扩展采集职业）。
 
-> 数据来源: `bin/Init/JobGrade.sdb` + `docs/help/炎黄新章游戏资料/职业技能/【职业技能】简介.txt`
+> 数据来源: `bin/Init/JobGrade.sdb` + `docs/help/炎黄新章游戏资料/职业技能/【职业技能】简介.md`
 
 | 常量名 | 值 | 中文说明 | 技能值要求 | 可制作品级 | 说明 |
 |--------|---:|----------|-----------:|-----------:|------|

@@ -33,7 +33,7 @@
 - **药品限制**（6）：属于物品使用时的地图检查；药品效果还受 `ItemDrug.sdb`、并发药效槽及其他地图规则约束。
 - **宝石标记**（8～11）：珍珠、翡翠、水晶、琥珀分别使用这些值；不能只凭标记认定为某个加工系统的材料。随包也有部分装备使用值 9，应结合 `Kind` 和实际调用判断。
 
-源码依据：[uUserSub.pas](../TGS核心源码/uUserSub.pas) 的 `THaveJobClass.CheckAddAttribKind`、`THaveItemClass.SetAttribData`、`DblClickProcess`、`Update`；[UUser.pas](../TGS核心源码/UUser.pas) 的 `@item` 处理分支和 `TUserObject.DeleteAllItembyName`。中文类别见[重返王陵材料加工](<../炎黄新章游戏资料/新手入门/版本介绍/重返王陵材料加工.txt>)。
+源码依据：[uUserSub.pas](../TGS核心源码/uUserSub.pas) 的 `THaveJobClass.CheckAddAttribKind`、`THaveItemClass.SetAttribData`、`DblClickProcess`、`Update`；[UUser.pas](../TGS核心源码/UUser.pas) 的 `@item` 处理分支和 `TUserObject.DeleteAllItembyName`。中文类别见[重返王陵材料加工](<../炎黄新章游戏资料/新手入门/版本介绍/重返王陵材料加工.md>)。
 
 ---
 
