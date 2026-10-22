@@ -1,8 +1,6 @@
 # 【NPC】简介（重返王陵）
 
-以下为配置投放点；生成范围及后续活动可能使实际位置偏移，并非固定站位。王陵3层为 MapID `70`（`tomb3.map`），王陵迷宫为 MapID `71`（`tombmaze.map`）。
-
-玉仙、老侠客分别核对 `Setting/CreateNpc70.sdb`、`Setting/CreateNpc71.sdb`；雨中客按 `Setting/CreateMonster70.sdb` 的 `上古雨中客` 投放记录核对。表结构见 [NPC 投放表](../../../CreateNpc.SDB.md)和[怪物投放表](../../../CreateMonster.SDB.md)。
+以下 NPC 位于王陵三层和王陵迷宫，实际位置可能因移动而变化，请在所列坐标附近寻找。
 
 ## 名称 雨中客
 
