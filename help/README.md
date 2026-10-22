@@ -11,6 +11,7 @@
 - [GM 管理命令](GMCommands.md)：权限、参数、作用范围、危险操作及当前不可可靠使用的入口。
 - [TGS 战斗与角色状态](TGSCombat.md)：攻击与资源检查、武功、药效、经验和死亡复活。
 - [TGS 世界与怪物运行](TGSWorld.md)：场景广播、视野、近身事件、AI、尸体和地图刷新。
+- [地图传送机制总览](Teleportation.md)：固定入口、随机入口／目的地、多人投物、限时与战场入口、脚本及 GM 移动。
 - [Windows 全量编译与构建日志](build.md)
 - [客户端连接与通信](client-communication.md)
 - [原版客户端补丁更新](client-patch.md)：`cl1000.exe`、Divider、Patch 配置、补丁发布及文件大小与传输速度注意事项。

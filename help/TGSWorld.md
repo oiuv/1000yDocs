@@ -77,5 +77,5 @@ TGS 不只是把坐标转发给客户端：它维护地图通行数据、对象�
 ## 配置维护边界
 
 - 地图资源、模板、实例表和脚本各有独立加载路径，修改一个表不代表其它对象自动同步；参见 [运行资源加载](RuntimeResources.md)。
-- 传送门需要同时核对目标地图、坐标、年龄、物品及任务条件。部分物品先扣除、后检查任务，不提供失败自动返还；参见 [CreateGate.SDB](CreateGate.SDB.md)、[CreateGateEx.SDB](CreateGateEx.SDB.md)。
+- 传送门需要同时核对目标地图、坐标、年龄、物品及任务条件。部分物品先扣除、后检查任务，不提供失败自动返还；机制选择见 [地图传送机制总览](Teleportation.md)，字段与顺序见 [CreateGate.SDB](CreateGate.SDB.md)、[CreateGateEx.SDB](CreateGateEx.SDB.md)。
 - 调整可见范围会影响共用的可见列表和局部消息处理，不能仅按客户端画布大小评估；怪物自己的 `ViewWidth`、攻击判断与通行限制仍然独立存在。

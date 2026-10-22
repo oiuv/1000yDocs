@@ -78,4 +78,4 @@ end;
 
 ## 相关命令
 - `returndamage` - 反弹伤害
-- `gotoxy` - 传送到指定坐标
+- [gotoxy](gotoxy.md) - 让脚本对象在当前地图移动，不是跨图传送

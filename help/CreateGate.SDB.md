@@ -1,6 +1,6 @@
 # CreateGate.SDB
 
-传送门
+普通传送门配置。各种传送机制的选择及相互区别见 [地图传送机制总览](Teleportation.md)。
 
 实际随包表头包含 38 个字段，加载器为 [BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateList.LoadFromFile`，进入检查位于 `TGateObject.FieldProc`：
 
@@ -39,7 +39,7 @@
 - Kind见下文详细介绍
 - Kind为GATE_KIND_FIXPOSITION时TX和TY设置为0，调用BattleMap.sdb中的坐标，由ActiveInterval指定对战时间
 - Shape 为item.atz中的形状，主要是8、69和70，也可以使用其它值
-- X,Y设置为(0,0)，使用RandomPos指定坐标，随机坐标刷新时间由ActiveInterval指定
+- X、Y 均为 0 时使用 `RandomPos`；周期换点的适用类型和间隔组合见下文“随机入口位置”
 - LimitPowerLevel为境界限制，超过境界的玩家进入后境界被限制到该值
 - NeedAge 为直接进入年龄，年龄大于或等于该值即通过此项；否则进一步判断 AgeNeedItem 条件，并由 boRemainItem 决定是否删除物品
 - 如果没有设置NeedAge，只设置了AgeNeedItem是无效的
@@ -55,6 +55,41 @@
 - ActiveInterval为传送门生效状态时间，常和RegenInterval配合使用
 - OpenClock可设置开启时间在几点（最多5个），Kind为GATE_KIND_SPECIALTIME(用`8:30/10:30`指定时间)、GATE_KIND_FIXPOSITION、GATE_KIND_FIXTIME、GATE_KIND_SPORTSWAR(用`8:10:12:14`指定小时)
 - MaxUser限制Kind为GATE_KIND_SPORTSWAR时指定活动人数上限
+
+## 随机入口位置
+
+`RandomPos` 随机的是**入口位置**，不是目的地。`ServerId/TX/TY` 仍指定同一个目标；随机目的地使用 [CreateGateEx.SDB](CreateGateEx.SDB.md)。
+
+### 配置要求
+
+- `X=0` 且 `Y=0` 才读取候选位置。任一非零就按固定坐标初始化。
+- `RandomPos` 使用 `X1:Y1:X2:Y2:...`，最多读取十组。解析遇到任一坐标为 0 就停止，后面的坐标也不再读取；必须至少有一组有效位置。
+- 普通门使用 `Kind=0`、`RegenInterval=0` 和正数 `ActiveInterval`，可避免重新激活分支干扰换点计时。这里的 0 不表示关闭随机换点。
+- 默认 tick 约为 10 ms，例如 `ActiveInterval=9000` 约为 90 秒；实际执行取决于更新轮次。不要填 0 或负数，它们会让换点条件持续满足，而不是关闭轮换。
+
+以下只展示字段关系，不是一行可直接部署的完整 SDB；坐标须换成目标地图上的实际合法位置：
+
+```text
+Kind = 0
+X = 0
+Y = 0
+RandomPos = 10:20:30:40:50:60
+RegenInterval = 0
+ActiveInterval = 9000
+```
+
+### 运行过程
+
+1. 每条记录只创建一个 `TGateObject`。`Initial` 调用 `Random(RandomPosCount)` 选一个位置，然后注册到地图。
+2. 到达 `ActiveInterval` 后执行 `EndProcess → Initial → StartProcess`，注销旧位置并重新抽取；不是另外生成多个同时有效的门。
+3. 允许连续抽中同一个位置。候选列表中每一项等概率，但重复填写同一坐标会增加该位置的权重。
+4. 换点按时间执行，不由玩家使用次数触发，也不保证轮流经过全部候选点。地图上的其它阵图不会仅因被列为候选而获得触发能力。
+
+例如七座传送阵只有一个有效入口，应使用一条记录加七组候选坐标，而不是七条相互独立的门记录。
+
+`Initial` 的随机选点不限定 `Kind`，但 `Update` 中上述周期换点路径仅位于 `Kind=0/1/2/6` 分支。不要将它直接套用到所有门类型。若同时设置正数 `RegenInterval`，到达重新激活条件时会先更新时间戳并跳过本轮换点；不能简单理解为“关闭多少秒，再随机开放多少秒”。
+
+依据：[BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateList.LoadFromFile`、`TGateObject.Initial/Update/StartProcess/EndProcess`。
 
 ## 物品检查与扣除顺序
 
