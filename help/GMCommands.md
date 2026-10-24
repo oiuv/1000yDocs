@@ -146,7 +146,7 @@
 | --- | --- |
 | `@CALLGUILD 门派名` | 将指定门派石移到操作者当前地图与坐标 |
 | `@删除门派 门派名` | 将门派耐久设为 0 并执行门派清理、列表广播，属于破坏性操作 |
-| `@设定聚贤庄门派 [门派名]` | 设置占领门派并保存 `Init/Zhuang.sdb`；不带参数清除归属。当前有空指针风险，见下节 |
+| `@设定聚贤庄门派 [门派名]` | 将已有门派设为占领门派；不带参数清除归属。设置会取消当前领土战、重置大旗并保存 `Init/Zhuang.sdb`；门派不存在时拒绝修改 |
 | `@CREATEGUILD 门派名` | 优先走普通命令表，传入操作者姓名，要求匹配已有门派掌门及建石条件；不是 GM 无条件创建新门派的入口 |
 | `@REGEN` | 重置当前战场及战况条相关状态 |
 | `@BATTLESTART` | 将当前战场玩家设为自由行动，关闭进入，并发送开战消息 |
@@ -160,7 +160,6 @@
 
 ### 当前实现限制
 
-- `@设定聚贤庄门派` 允许把 `MasterGuild` 设为 `nil`，但带名称设置时直接读取 `MasterGuild.GuildName`。无占领门派时存在空指针访问，不能用此入口可靠地建立首次归属。
 - `@NAMELISTLOAD` 的底层函数检查 `Event/NameList.SDB`，实际读取 `EtcSetting/NameList.SDB`；重载没有向命令返回成功标志，命令随后仍会开放进入。详见 [事件配置](Event.md#可选但未部署的表)。
 
 依据：[UUser.pas](TGS核心源码/UUser.pas) 的 `TUser.UserSay`；[uGuild.pas](TGS核心源码/uGuild.pas) 的 `CreateStone`、`MoveStone`、`DeleteStone`；[svClass.pas](TGS核心源码/svClass.pas) 的 `TNameClass.ReLoadFromFile`。
@@ -215,6 +214,6 @@
 | `@囚禁情报 玩家名` 的 GM 分支 | 被普通命令表提前匹配，实际只查询自己 |
 | `@CREATEGUILD` 的 GM 专用分支 | 被普通命令表提前匹配；实际入口仍受掌门身份和建石条件约束 |
 
-`@设定聚贤庄门派` 的空指针风险、参战名单加载路径、囚禁时间持久化问题见上文对应章节。这里记录的是当前实现限制，不表示已经修复。
+参战名单加载路径、囚禁时间持久化问题见上文对应章节。这里记录的是当前实现限制，不表示已经修复。
 
 依据：[UUser.pas](TGS核心源码/UUser.pas) 的命令注册、`TUser.UserSay`；[uMonster.pas](TGS核心源码/uMonster.pas) 的 `TMonsterList.ComeOn`。
