@@ -729,33 +729,6 @@ begin
                end;
                exit;
             end;
-            {  2002/12/17 绝绢咙
-            if aSubData.ItemData.rKind = ITEM_KIND_GUILDLETTER then begin
-               objectname := StrPas (@SenderInfo.Name);
-               Bo := GetViewObjectByName (objectname, RACE_HUMAN);
-               if Bo = nil then exit;
-               if not (Bo is TUser) then exit;
-               if TUser(Bo).GuildName = SelfData.Name then exit;
-               if TUser(Bo).GuildName <> '' then exit;
-               if TUser(Bo).GetQuestStr <> SelfData.Name then begin
-                  BocSay (format (Conv('%s 不是门派成员'), [TUser (Bo).GetQuestStr]));
-                  exit;
-               end;
-               if TUser(Bo).SGetCompleteQuest <> 99 then exit;
-
-               TUser(Bo).GuildName := SelfData.Name;
-               TUser(Bo).GuildGrade := GetUserGrade (objectname);
-               StrPCopy (@TUser(Bo).BasicData.Guild, SelfData.Name);
-               GuildUserList.AddUser (objectname);
-               Login (objectname);
-               TUser(Bo).BocChangeProperty;
-               BocSay (Conv('通过门人推鉴书后已加入了'));
-               TUser (Bo).SChangeQuestStr ('');
-               UserList.GuildSay (GuildName, format (Conv('接受门人推鉴书后 %s已加入'), [objectname]));
-               Result := PROC_TRUE;
-               exit;
-            end;
-            }
          end;
       FM_HIT :
          begin

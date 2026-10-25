@@ -528,6 +528,7 @@ type
 
      FBoAttribData : Boolean;
      FBoLifeData : Boolean;
+     function JoinGuildByLetter(aGuildObject: TBasicObject; aItemKey: Integer): Boolean;
    public
      HaveItemArr : array [0..HAVEITEMSIZE - 1] of TItemData;
      WaterCaseItemCount : Integer;
@@ -3986,6 +3987,58 @@ begin
 end;
 
 
+function THaveItemClass.JoinGuildByLetter(aGuildObject: TBasicObject; aItemKey: Integer): Boolean;
+var
+   Item: TItemData;
+   Guild: TGuildObject;
+   aUser: TUser;
+   GuildData: PTCreateGuildData;
+begin
+   Result := False;
+   if not (aGuildObject is TGuildObject) then Exit;
+   Guild := TGuildObject(aGuildObject);
+   aUser := TUser(FBasicObject);
+   GuildData := Guild.GetSelfData;
+   // 只接收当前门派香炉视野中的真实玩家，物品从背包重新读取。
+   if Guild.GetViewObjectByName(aUser.Name, RACE_HUMAN) <> aUser then Exit;
+   if not ViewItem(aItemKey, @Item) then Exit;
+   if (Item.rKind <> ITEM_KIND_GUILDLETTER) or (Item.rCount < 1) then Exit;
+   if Item.rLockState <> 0 then begin
+      aUser.SendClass.SendChatMessage(Conv('请先解锁推荐书。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+   if (GuildData^.Name = '') or (GuildData^.Sysop = '') or Guild.GuildDestory then begin
+      aUser.SendClass.SendChatMessage(Conv('此门派尚未成立或已解散。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+   if StrPas(@Item.rName) <> GuildData^.Name then begin
+      aUser.SendClass.SendChatMessage(Conv('请将推荐书交给对应门派的门派香炉。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+   if aUser.GuildName <> '' then begin
+      aUser.SendClass.SendChatMessage(Conv('你已经加入门派。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+   if EXITGUILD_TIME and ExitGuildList.GetExitUser(aUser.Name) then begin
+      aUser.SendClass.SendChatMessage(Conv('退出门派不足3天，无法加入新门派。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+
+   // 主动交付即同意入门；扣除成功后才更新成员关系，不使用任务字段。
+   Item.rCount := 1;
+   if not DeleteKeyItem(aItemKey, 1, @Item) then Exit;
+   Guild.AddUser(aUser.Name);
+   aUser.GuildName := GuildData^.Name;
+   aUser.GuildGrade := GuildList.GetUserGrade(Guild.GuildName, aUser.Name);
+   StrPCopy(@aUser.BasicData.Guild, GuildData^.Name);
+   aUser.InviteGuildMaster := '';
+   Guild.Login(aUser.Name);
+   aUser.BocChangeProperty;
+   aUser.SendClass.SendChatMessage(Format(Conv('已加入%s门派。'), [GuildData^.Name]), SAY_COLOR_SYSTEM);
+   UserList.GuildSay(Guild.GuildName, Format(Conv('%s通过推荐书加入了本门派。'), [aUser.Name]));
+   Result := True;
+end;
+
 procedure THaveItemClass.PutOnScreenProcess (pcDragDrop : PTCDragDrop; aShowWindowClass : TShowWindowClass);
 var
    ItemData, tmpItemData : TItemData;
@@ -4029,6 +4082,11 @@ begin
 
          BObject := TBasicObject (FBasicObject.SendLocalMessage (pcDragDrop^.rDestid, FM_GIVEMEADDR, FBasicObject.BasicData, SubData));
          if (Integer (BObject) = -1) or (Integer(BObject) = 0) then exit;
+
+         if (ItemData.rKind = ITEM_KIND_GUILDLETTER) and (BObject is TGuildObject) then begin
+            JoinGuildByLetter(BObject, pcDragDrop^.rsourkey);
+            Exit;
+         end;
 
          case BObject.BasicData.Feature.rrace of
             RACE_HUMAN : begin
@@ -4157,7 +4215,6 @@ begin
                   Case ItemData.rKind of
                      ITEM_KIND_COLORDRUG : StrPCopy (@tmpBasicData.Name, Conv('染色物品'));
                      ITEM_KIND_DUMMY : StrPCopy (@tmpBasicData.Name, Conv('门派卒兵'));
-                     // ITEM_KIND_GUILDLETTER : StrPCopy (@tmpBasicData.Name, '巩颇眠玫辑');    2002/12/17 绝绢咙
                      Else StrPCopy (@tmpBasicData.Name, Conv('消耗物品'));
                   end;
                   tmpBasicData.x := FBasicObject.BasicData.x;
@@ -4327,10 +4384,7 @@ begin
          end;
       ITEM_KIND_GUILDLETTER :
          begin
-            {  2002/12/17 绝绢咙
-            Str := GuildList.MakeGuildLetterFile (aUserQuestClass.QuestStr, StrPas (@FBasicObject.BasicData.Name));
-            aShowWindowClass.ShowHelpWindow ('', Str);
-            }
+            FSendClass.SendChatMessage(Conv('请将推荐书交给对应门派的门派香炉。'), SAY_COLOR_SYSTEM);
          end;
       ITEM_KIND_ITEMLOG :
          begin

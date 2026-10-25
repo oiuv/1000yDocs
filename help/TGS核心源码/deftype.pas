@@ -129,7 +129,7 @@ const
    ITEM_KIND_SHOWSKILL     = 23;
    ITEM_KIND_WEARITEM2     = 24;
    ITEM_KIND_FOXMIRROR     = 25;
-   ITEM_KIND_GUILDLETTER   = 26;       // 巩盔眠玫辑
+   ITEM_KIND_GUILDLETTER   = 26;       // 门派推荐书：内部名称匹配目标门派
    ITEM_KIND_PICKAX        = 27;       // 邦豹捞
    ITEM_KIND_MINERAL       = 28;       // 堡拱甸
    ITEM_KIND_CAP           = 29;       // 癌冠 赣府 救唱坷霸
