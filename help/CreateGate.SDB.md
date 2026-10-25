@@ -34,7 +34,7 @@
 | boAlarmRemainTime / AlarmNotice | Boolean / String | 是否广播剩余时间及格式字符串 |
 | MaxUser | Integer | 竞技场人数上限；0 表示不按此字段限制 |
 | script | Integer | `Script.SDB` 脚本编号；大于 0 时绑定 |
-| GuildName | String | 限定门派名称，并进入所属门派列表 |
+| GuildName | String | 限定进入门派；非台湾版本还将非空值登记为禁止新建的保留门派名，见下文 |
 
 - Kind见下文详细介绍
 - Kind为GATE_KIND_FIXPOSITION时TX和TY设置为0，调用BattleMap.sdb中的坐标，由ActiveInterval指定对战时间
@@ -55,6 +55,22 @@
 - ActiveInterval为传送门生效状态时间，常和RegenInterval配合使用
 - OpenClock可设置开启时间在几点（最多5个），Kind为GATE_KIND_SPECIALTIME(用`8:30/10:30`指定时间)、GATE_KIND_FIXPOSITION、GATE_KIND_FIXTIME、GATE_KIND_SPORTSWAR(用`8:10:12:14`指定小时)
 - MaxUser限制Kind为GATE_KIND_SPORTSWAR时指定活动人数上限
+
+## 门派专属入口与建派名称限制
+
+`GuildName` 填写允许进入的门派名称，不是传送点的 `GateName` 或 `ViewName`。**非台湾版本不得新建与已加载传送点 `GuildName` 同名的门派。**当前中国版适用这条规则。
+
+加载普通传送表时，`NATION_VERSION <> NATION_TAIWAN` 分支将每条记录的非空 `GuildName` 加入 `OwnGateGuildList`。玩家输入门派名称后，即使通过重名、门主和副门主身份检查，命中这个保留名单仍会提示“无法成立门派。”；名称检查不要求该门派实际已经存在。
+
+因此，新增门派专属入口应按以下顺序操作：
+
+1. 先创建并命名门派，确认门派存档已正常保存。
+2. 再将该名称配置到传送点的 `GuildName`，维护时重启 TGS 加载。
+3. 如果先配置了入口却尚未建派，应临时移除所有使用该 `GuildName` 的传送记录并重启 TGS，完成建派、正常关闭保存后，再恢复记录并启动。
+
+已有门派不会因这条新建名称校验而被删除。仅将 `boShow` 设为 `FALSE` 不能解除保留：登记名称发生在创建门对象之前，不以显示状态或是否成功找到地图管理器为条件。清空 `GuildName` 会解除该入口的门派限制，因此临时处理时移除整条入口记录更合适。只编辑文件不会即时清除内存中的保留名单。
+
+台湾版本跳过上述名称保留名单登记；这不表示传送点的门派准入限制也被取消。依据：[BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateList.LoadFromFile`、`IsOwnGateGuild`，[uUserSub.pas](TGS核心源码/uUserSub.pas) 的 `TShowWindowClass.SelectInputGuildNameWindow`，以及 [uGuild.pas](TGS核心源码/uGuild.pas) 的 `TGuildList.AllowGuildCondition`、`AllowGuildName`。
 
 ## 随机入口位置
 

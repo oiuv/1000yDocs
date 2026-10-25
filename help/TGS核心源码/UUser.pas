@@ -6,7 +6,7 @@ uses
   Windows, SysUtils, Classes, ScktComp, WinSock, aDefType, svclass, deftype,
   aUtil32, basicobj, fieldmsg, AnsImg2, mapunit, subutil, uanstick, uSendcls,
   uUserSub, aiunit, uLetter, uManager, AnsStringCls, uConnect, uBuffer,
-  uItemLog, uKeyClass, mmSystem, uLevelExp, uimage ;
+  uItemLog, uKeyClass, mmSystem, uLevelExp, uimage, uTopLetterRules;
 
 const
    InputStringState_None          = 0;
@@ -422,6 +422,7 @@ type
      function MovingStatus : Boolean;
      procedure UdpSendMouseEvent (aInfoStr: String);
      procedure RemoveItemKind(aKind : Integer);
+      procedure ProcessTopLetterInput(var Code: TWordComData; CurTick: Integer);
 //     function Find3daysChar : Boolean;   // 畴蛆按捞亥飘
   // add by Orber at 2004-12-27 10:24:55
      function GetUserID : String;
@@ -739,6 +740,8 @@ const
   SAYCOMMAND_KICKOUTPARTY      = 37;
   SAYCOMMAND_PARTYMESSENGER    = 38;
   SAYCOMMAND_ANSWER            = 39;
+
+  LIMIT_DAILY_MAGIC_DELETE     = False; // 是否限制普通玩家每天删除一次武功
 
 procedure BuildSayCommand;
 begin
@@ -5378,8 +5381,7 @@ begin
                 exit;
               end;
               if Strs [1] <> '' then begin
-                if SysopScope > 99 then begin
-                end else begin
+                if LIMIT_DAILY_MAGIC_DELETE and (SysopScope <= 99) then begin
                   for i := 0 to NameStringListForDeleteMagic.Count -1 do begin
                     if Name = NameStringListForDeleteMagic[i] then begin
                       SendClass.SendChatMessage (Conv('今天已做过删除武功的动作。'), SAY_COLOR_SYSTEM);
@@ -5409,19 +5411,12 @@ begin
                 end;
                 ret := HaveMagicClass.GetBestAttackMagicIndex (Strs[1]);
                 if ret <> -1 then begin
-                   // add by Orber at 2004-12-02 14:59:01
-                   // change by minds at 2005-06-06
-                   if (HaveMagicClass.GetBestAttackMagicGrade(ret) < 2) or (HaveMagicClass.GetBestAttackMagicExp(ret) < 1084540797 ) then begin
-                   //if (HaveMagicClass.GetBestAttackMagicGrade(ret) < 2) and (HaveMagicClass.GetBestAttackMagicExp(ret) < 1084540797 ) then begin
-                      if HaveMagicClass.DeleteBestAttackMagic (ret) then begin
-                          SendClass.SendChatMessage (Strs[1] + Conv('武功已被删除。'), SAY_COLOR_SYSTEM);
-                          NameStringListForDeleteMagic.Add (Name);
-                          exit;
-                       end else begin
-                          SendClass.SendChatMessage (Conv('失败了。'), SAY_COLOR_SYSTEM);
-                       end;
+                   if HaveMagicClass.DeleteBestAttackMagic (ret) then begin
+                      SendClass.SendChatMessage (Strs[1] + Conv('武功已被删除。'), SAY_COLOR_SYSTEM);
+                      NameStringListForDeleteMagic.Add (Name);
+                      exit;
                    end else begin
-                      SendClass.SendChatMessage (Conv('绝世武功三级满后不能删除.'), SAY_COLOR_SYSTEM);
+                      SendClass.SendChatMessage (Conv('失败了。'), SAY_COLOR_SYSTEM);
                    end;
                 end;
                 ret := HaveMagicClass.GetBestProtectMagicIndex (Strs[1]);
@@ -7281,6 +7276,63 @@ begin
    Result := ShowWindowClass.AllowWindowAction (aWindowKind);
 end;
 
+procedure TUser.ProcessTopLetterInput(var Code: TWordComData; CurTick: Integer);
+var
+   Input: PTCEventInput;
+   Item, UsedItem: TItemData;
+   I, ItemKey: Integer;
+   Line1, Line2: string;
+   SubData: TSubData;
+begin
+   if Code.Size <> SizeOf(TCEventInput) then Exit;
+   Input := @Code.Data;
+   if PByte(@Input^.rboCheck)^ <> 1 then Exit;
+   if Cardinal(CurTick) - Cardinal(CM_MessageTick[CM_EVENTINPUT]) < 50 then Exit;
+   CM_MessageTick[CM_EVENTINPUT] := CurTick;
+
+   // Check ShortString lengths before converting untrusted packet fields.
+   if (Length(Input^.rMsg1) > TOPLETTER_LINE_BYTES) or
+      (Length(Input^.rMsg2) > TOPLETTER_LINE_BYTES) then begin
+      SendClass.SendChatMessage(Conv('每行最多18个汉字，请缩短广播内容。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+   if not NormalizeTopLetter(Input^.rMsg1, Input^.rMsg2, Line1, Line2) then begin
+      SendClass.SendChatMessage(Conv('请输入有效的广播内容。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+
+   // Match the native item-use guards; no standing or training restriction.
+   if (ShowWindowClass.CurrentWindow <> swk_none) or
+      (BasicData.Feature.rfeaturestate = wfs_shop) or not boCanAttacked then begin
+      SendClass.SendChatMessage(Conv('当前无法使用传音铃，请稍后重试。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+
+   ItemKey := -1;
+   for I := 0 to HAVEITEMSIZE - 1 do begin
+      if not HaveItemClass.ViewItem(I, @Item) then Continue;
+      if (Item.rKind = ITEM_KIND_TOPLETTER) and (Item.rCount > 0) and
+         (Item.rLockState = 0) then begin
+         ItemKey := I;
+         Break;
+      end;
+   end;
+   if ItemKey < 0 then begin
+      SendClass.SendChatMessage(Conv('随身物品栏中没有可用的传音铃。'), SAY_COLOR_SYSTEM);
+      Exit;
+   end;
+
+   UsedItem := Item;
+   UsedItem.rCount := 1;
+   if not HaveItemClass.DeleteKeyItem(ItemKey, 1, @UsedItem) then Exit;
+   UserList.SendTopLetterMessage(Name, Line1, Line2);
+   if UsedItem.rSoundEvent.rWavNumber <> 0 then begin
+      FillChar(SubData, SizeOf(SubData), 0);
+      SetWordString(SubData.SayString, IntToStr(UsedItem.rSoundEvent.rWavNumber) + '.wav');
+      SendLocalMessage(NOTARGETPHONE, FM_SOUND, BasicData, SubData);
+   end;
+end;
+
 procedure TUser.MessageProcess (var code: TWordComData);
 var
    CurTick : integer;
@@ -8395,16 +8447,7 @@ begin
             pcAddStatePoint := PTCAddStatePoint (@Code.Data);
             HaveMagicClass.AddStatePoint (pcAddStatePoint);
          end;
-      CM_EVENTINPUT : begin
-         {
-         if CM_MessageTick[CM_EVENTINPUT] + 50 > CurTick then exit;
-         CM_MessageTick[CM_EVENTINPUT] := CurTick;
-
-         pcEventInput := PTCEventInput (@Code.Data);
-         if pcEventInput^.rboCheck = false then exit;
-         UserList.SendTopLetterMessage (Name, pcEventInput^.rMsg1, pcEventInput^.rMsg2);
-         }
-      end;
+      CM_EVENTINPUT : ProcessTopLetterInput(Code, CurTick);
       CM_SETMATERIAL : begin
          if Code.Size <> SizeOf (TCSetMaterial) then exit;
          if CM_MessageTick[CM_SETMATERIAL] + 50 > CurTick then exit;

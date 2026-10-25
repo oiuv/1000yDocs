@@ -1111,6 +1111,7 @@ var
    ComData : TWordComData;
    psEventMessage : PTSEventMessage;
 begin
+   FillChar(ComData, SizeOf(ComData), 0);
    psEventMessage := @ComData.Data;
 
    psEventMessage^.rMsg := SM_SHOWEVENTMSG;
@@ -1923,6 +1924,7 @@ var
    ComData : TWordComData;
    pcKey : PTCKey;
 begin
+   FillChar(ComData, SizeOf(ComData), 0);
    pcKey := @ComData.Data;
    with pcKey^ do begin
       rmsg := SM_SHOWEVENTINPUT;

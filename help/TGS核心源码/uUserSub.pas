@@ -4621,17 +4621,11 @@ begin
          end;
       ITEM_KIND_TOPLETTER : begin
          if ViewItem (pcclick^.rkey, @ItemData) = false then exit;
-
-         TUser (FBasicObject).SendClass.SendTopLetterWindow;
-
-         if ItemData.rSoundEvent.rWavNumber <> 0 then begin
-            SetWordString (SubData.SayString, IntToStr (ItemData.rSoundEvent.rWavNumber) + '.wav');
-            FBasicObject.SendLocalMessage (NOTARGETPHONE, FM_SOUND, FBasicObject.BasicData, SubData);
+         if ItemData.rLockState <> 0 then begin
+            FSendClass.SendChatMessage(Conv('物品锁定中，无法使用。'), SAY_COLOR_SYSTEM);
+            exit;
          end;
-
-         tmpItemData.rOwnerName[0] := 0;
-         DeleteKeyItem (pcclick^.rkey, 1, @tmpItemData);
-         FSendClass.SendChatMessage (Conv ('物品已使用'), SAY_COLOR_SYSTEM);
+         TUser (FBasicObject).SendClass.SendTopLetterWindow;
       end;
       ITEM_KIND_DBLRANDOM : begin
          if ViewItem (pcclick^.rkey, @ItemData) = false then exit;
@@ -11922,14 +11916,7 @@ begin
    if iCount = 0 then exit;
    if HaveMaterialArr[PRODUCT_KEY].rName[0] <> 0 then exit;
 
-   for i := 0 to 4-1 do begin
-      if HaveMaterialArr[i].rName[0] = 0 then continue;
-      if HaveMaterialArr[i].rCount > 3 then begin
-         FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, 'Event材料最多只能放置5个');
-         exit;
-      end;
-   end;
-   
+   // 数量由加工分支检查，避免拒绝后继续进入普通制造流程。
    Result := true;
 end;
 
@@ -12039,33 +12026,49 @@ procedure THaveJobClass.ProcessEventItemGive;
 var
    i : integer;
    ItemData : TItemData;
-   totalvalue, nRandom : integer;
+   totalvalue : integer;
    aItemName : string;
    aItemCount : integer;
    SubData : TSubData;
    str : string;
 begin
-   totalvalue := GetEventItemSuccessRate;
-   EventItemClass.GetEventItem(totalvalue, aItemName, aItemCount);
-
-   ClearMaterialData;
-
-   if aItemName = '' then begin
-      FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '没有中奖..');
-   end else begin
-      ItemClass.GetItemData (aItemName, ItemData);
-      if ItemData.rName[0] = 0 then begin
-         FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '没有中奖..');
+   if not CheckEventItemMaterial then exit;
+   for i := 0 to 3 do begin
+      if HaveMaterialArr[i].rName[0] = 0 then continue;
+      if (HaveMaterialArr[i].rCount < 1) or (HaveMaterialArr[i].rCount > 4) then begin
+         FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '请放入1至4个原矿');
          exit;
       end;
-      
+   end;
+   totalvalue := GetEventItemSuccessRate;
+   if (totalvalue < 1) or (totalvalue > 45) then begin
+      FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '请放入1至4个原矿');
+      exit;
+   end;
+   EventItemClass.GetEventItem(totalvalue, aItemName, aItemCount);
+
+   if aItemName = '' then begin
+      FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '加工奖品配置不可用，原料已保留');
+   end else begin
+      if not ItemClass.GetItemData (aItemName, ItemData) then begin
+         FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '加工奖品配置不可用，原料已保留');
+         exit;
+      end;
+      if (ItemData.rName[0] = 0) or (aItemCount <= 0) or
+         ((not ItemData.rboDouble) and (aItemCount <> 1)) or
+         ((ItemData.rMaxCount > 0) and (aItemCount > ItemData.rMaxCount)) then begin
+         FSendClass.SendJobResult (false, IntToStr (FWorkSound), JOB_SOUND_FALSE, '加工奖品配置不可用，原料已保留');
+         exit;
+      end;
+      ClearMaterialData;
       ItemData.rCount := aItemCount;
 
-      FSendClass.SendJobResult (true, IntToStr (FWorkSound), JOB_SOUND_TRUE, '您中奖了Event物品');
+      FSendClass.SendJobResult (true, IntToStr (FWorkSound), JOB_SOUND_TRUE, '物品加工成功');
       HaveMaterialArr[PRODUCT_KEY] := ItemData;
       FSendClass.SendMaterialItem(PRODUCT_KEY, HaveMaterialArr[PRODUCT_KEY]);
 
-      Str := format ('%s您中奖了 %s:%d Event ITEM', [StrPas (@FBasicObject.BasicData.Name),aItemName,aItemCount]);
+      Str := format ('%s 加工获得 %s:%d', [StrPas (@FBasicObject.BasicData.Name),aItemName,aItemCount]);
+      FillChar(SubData, SizeOf(SubData), 0);
       SetWordString (SubData.SayString, Str);
       FBasicObject.SendLocalMessage (NOTARGETPHONE, FM_SAYSYSTEM, FBasicObject.BasicData, SubData);
 

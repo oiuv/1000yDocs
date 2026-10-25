@@ -9154,9 +9154,8 @@ begin
          exit;
    end;
 
+   if (FDataLists[idx].Count = 0) or (FMaxRangeValues[idx] <= 0) then exit;
    nRand := Random(FMaxRangeValues[idx]);
-   if FDataLists[idx].Count = 0 then exit;
-   if iNum < 0 then exit;
 
    for i := 0 to FDataLists[idx].Count - 1 do begin
       p := FDataLists[idx].Items[i];
@@ -9190,7 +9189,7 @@ end;
 
 procedure TEventItemClass.LoadFromFile;
 var
-   i,j, aWidth, aRWidth, aCurPos: integer;
+   i,j, aWidth, aCount, aCurPos: integer;
    DB : TUserStringDB;
    iName, Str : String;
    p : PTEventItemData;
@@ -9213,22 +9212,28 @@ begin
             iName := DB.GetIndexName (j);
             if iName = '' then continue;
 
-            New (p);
-            FillChar (p^, sizeof (TEventItemData), 0);
-
             Str := DB.GetFieldValueString (iName, 'ItemName');
             boRet := ItemClass.GetItemData(str, ItemData);
-            StrPCopy(@p^.rItemName, Str);
-
-            p^.rItemCount := DB.GetFieldValueInteger (iName,'ItemCount');
-
+            aCount := DB.GetFieldValueInteger (iName,'ItemCount');
             aWidth := DB.GetFieldValueInteger (iName, 'Width');
-            aRWidth := aWidth;
+            // 任一无效记录使本档奖池停用，不能跳过后改变其它奖品的概率。
+            if (not boRet) or (Str = '') or (Length(Str) >= SizeOf(TNameString)) or
+               (aCount <= 0) or (aWidth <= 0) or
+               (aWidth > MaxInt - aCurPos) or
+               ((not ItemData.rboDouble) and (aCount <> 1)) or
+               ((ItemData.rMaxCount > 0) and (aCount > ItemData.rMaxCount)) then begin
+               aCurPos := 0;
+               break;
+            end;
+            New (p);
+            FillChar (p^, sizeof (TEventItemData), 0);
+            StrPCopy(@p^.rItemName, Str);
+            p^.rItemCount := aCount;
             p^.rMin := aCurPos;
-            p^.rMax := aCurPos + aRWidth;
+            p^.rMax := aCurPos + aWidth;
 
             FDataLists[i].Add(p);
-            inc (aCurPos, aRWidth);
+            inc (aCurPos, aWidth);
          end;
 
          FMaxRangeValues[i] := aCurPos;
