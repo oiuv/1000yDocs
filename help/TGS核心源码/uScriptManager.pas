@@ -436,6 +436,9 @@ begin
       Result := TBasicObject (FSelf).SGetName;
    end else if cmd = 'getsendername' then begin
       Result := TBasicObject (FSender).SGetName;
+   end else if cmd = 'getsenderguildname' then begin
+      if TObject (FSender) is TUser then
+         Result := TUser (FSender).GuildName;
    end else if cmd = 'getage' then begin
       Result := IntToStr (TBasicObject (FSelf).SGetAge);
    end else if cmd = 'getsenderage' then begin

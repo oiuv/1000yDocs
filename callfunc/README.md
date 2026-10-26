@@ -15,7 +15,7 @@ Str := callfunc('函数名 参数1 参数2 ...');
 
 ## 当前覆盖
 
-当前源码共有 **109** 个有效 CallFunc 分支，以下均有独立说明页。
+当前源码共有 **110** 个有效 CallFunc 分支，以下均有独立说明页。
 
 ### 地图场景函数
 
@@ -81,6 +81,7 @@ Str := callfunc('函数名 参数1 参数2 ...');
 - [`getsendercurdurawatercase`](玩家属性函数/getsendercurdurawatercase.md)
 - [`getsendercurpowerlevel`](玩家属性函数/getsendercurpowerlevel.md)
 - [`getsendercurpowerlevelname`](玩家属性函数/getsendercurpowerlevelname.md)
+- [`getsenderguildname`](玩家属性函数/getsenderguildname.md)
 - [`getsenderheadlife`](玩家属性函数/getsenderheadlife.md)
 - [`getsenderid`](玩家属性函数/getsenderid.md)
 - [`getsenderinpower`](玩家属性函数/getsenderinpower.md)
