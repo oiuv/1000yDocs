@@ -1,5 +1,7 @@
 # getsetevent
 
+`getsetevent` 是 [`setevent`](setevent.md) 的兼容名称。新脚本推荐使用 `setevent`，两个名称共用同一处理分支，参数、返回值和存档行为完全相同；已有脚本无需修改。
+
 ## 功能描述
 尝试将触发者（玩家）的事件标记从 0 置为 1。返回值表示本次是否完成置位，不是返回或切换当前状态；已为 1 的标记不会被清零。
 
@@ -40,7 +42,7 @@ end;
 
 在 `uScriptManager.pas` 的 `CallFunction` 中调用：
 ```pascal
-end else if cmd = 'getsetevent' then begin
+end else if (cmd = 'setevent') or (cmd = 'getsetevent') then begin
    Result := TBasicObject(FSender).SGetSetEvent(StrToIntDef(Params[0], 0));
 ```
 
@@ -112,5 +114,6 @@ Str := callfunc('getsetevent 1');
 7. **持久化**：事件状态保存在玩家数据中
 
 ## 相关函数
+- [`setevent`](setevent.md) - 同义名称，设置一次性完成标记
 - `getevent` - 获取事件状态值（只读）
 - `getsenderfirstquest` - 获取触发者首次任务状态

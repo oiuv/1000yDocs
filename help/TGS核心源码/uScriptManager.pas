@@ -661,7 +661,7 @@ begin
       Result := TBasicObject (FSender).SCheckPickup;
    end else if cmd = 'getevent' then begin
       Result := TBasicObject (FSender).SGetEvent (StrToIntDef(Params [0],0));
-   end else if cmd = 'getsetevent' then begin
+   end else if (cmd = 'setevent') or (cmd = 'getsetevent') then begin
       Result := TBasicObject (FSender).SGetSetEvent (StrToIntDef(Params [0],0));
    end else if cmd = 'getparty' then begin
       Result := TBasicObject (FSender).SGetParty;

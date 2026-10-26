@@ -15,7 +15,7 @@ Str := callfunc('函数名 参数1 参数2 ...');
 
 ## 当前覆盖
 
-当前源码共有 **110** 个有效 CallFunc 分支，以下均有独立说明页。
+当前源码支持 **111** 个有效 CallFunc 名称（含别名），以下均有独立说明页。
 
 ### 地图场景函数
 
@@ -39,6 +39,7 @@ Str := callfunc('函数名 参数1 参数2 ...');
 - [`getusercount`](地图场景函数/getusercount.md)
 - [`getzhuangfight`](地图场景函数/getzhuangfight.md)
 - [`getzhuangticketprice`](地图场景函数/getzhuangticketprice.md)
+- [`setevent`](地图场景函数/setevent.md)（与 `getsetevent` 同义）
 
 ### 任务系统函数
 

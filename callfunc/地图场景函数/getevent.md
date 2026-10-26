@@ -79,9 +79,9 @@ end;
 2. **事件编号范围**：有效范围 0-19，共 20 个事件位
 3. **越界处理**：EventCode 超出 0-19 范围时直接返回 '1'
 4. **FSender 上下文**：操作的是触发者（玩家）的事件记录
-5. **配合 getsetevent**：通常先用 `getevent` 检查状态，再用 `getsetevent` 设置状态
+5. **配合 setevent**：通常先用 `getevent` 检查状态，再用 `setevent` 设置状态；旧名称 `getsetevent` 同样有效
 6. **持久化**：事件状态保存在玩家数据中，重启后仍然保留
 
 ## 相关函数
-- `getsetevent` - 获取并设置事件状态（切换）
+- [`setevent`](setevent.md) / [`getsetevent`](getsetevent.md) - 将未完成标记置为已完成，不会切换或清零
 - `getsenderfirstquest` - 获取触发者首次任务状态
