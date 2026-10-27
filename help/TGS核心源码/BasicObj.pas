@@ -3620,6 +3620,81 @@ end;
 //
 ////////////////////////////////////////////////////
 
+// OpenTime 中 0 是有效的午夜场次，未使用的位置必须与它区分。
+const
+   UNUSED_GATE_HOUR = 255;
+   GATE_TICKS_PER_DAY = 24 * 60 * 60 * 100;
+   SPECIAL_GATE_OPEN_MSECS = 10 * 60 * 1000;
+
+procedure LoadGateOpenHours(const Text: string; var Data: TCreateGateData);
+var
+   i, Hour: Integer;
+   Rest, Token: string;
+begin
+   FillChar(Data.OpenTime, SizeOf(Data.OpenTime), UNUSED_GATE_HOUR);
+   Rest := Text;
+   for i := Low(Data.OpenTime) to High(Data.OpenTime) do
+   begin
+      if Rest = '' then
+         break;
+      Rest := GetValidStr3(Rest, Token, ':');
+      if TryStrToInt(Trim(Token), Hour) and (Hour >= 0) and (Hour <= 23) then
+         Data.OpenTime[i] := Hour;
+   end;
+end;
+
+function IsHourlyGateOpen(const Data: TCreateGateData;
+   Clock: TDateTime): Boolean;
+var
+   i, Elapsed, CurrentTick: Integer;
+   Stamp: TTimeStamp;
+begin
+   Result := false;
+   if Data.ActiveInterval <= 0 then
+      exit;
+   Stamp := DateTimeToTimeStamp(Clock);
+   CurrentTick := Stamp.Time div 10;
+   for i := Low(Data.OpenTime) to High(Data.OpenTime) do
+      if Data.OpenTime[i] <= 23 then
+      begin
+         Elapsed := (CurrentTick - Data.OpenTime[i] * 60 * 60 * 100 +
+            GATE_TICKS_PER_DAY) mod GATE_TICKS_PER_DAY;
+         if Elapsed < Data.ActiveInterval then
+         begin
+            Result := true;
+            exit;
+         end;
+      end;
+end;
+
+function GateClockMilliseconds(Clock: TDateTime): Int64;
+var
+   Stamp: TTimeStamp;
+begin
+   Stamp := DateTimeToTimeStamp(Clock);
+   Result := Int64(Stamp.Date) * MSecsPerDay + Stamp.Time;
+end;
+
+function IsDatedGateOpen(const Data: TCreateGateData;
+   Clock: TDateTime): Boolean;
+var
+   i: Integer;
+   Elapsed, CurrentTime: Int64;
+begin
+   Result := false;
+   CurrentTime := GateClockMilliseconds(Clock);
+   for i := Low(Data.OpenClock) to High(Data.OpenClock) do
+      if Data.OpenClock[i] <> 0 then
+      begin
+         Elapsed := CurrentTime - GateClockMilliseconds(Data.OpenClock[i]);
+         if (Elapsed >= 0) and (Elapsed < SPECIAL_GATE_OPEN_MSECS) then
+         begin
+            Result := true;
+            exit;
+         end;
+      end;
+end;
+
 constructor TGateObject.Create;
 var
    mSec: Word;
@@ -3636,6 +3711,7 @@ begin
    MaxUser := 0;
 
    FillChar(SelfData, SizeOf(TCreateGateData), 0);
+   FillChar(SelfData.OpenTime, SizeOf(SelfData.OpenTime), UNUSED_GATE_HOUR);
 
    DecodeTime(Time, CurHour, CurMin, CurSec, mSec);
 end;
@@ -4415,10 +4491,10 @@ begin
    BasicData.Feature.rImageColorIndex := 0;
 
    case SelfData.Kind of
-      GATE_KIND_SPECIALTIME, GATE_KIND_FIXPOSITION:
-         begin
-            boActive := false;
-         end;
+      GATE_KIND_SPECIALTIME:
+         boActive := IsDatedGateOpen(SelfData, Now);
+      GATE_KIND_FIXPOSITION, GATE_KIND_FIXTIME, GATE_KIND_SPORTSWAR:
+         boActive := IsHourlyGateOpen(SelfData, Now);
    else
       begin
          boActive := true;
@@ -4459,9 +4535,9 @@ var
    i: integer;
    gaptime: integer;
    str: string;
-   boNear: Boolean;
    nHour, nMin, nSec, nMSec: Word;
-   nYear, nMonth, nDay: Word;
+   Clock: TDateTime;
+   Remaining: Int64;
    tmpManager: TManager;
 begin
    if (SelfData.RegenInterval > 0) and (RegenedTick + 100 <= CurTick) then
@@ -4471,164 +4547,79 @@ begin
    end;
 
    case SelfData.Kind of
-      GATE_KIND_FIXPOSITION:
+      GATE_KIND_FIXPOSITION, GATE_KIND_FIXTIME, GATE_KIND_SPORTSWAR:
          begin
-            DecodeTime(Time, nHour, nMin, nSec, nMSec);
-
-            for i := 0 to 10 - 1 do
-            begin
-               if SelfData.Opentime[i] = 0 then
-                  continue;
-               if (CurHour = SelfData.OpenTime[i] - 1) and (CurMin = 59) and
-                  (CurSec = 0) then
+            Clock := Now;
+            DecodeTime(Clock, nHour, nMin, nSec, nMSec);
+            if (CurHour <> nHour) or (CurMin <> nMin) then
+               for i := Low(SelfData.OpenTime) to High(SelfData.OpenTime) do
                begin
-                  tmpManager := nil;
-                  tmpManager :=
-                     ManagerList.GetManagerByServerID(SelfData.targetserverid);
-                  if tmpManager <> nil then
+                  if SelfData.OpenTime[i] > 23 then
+                     continue;
+                  // 距下一场的分钟数，午夜场次也从前一天开始预告。
+                  gaptime := (SelfData.OpenTime[i] * 60 - nHour * 60 -
+                     nMin + 24 * 60) mod (24 * 60);
+                  if (SelfData.Kind = GATE_KIND_FIXPOSITION) and
+                     (gaptime = 1) then
                   begin
-                     if tmpManager.UserCount = 0 then
+                     tmpManager := ManagerList.GetManagerByServerID(
+                        SelfData.targetserverid);
+                     if (tmpManager <> nil) and (tmpManager.UserCount = 0) then
                      begin
                         tmpManager.Regen;
                         BattleMapList.Position1.JoinUserCount := 0;
                         BattleMapList.Position2.JoinUserCount := 0;
-
-                        if SelfData.Kind = GATE_KIND_ORDERADDITEM then
-                           ArrivalCount := 0;
                      end;
                   end;
-               end;
-
-               if (CurHour = SelfData.OpenTime[i] - 1) and ((CurMin >= 50) and
-                  (CurMin <> nMin)) then
-               begin
-                  gaptime := 60 - nMin;
-                  if selfdata.boAlarmRemainTime = true then
+                  if gaptime = 0 then
                   begin
-                     if gaptime = 60 then
-                     begin
-                        UserList.SendNoticeMessage('<Event>: ' +
-                           SelfData.ViewName + Conv('比赛开始'),
-                           SAY_COLOR_NOTICE);
-                     end
-                     else
-                     begin
-                        str := format(selfdata.AlarmNotice, [gaptime]);
-                        UserList.SendNoticeMessage('<Event>: ' + str,
-                           SAY_COLOR_NOTICE);
-                     end;
-                  end;
-               end;
-            end;
-
-            for i := 0 to 10 - 1 do
-            begin
-               gaptime := (SelfData.ActiveInterval div 60) div 100;
-               if (nHour = SelfData.OpenTime[i]) and (nMin <= gaptime) then
-               begin
-                  boActive := true;
-                  tmpManager :=
-                     ManagerList.GetManagerByServerID(SelfData.targetserverid);
-                  if tmpManager <> nil then
-                     if tmpManager.boBattleStart = false then
-                     begin
-                        tmpManager.boBattleStart := true;
-                     end;
-                  break;
-               end
-               else
-               begin
-                  boActive := false;
-               end;
-            end;
-
-            CurHour := nHour;
-            CurMin := nMin;
-            CurSec := nSec;
-         end;
-      GATE_KIND_FIXTIME , GATE_KIND_SPORTSWAR:
-         begin
-            DecodeTime(Time, nHour, nMin, nSec, nMSec);
-
-            for i := 0 to 5 - 1 do
-            begin
-               if SelfData.Opentime[i] = 0 then
-                  continue;
-
-               if (CurHour = SelfData.OpenTime[i] - 1) and ((CurMin >= 50) and
-                  (CurMin <> nMin)) then
-               begin
-                  gaptime := 60 - nMin;
-                  if selfdata.boAlarmRemainTime = true then
-                  begin
-                     if gaptime = 60 then
-                     begin
+                     // 人数统计按场次重置，不依赖是否开启公告。
+                     if SelfData.Kind in [GATE_KIND_FIXTIME, GATE_KIND_SPORTSWAR] then
                         MaxUser := 0;
+                     if SelfData.boAlarmRemainTime then
                         UserList.SendNoticeMessage('<Event>: ' +
-                           SelfData.ViewName + Conv('比赛开始'),
-                           SAY_COLOR_NOTICE);
-                     end
-                     else
-                     begin
-                        str := format(selfdata.AlarmNotice, [gaptime]);
-                        UserList.SendNoticeMessage('<Event>: ' + str,
-                           SAY_COLOR_NOTICE);
-                     end;
+                           SelfData.ViewName + Conv('比赛开始'), SAY_COLOR_NOTICE);
+                  end
+                  else if (gaptime <= 10) and SelfData.boAlarmRemainTime then
+                  begin
+                     str := format(SelfData.AlarmNotice, [gaptime]);
+                     UserList.SendNoticeMessage('<Event>: ' + str, SAY_COLOR_NOTICE);
                   end;
                end;
-            end;
 
-            for i := 0 to 5 - 1 do
+            boActive := IsHourlyGateOpen(SelfData, Clock);
+            if boActive and (SelfData.Kind = GATE_KIND_FIXPOSITION) then
             begin
-               gaptime := (SelfData.ActiveInterval div 60) div 100;
-               if (nHour = SelfData.OpenTime[i]) and (nMin <= gaptime) then
-               begin
-                  boActive := true;
-                  break;
-               end
-               else
-               begin
-                  boActive := false;
-               end;
+               tmpManager := ManagerList.GetManagerByServerID(SelfData.targetserverid);
+               if tmpManager <> nil then
+                  tmpManager.boBattleStart := true;
             end;
-
             CurHour := nHour;
             CurMin := nMin;
             CurSec := nSec;
          end;
       GATE_KIND_SPECIALTIME:
          begin
-            //20檬 付促 茄锅究 眉农
+            Clock := Now;
+            // 开关每轮更新；20 秒间隔只限制公告，不能延迟关门。
+            boActive := IsDatedGateOpen(SelfData, Clock);
             if CheckTick + 2000 > CurTick then
                exit;
             CheckTick := CurTick;
-            boNear := false;
-            for i := 0 to 10 - 1 do
+            for i := Low(SelfData.OpenClock) to High(SelfData.OpenClock) do
             begin
                if SelfData.OpenClock[i] = 0 then
-                  break;
-               gaptime := Round((selfdata.OpenClock[i] - now) * 24 * 60);
-               if (gaptime <= 10) and (gaptime > 0) then
+                  continue;
+               Remaining := GateClockMilliseconds(SelfData.OpenClock[i]) -
+                  GateClockMilliseconds(Clock);
+               if (Remaining > 0) and (Remaining <= SPECIAL_GATE_OPEN_MSECS) and
+                  SelfData.boAlarmRemainTime then
                begin
-                  if selfdata.boAlarmRemainTime = true then
-                  begin
-                     str := format(selfdata.AlarmNotice, [gaptime]);
-                     UserList.SendNoticeMessage('<Event>: ' + str,
-                        SAY_COLOR_NOTICE);
-                  end;
+                  gaptime := (Remaining + 59999) div 60000;
+                  str := format(SelfData.AlarmNotice, [gaptime]);
+                  UserList.SendNoticeMessage('<Event>: ' + str, SAY_COLOR_NOTICE);
                end;
-               if (gaptime <= 0) and (gaptime >= -10) then
-                  boNear := true;
             end;
-            if boNear = true then
-            begin
-               boActive := true;
-            end
-            else
-            begin
-               boActive := false;
-            end;
-
          end;
       GATE_KIND_NORMAL, GATE_KIND_BS, GATE_KIND_DOOR, GATE_KIND_LIMITUSER:
          begin
@@ -4669,44 +4660,25 @@ function TGateObject.GetOpenTime: string;
 var
    i: Integer;
    str, str2: string;
-
-   gaptimes: array[0..5 - 1] of double;
-   gaphours, gapminutes, gapseconds: array[0..5 - 1] of integer;
-   ahour, aminute, asecond: Integer;
+   CurrentTime, Remaining, Nearest: Int64;
+   ahour, aminute, asecond: Int64;
 begin
-   Result := '';
-   FillChar(gaptimes, sizeof(gaptimes), 0);
-
-   ahour := 0;
-   aminute := 0;
-   asecond := 0;
-
+   CurrentTime := GateClockMilliseconds(Now);
+   Nearest := 0;
    str := '';
-   for i := 0 to 10 - 1 do
-   begin
-      if selfdata.OpenClock[i] <> 0 then
+   for i := Low(SelfData.OpenClock) to High(SelfData.OpenClock) do
+      if SelfData.OpenClock[i] <> 0 then
       begin
-         str := str + datetimetostr(selfData.openclock[i]) + #13;
-         gaptimes[i] := selfdata.OpenClock[i] - now;
-         gaphours[i] := Round(gaptimes[i] * 24);
-         gapminutes[i] := Round(gaptimes[i] * 24 * 60);
-         gapseconds[i] := Round(gaptimes[i] * 24 * 60 * 60);
-      end
-      else
-      begin
-         break;
+         str := str + DateTimeToStr(SelfData.OpenClock[i]) + #13;
+         Remaining := GateClockMilliseconds(SelfData.OpenClock[i]) - CurrentTime;
+         if (Remaining > 0) and ((Nearest = 0) or (Remaining < Nearest)) then
+            Nearest := Remaining;
       end;
-   end;
-   for i := 0 to 5 - 1 do
-   begin
-      if gapseconds[i] > 0 then
-      begin
-         ahour := gaphours[i];
-         aminute := gapminutes[i] - ahour * 60;
-         asecond := gapseconds[i] - ahour * 60 * 60 - aminute * 60;
-         break;
-      end;
-   end;
+   // 先取总秒数，再拆分时分秒，避免分别四舍五入造成负分钟。
+   Nearest := (Nearest + 999) div 1000;
+   ahour := Nearest div 3600;
+   aminute := (Nearest div 60) mod 60;
+   asecond := Nearest mod 60;
 
    if ahour > 0 then
    begin
@@ -4895,7 +4867,7 @@ begin
          case pd^.Kind of
             GATE_KIND_SPECIALTIME:
                begin
-                  for j := 0 to 5 - 1 do
+                  for j := Low(pd^.OpenClock) to High(pd^.OpenClock) do
                   begin
                      str := GetValidStr3(str, str2, '/');
                      if str2 = '' then
@@ -4905,13 +4877,7 @@ begin
                end;
             GATE_KIND_FIXPOSITION, GATE_KIND_FIXTIME , GATE_KIND_SPORTSWAR:
                begin
-                  for j := 0 to 5 - 1 do
-                  begin
-                     Str := GetValidStr3(Str, Str2, ':');
-                     if Str2 = '' then
-                        break;
-                     pd^.OpenTime[j] := _StrToInt(Str2);
-                  end;
+                  LoadGateOpenHours(str, pd^);
                end;
          end;
       end;

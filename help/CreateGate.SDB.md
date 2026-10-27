@@ -21,7 +21,7 @@
 | LimitAge / OverAge | Integer | 年龄上限 / 年龄下限 |
 | LimitPowerLevel | Integer | 进入后允许的最高境界 |
 | NeedAge / AgeNeedItem | Integer | 直接进入年龄 / 可凭 `NeedItem` 补充判断的最低年龄 |
-| BelowEnergy / OverEnergy | Integer | 元气上限 / 下限：`Power >= BelowEnergy` 或 `Power < OverEnergy` 时拒绝进入 |
+| BelowEnergy / OverEnergy | Integer | 元气上限 / 下限，数值为界面元气的 100 倍：`Power >= BelowEnergy` 或 `Power < OverEnergy` 时拒绝进入；0 不启用对应限制 |
 | NeedItem | String | 进入所需物品，`物品:数量`，最多 5 组 |
 | DelItem | String | 进入时尝试删除的物品，最多 5 组 |
 | AddItem | String | `GATE_KIND_ORDERADDITEM` 奖励，最多 5 组 |
@@ -37,7 +37,7 @@
 | GuildName | String | 限定进入门派；非台湾版本还将非空值登记为禁止新建的保留门派名，见下文 |
 
 - Kind见下文详细介绍
-- Kind为GATE_KIND_FIXPOSITION时TX和TY设置为0，调用BattleMap.sdb中的坐标，由ActiveInterval指定对战时间
+- Kind为GATE_KIND_FIXPOSITION时TX和TY设置为0，调用BattleMap.sdb中的坐标；ActiveInterval指定入口开放时长，不是场内对战时长
 - Shape 为item.atz中的形状，主要是8、69和70，也可以使用其它值
 - X、Y 均为 0 时使用 `RandomPos`；周期换点的适用类型和间隔组合见下文“随机入口位置”
 - LimitPowerLevel为境界限制，超过境界的玩家进入后境界被限制到该值
@@ -53,8 +53,32 @@
 - Quest 值为 3 种：1=本地图存活怪物和 NPC 数均为 0，2=当前使用的步法修炼值至少 8501，3=年龄小于 20 岁。依据：[svClass.pas](TGS核心源码/svClass.pas) 的 `TQuestClass.CheckQuest1`、`CheckQuest2`、`CheckQuest3`
 - RegenInterval为传送门重新激活间隔，数值直接与 `mmAnsTick` 比较；`mmAnsTick` 每 10 ms 增加 1
 - ActiveInterval为传送门生效状态时间，常和RegenInterval配合使用
-- OpenClock可设置开启时间在几点（最多5个），Kind为GATE_KIND_SPECIALTIME(用`8:30/10:30`指定时间)、GATE_KIND_FIXPOSITION、GATE_KIND_FIXTIME、GATE_KIND_SPORTSWAR(用`8:10:12:14`指定小时)
+- OpenClock 按 Kind 解析，最多 10 个时间；小时与指定日期两种写法见下文
 - MaxUser限制Kind为GATE_KIND_SPORTSWAR时指定活动人数上限
+
+## 定时开放
+
+时间取 TGS 所在系统的本地时钟，开关在服务器更新轮次执行；不依赖玩家客户端时钟。
+
+### 每日整点入口：Kind=4、8、9
+
+`OpenClock` 用冒号分隔小时，例如 `8:12:20` 表示每天 8、12、20 点整。有效值为 `0..23`，其中 `0` 表示午夜。最多读取 10 个位置；空项、非数字、越界小时不产生场次，整列为空时不开放。未配置的位置使用内部值 255，不等同于午夜。
+
+`ActiveInterval` 单位为百分之一秒，必须大于 0。窗口包含开始时刻、不包含结束时刻，允许跨小时或午夜。例如 `OpenClock=20`、`ActiveInterval=3000` 表示每日 **20:00:00 至 20:00:30 前**可以入场；不是整分钟开放，也不是每隔 `RegenInterval` 开一次。持续时间达到一天时，存在有效场次的入口会持续开放。
+
+加载后即按当前时间确定开关状态；在窗口外重启不会临时放行。启用 `boAlarmRemainTime` 后，从开场前 10 分钟开始按分钟公告，午夜场次在前一天预告；`AlarmNotice` 的 `%d` 为剩余分钟数。每个场次不要重复填写同一小时，避免重复公告或预备处理。
+
+Kind=4 在开场前一分钟、目标地图无人时进行重生准备，开放时设置战斗开始标记。Kind=8/9 在场次开始时清零入口人数计数，不依赖公告开关；Kind=9 再按竞技场规则分队入场。
+
+### 指定日期入口：Kind=3
+
+`OpenClock` 用 `/` 分隔**完整日期时间**，最多 10 项；每项由 Delphi `StrToDateTime` 按服务器系统日期格式解析。例如服务器使用 `yyyy-MM-dd` 日期格式时，可以填写 `2026-10-28 20:00/2026-10-29 20:00`。日期分隔符不要使用 `/`，否则会与列表分隔符冲突。
+
+只填 `8:30/10:30` 会得到没有当前日期的时间值，不能作为每日重复入口；每日整点开放应使用上面的 Kind。无效日期文本会导致加载转换失败，发布前须核对部署环境的日期格式。
+
+每项从指定时刻开始开放十分钟，结束时刻不再放行；这一路径不使用 `ActiveInterval` 决定时长。开关每轮更新，公告最多每 20 秒检查一次，公告节流不延迟关门。剩余时间选择尚未开始的最近场次，按总秒数拆分时、分、秒；无未来场次时显示剩余 0 秒。
+
+依据：[BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateList.LoadFromFile`、`TGateObject.Initial/Update/GetOpenTime`。
 
 ## 门派专属入口与建派名称限制
 
@@ -123,7 +147,7 @@ ActiveInterval = 9000
    GATE_KIND_NORMAL        = 0;   # 传送门种类：普通传送门
    GATE_KIND_BS            = 1;   # 传送门种类：对战服务器传送门（单独的服务器）
    GATE_KIND_DOOR          = 2;   # 传送门种类：门
-   GATE_KIND_SPECIALTIME   = 3;   # 传送门种类：特定时间开启的传送门（时间获取不对，1899/12/30）
+   GATE_KIND_SPECIALTIME   = 3;   # 传送门种类：指定完整日期时间开启，持续十分钟
    GATE_KIND_FIXPOSITION   = 4;   # 传送门种类：固定位置的对战传送门（MAP_TYPE_BATTLE）
    GATE_KIND_ORDERADDITEM  = 5;   # 传送门种类：过门后赠送物品（物品由AddItem参数指定第1、2名和3以后的奖励）
    GATE_KIND_LIMITUSER     = 6;   # 传送门种类：限制进入人数（固定上限10人，超过提示参赛人员已满，可设置RegenInterval）
