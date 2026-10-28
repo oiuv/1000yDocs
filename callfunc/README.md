@@ -15,7 +15,7 @@ Str := callfunc('函数名 参数1 参数2 ...');
 
 ## 当前覆盖
 
-当前源码支持 **111** 个有效 CallFunc 名称（含别名），以下均有独立说明页。
+当前源码支持 **112** 个有效 CallFunc 名称（含别名），以下均有独立说明页。
 
 ### 地图场景函数
 
@@ -33,6 +33,7 @@ Str := callfunc('函数名 参数1 参数2 ...');
 - [`getposition`](地图场景函数/getposition.md)
 - [`getremainmaptime`](地图场景函数/getremainmaptime.md)
 - [`getsendermapname`](地图场景函数/getsendermapname.md)
+- [`getserverdatetime`](地图场景函数/getserverdatetime.md)（服务器本地日期时间，地图脚本也可调用）
 - [`getsetevent`](地图场景函数/getsetevent.md)
 - [`getstartarena`](地图场景函数/getstartarena.md)
 - [`getsysteminfo`](地图场景函数/getsysteminfo.md)

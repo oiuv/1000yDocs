@@ -10,14 +10,16 @@ procedure OnTimer (aStr : String);
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| aStr | String | BasicObject 级别传递 "时 分 秒" 格式（如 `"14 30 25"`）；Manager（地图）级别传递空字符串 |
+| aStr | String | BasicObject 级别构造“时 分 秒”，解释器将空格转为下划线，脚本实际收到如 `14_30_25`；Manager（地图）级别传递空字符串 |
 
 ## 触发条件
 
-- **BasicObject 级别**：每 1 秒触发一次，传递当前时间字符串，格式为 `"时 分 秒"`（如 `"14 30 25"`）
+- **BasicObject 级别**：正常 tick 倍率下约每 1 秒触发一次，脚本收到服务器当前时、分、秒，以下划线分隔，不固定补零
 - **Manager（地图脚本）级别**：每 60 秒触发一次，传递空字符串
 
-源码位置：`BasicObj.pas` 第 1739-1745 行
+需要完整年月日及时间时，使用 [`getserverdatetime`](../callfunc/地图场景函数/getserverdatetime.md)；该查询也支持没有人物上下文的地图脚本，不改变本事件参数。
+
+依据：[BasicObj.pas](../help/TGS核心源码/BasicObj.pas) 的对象计时、[uManager.pas](../help/TGS核心源码/uManager.pas) 的地图计时，以及 [ScriptCls.pas](../help/TGS核心源码/ScriptCls.pas) 的 `FunctionCallbyName` 参数转换。
 
 ## 适用对象
 

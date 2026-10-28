@@ -417,13 +417,19 @@ var
 begin
    Result := '';
 
+   Str := aStr;
+   Str := GetValidStr3 (Str, cmd, ' ');
+   // Server-local wall time is also available to map scripts without Self/Sender.
+   if cmd = 'getserverdatetime' then begin
+      Result := FormatDateTime ('yyyy_mm_dd_hh_nn_ss', Now);
+      exit;
+   end;
+
    if FSelf = nil then exit;
    if ManagerList = nil then exit;
    if GuildList = nil then exit;
    if UserList = nil then exit;
 
-   Str := aStr;
-   Str := GetValidStr3 (Str, cmd, ' ');
    for i := 0 to 10 - 1 do begin
       if Str = '' then break;
       Str := GetValidStr3 (Str, Params [i], ' ');
