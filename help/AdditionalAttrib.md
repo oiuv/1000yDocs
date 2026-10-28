@@ -20,6 +20,8 @@
 
 `AddType` 是 **1 起始的行位置**：源码先执行 `dec(aAddType)`，再按列表索引取行。它不按 SDB 首列 `Name` 查找。插入、删除或调整行顺序会改变已有物品的属性对应关系。
 
+`AddType=0` 表示无附加，字段存储为 Byte。新增属性还须与 `AddAttribProbability` 的行位置及 `AddAttribGrade.MaxRange` 配套；改首列数字不能代替迁移已有装备的 AddType。跨表规则见 [配置编号、索引与固定容量](ConfigurationIdentifiers.md)。
+
 属性单元格格式为 `数值:限制等级`；第二项缺失时限制为 0。`BowAttackSpeed`、`HandSpeed`、`ApproachSpeed` 的数值在加载时取负，其余字段直接转为整数。
 
 已加载字段分为：弓术速度/命中/恢复/闪躲/四部位防御，拳术速度/命中/恢复/最小值/最大值/身体防御，近身速度/命中/闪躲/恢复/四部位防御，四部位追加伤害，以及 `EnergyRegenDec`、`BasicValueDec`。`desc` 未被当前加载器读取。

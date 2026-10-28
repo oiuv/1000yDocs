@@ -17,11 +17,13 @@
 
 文本 SDB 延续随包的 GBK/CP936 编码。
 
+本目录的池编号、战场记录与角色事件标记不是同一套索引；编号起点、行序及容量区别见 [配置编号、索引与固定容量](ConfigurationIdentifiers.md)。
+
 ## BattleMap.sdb
 
 实际表头为 `No,MapID,PosX,PosY,GroupKey,MaxUser,DynName,TargetID,TargetX,TargetY,DieX,DieY,GuildName,MopName,`。`No` 只作行索引，其余字段均由 `TBattleMapList` 读取。
 
-同一 `MapID` 必须至少有两行。`SetBattleMapData` 找到匹配行后直接取第 1、2 行，没有“只有一行”的保护；多余行也不会成为第三方队伍。修改后应核对双方出生点、死亡点、人数上限及目标地图坐标。
+同一 `MapID` 必须至少有两行。`SetBattleMapData` 取匹配的前两行；不足两行时清空当前双方引用并记录日志，不进行分队，也不沿用此前地图的双方配置。多余行不会成为第三方队伍。修改后应核对双方出生点、死亡点、人数上限及目标地图坐标。
 
 ## RandomEventItem*.sdb
 

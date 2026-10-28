@@ -6,6 +6,7 @@
 
 - [公开源码与引用说明](source-reference.md)：Cl1000、TGS1000 入口、目录映射和版本核对要求。
 - [统一术语表](TERMINOLOGY.md)
+- [配置编号、索引与固定容量](ConfigurationIdentifiers.md)：编号起点、连续性、固定用途、行序依赖、数组上限及改号检查。
 - [系统架构与登录链路](architecture.md)
 - [TGS 运行与生命周期](TGSRuntime.md)：启动、主调度、角色接入、保存与关服边界。
 - [GM 管理命令](GMCommands.md)：权限、参数、作用范围、危险操作及当前不可可靠使用的入口。
@@ -48,7 +49,7 @@
 
 武功与属性：
 
-- [Magic.SDB](Init_magic.sdb.md)、[MagicParam.SDB](Init_MagicParam.SDB.md)
+- [Magic.SDB](Init_magic.sdb.md)、[MagicParam.SDB](Init_MagicParam.sdb.md)
 - [BestMagic1Cycle](Init_BestMagic1Cycle.sdb.md)、[BestMagic2Cycle](Init_BestMagic2Cycle.sdb.md)、[BestMagic3Cycle](Init_BestMagic3Cycle.sdb.md)、[BestMagicStateData](Init_BestMagicStateData.sdb.md)
 - [AddDamage](Init_AddDamage.sdb.md)、[AddPalmDamage](Init_AddPalmDamage.sdb.md)、[AddArmor](Init_AddArmor.sdb.md)
 - [AddAttribGrade](Init_AddAttribGrade.sdb.md)、[AddAttribProbability](Init_AddAttribProbability.sdb.md)、[AM_WHRelation](Init_AM_WHRelation.sdb.md)
@@ -56,7 +57,7 @@
 
 事件、任务与职业：
 
-- [Event.SDB](Init_Event.SDB.md)、[EventParam.SDB](Init_EventParam.SDB.md)
+- [Event.SDB](Init_Event.SDB.md)、[EventParam.SDB](Init_EventParam.sdb.md)
 - [Arena.SDB](Init_Arena.sdb.md)、[PosByDie.SDB](Init_PosByDie.sdb.md)、[QuestSummary.SDB](Init_QuestSummary.sdb.md)、[Zhuang.SDB](Init_Zhuang.sdb.md)
 - [JobGrade](Init_JobGrade.sdb.md)、[JobTalent](Init_JobTalent.sdb.md)、[JobUpgrade](Init_JobUpgrade.sdb.md)
 - [SmeltItem](Init_SmeltItem.sdb.md)、[SmeltItem2](Init_SmeltItem2.sdb.md)、[ToolRate](Init_ToolRate.sdb.md)

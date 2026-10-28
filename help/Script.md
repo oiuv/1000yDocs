@@ -27,9 +27,11 @@ Name,FileName,Desc,
 
 `Name` 按约定填写配置引用的脚本编号，`FileName` 是相对 `Script` 目录的文件名，`Desc` 只作说明。文件名、`unit` 名和游戏对象名不要求相同，但保持一致更便于维护。
 
-**实际绑定使用加载顺序，不是按 `Name` 建立编号映射。** [加载器](TGS核心源码/uScriptManager.pas) 的 `LoadFromFile` 按表中记录顺序，将存在的脚本文件逐个加入 `DataList`；`CheckScriptEvent` 和两个 `CallEvent` 重载均通过 `DataList[aIndex - 1]` 取脚本。因此表内 `Name` 必须与从 1 开始的加载序号一致。
+**实际绑定使用登记行顺序，不是按 `Name` 建立编号映射。** [加载器](TGS核心源码/uScriptManager.pas) 的 `LoadFromFile` 为表中每条有效登记创建一个脚本槽；`CheckScriptEvent` 和两个 `CallEvent` 重载均通过 `DataList[aIndex - 1]` 取脚本。因此表内 `Name` 必须与从 1 开始的登记序号一致。
 
-缺少中间文件时，加载器只记录 `Not Found` 并继续，不保留该编号的位置。后续脚本会前移，可能导致 NPC、物品或地图绑定到另一个有效脚本，而不只是缺失脚本不能运行。
+缺少文件时记录 `Not Found`，保留没有事件处理函数的空脚本槽，后续脚本不前移。恢复文件并重新加载后仍使用原位置。0、负数或超出列表的索引不执行脚本；缺文件仍是发布前需要修复的配置错误。
+
+不同配置不能照搬这个连续编号要求；地图 ID、角色事件标记及旧擂台分别有自己的起点与查找方式，见 [配置编号、索引与固定容量](ConfigurationIdentifiers.md)。
 
 修改索引后应确认：
 
@@ -52,15 +54,11 @@ Name,FileName,Desc,
 
 不要把“某类对象的常见事件”写成解释器限制；能否触发取决于服务器是否存在对应 `CallEvent` 调用路径。
 
-## 当前随包的实际加载边界
+## 登记范围与启用
 
-`TScriptManager.LoadFromFile` 只遍历 `Script/Script.SDB` 的 `FileName` 字段，并逐个加载被索引的脚本，不会扫描目录中的全部 `.txt`。当前炎黄随包有 164 个脚本 `.txt`，`Script.SDB` 索引 145 个且引用文件全部存在；其余 19 个文件默认不加载：
+`TScriptManager.LoadFromFile` 只遍历 `Script/Script.SDB` 的 `FileName` 字段，并逐个加载被索引的脚本，不会扫描目录中的全部 `.txt`。实际加载范围以目标部署的登记表为准，不能以目录中的文件总数判断。
 
-- `火炉1.txt`、`物品回收商.txt`、`event龙师父.txt`；
-- `event西域魔人虚像1.txt`～`event西域魔人虚像4.txt`；
-- `gateA_A.txt`～`gateA_C.txt`、`gateB_A.txt`～`gateB_C.txt`、`gateC_A.txt`～`gateC_C.txt`、`gateD_A.txt`～`gateD_C.txt`。
-
-这些文件可以用于分析备用实现，但“文件存在”不等于“服务器当前会执行”。启用其中任何脚本时，应在索引末尾追加连续编号并检查引用该编号的 `Init`/`Setting` 对象；不能只复制文件，也不能把任意空闲数字当作可独立使用的编号。
+未登记文件可以用于分析备用实现，但“文件存在”不等于“服务器当前会执行”。启用时应在索引末尾追加连续编号并检查引用该编号的 `Init`/`Setting` 对象；不能只复制文件，也不能把任意空闲数字当作可独立使用的编号。
 
 ## Self 与 Sender
 

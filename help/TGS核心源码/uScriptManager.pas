@@ -100,10 +100,11 @@ begin
       // add by Orber at 2005-02-23 15:32:59
       if FileName = Conv('–Â«Ú.txt') then MarryBallID := StrToInt(iName);
 
+      // Keep one slot per registry row, including a missing file.
+      Script := TScriptClass.Create;
+      DataList.Add (Script);
       if FileExists ('.\Script\' + FileName) then begin
-         Script := TScriptClass.Create;
          Script.LoadFromFile ('.\Script\' + FileName);
-         DataList.Add (Script);
       end else begin
          FrmMain.WriteLogInfo ( format('.\Script\%s Not Found', [FileName]));
       end;
@@ -123,7 +124,7 @@ var
 begin
    Result := 0;
 
-   if aIndex = 0 then exit;
+   if aIndex <= 0 then exit;
    if aIndex > DataList.Count then exit;
 
    Script := DataList.Items [aIndex - 1];
@@ -145,7 +146,7 @@ var
 begin
    Result := '';
 
-   if aIndex = 0 then exit;
+   if aIndex <= 0 then exit;
    if aIndex > DataList.Count then exit;
    if ManagerList = nil then exit;
    if GuildList = nil then exit;
@@ -186,7 +187,7 @@ var
 begin
    Result := '';
 
-   if aIndex = 0 then exit;
+   if aIndex <= 0 then exit;
    if aIndex > DataList.Count then exit;
    if ManagerList = nil then exit;
    if GuildList = nil then exit;

@@ -9794,7 +9794,8 @@ end;
 
 procedure THaveMagicClass.SetMysteryMagicIndex (aColumn, aIndex : Integer);
 begin
-   if (aColumn<0) or (aColumn>MAGICRELATION_6) then exit;
+   if (aColumn < Low (MysteryMagicIndexTable)) or
+      (aColumn > High (MysteryMagicIndexTable)) then exit;
    MysteryMagicIndexTable[aColumn] := aIndex;
 end;
 

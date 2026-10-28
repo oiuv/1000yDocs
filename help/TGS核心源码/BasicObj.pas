@@ -4567,8 +4567,10 @@ begin
                      if (tmpManager <> nil) and (tmpManager.UserCount = 0) then
                      begin
                         tmpManager.Regen;
-                        BattleMapList.Position1.JoinUserCount := 0;
-                        BattleMapList.Position2.JoinUserCount := 0;
+                        if BattleMapList.Position1 <> nil then
+                           BattleMapList.Position1.JoinUserCount := 0;
+                        if BattleMapList.Position2 <> nil then
+                           BattleMapList.Position2.JoinUserCount := 0;
                      end;
                   end;
                   if gaptime = 0 then
@@ -5336,6 +5338,14 @@ begin
       pd^.boRandom := DB.GetFieldValueBoolean(iName, 'boRandom');
       pd^.RandomCount := DB.GetFieldValueInteger(iName, 'RandomCount');
       pd^.RandomTotal := DB.GetFieldValueInteger(iName, 'RandomTotal');
+      if pd^.boRandom and ((pd^.RandomCount < 1) or
+         (pd^.RandomCount > Length(pd^.TargetData))) then
+      begin
+         FrmMain.WriteLogInfo(Format('%s: gate %s has invalid RandomCount %d (valid 1..12)',
+            [aFileName, iName, pd^.RandomCount]));
+         GateObjectEx.Free;
+         continue;
+      end;
       pd^.boCondition := DB.GetFieldValueBoolean(iName, 'boCondition');
       pd^.Condition := DB.GetFieldValueString(iName, 'Condition');
       pd^.Width := DB.GetFieldValueInteger(iName, 'Width');

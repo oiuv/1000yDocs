@@ -16,7 +16,7 @@ CSV 格式，逗号分隔，首行为列名。
 
 | 列名 | 类型 | 说明 | 源码依据 |
 |------|------|------|----------|
-| Name | Integer | 等级编号（1-13） | 行索引，`PowerLevelArr[sn-1]` |
+| Name | Integer | 等级编号；下表示例为 1～13，加载与查询的有效编号为 1～99 | 首列转为 sn 后访问 `PowerLevelArr[sn-1]`，不是按文件行位置编号 |
 | ViewName | String | 境界名称 | `PowerLevelArr[sn-1].Name := TempDB.GetFieldValueString(iName, 'ViewName')` |
 | PowerValue | Integer | 该境界所需的元气值 | `PowerLevelArr[sn-1].PowerValue := TempDB.GetFieldValueInteger(iName, 'PowerValue')` |
 | LimitEnergy | Integer | 降低当前境界时，掌法伤害公式所用的元气折算上限；不是直接限制人物元气属性 | `PowerLevelArr[sn-1].LimitEnergy := TempDB.GetFieldValueInteger(iName, 'LimitEnergy')` |
@@ -27,6 +27,12 @@ CSV 格式，逗号分隔，首行为列名。
 | Recovery | Integer | 恢复加成；当前表内为空，加载为 0 | `GetPowerLevelRecovery` 返回该值 |
 | Accuracy | Integer | 命中加成；当前表内为空，加载为 0 | `GetPowerLevelAccuracy` 返回该值 |
 | KeepRecovery | Integer | 维持恢复加成；当前表内为空，加载为 0 | `GetPowerLevelKeepRecovery` 返回该值 |
+
+### 编号与连续性
+
+已配置等级应从 1 连续填充：`CalcPowerLevel` 按数组顺序检查，遇到第一个空名称就停止，因此不能像地图 ID 一样任意跳号。加载器按 Name 的数值定位，文件行序本身不决定等级，但保持升序便于核对。
+
+禁止配置 0。加载器只接受 1～99；0、负数、非数字或超出上限的编号会记录日志并跳过，不写入 `[sn-1]`。该范围不代表仅增加记录就已支持全部新境界；扩展仍须核对客户端和固定境界判断。跨表规则见 [配置编号、索引与固定容量](ConfigurationIdentifiers.md)。
 
 ### 境界等级列表
 

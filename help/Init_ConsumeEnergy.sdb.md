@@ -11,7 +11,7 @@ CSV格式，第一行为列名
 ## 字段说明
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| Name | 字符串 | 索引名（序号标识） |
+| Name | 字符串 | 表内记录键，不作为运行时数组下标；数据按文件行序加载 |
 | StartSkill | 整数 | 最大元气区间起始值，含边界 |
 | EndSkill | 整数 | 最大元气区间结束值，含边界 |
 | ConsumePercent | 整数 | 从公式中的 150 扣除的系数，不是最终消耗百分比 |
@@ -37,6 +37,10 @@ if FileExists ('.\Init\ConsumeEnergy.SDB') then begin
    TempDB := TUserStringDB.Create;
    TempDB.LoadFromFile ('.\Init\ConsumeEnergy.SDB');
    for idx := 0 to TempDb.Count -1 do begin
+      if idx > High (SkillConsumeEnergyArr) then begin
+         FrmMain.WriteLogInfo ('Init\ConsumeEnergy.SDB: excess rows ignored (maximum 11)');
+         break;
+      end;
       iname := TempDb.GetIndexName (idx);
       sn := TempDb.GetFieldValueInteger (iname,'StartSkill');
       en := TempDb.GetFieldValueInteger (iname,'EndSkill');
@@ -50,7 +54,7 @@ if FileExists ('.\Init\ConsumeEnergy.SDB') then begin
 end;
 ```
 
-加载器将区间和系数存入 `SkillConsumeEnergyArr`；`GetSkillConsumeEnergy` 按输入元气匹配区间。掌法分支的实际消耗为：
+加载器将区间和系数存入 `SkillConsumeEnergyArr[0..10]`，因此最多 11 行；超出部分记录日志并忽略，不能无限追加。`GetSkillConsumeEnergy` 按输入元气顺序匹配区间，重叠时先匹配的生效，区间缺口也不会自动补齐。编号规则见 [配置编号、索引与固定容量](ConfigurationIdentifiers.md)。掌法分支的实际消耗为：
 
 ```text
 n = Energy * (150 - GetSkillConsumeEnergy(Energy)) div 1000

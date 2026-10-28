@@ -537,6 +537,10 @@ begin
          if Str <> '' then begin
             j := 0;
             while Str <> '' do begin
+               if j > High (Manager.SubMapIDs) then begin
+                  FrmMain.WriteLogInfo (Format ('Map %s: excess SubMap entries ignored (maximum 10)', [iName]));
+                  break;
+               end;
                Str := GetValidStr3 (Str, StrID, ':');
                Manager.SubMapIDs[j] := _StrToInt (StrID);
                inc(j);

@@ -3776,6 +3776,10 @@ begin
       TempDB := TUserStringDB.Create;
       TempDB.LoadFromFile ('.\Init\ConsumeEnergy.SDB');
       for idx := 0 to TempDb.Count -1 do begin
+         if idx > High (SkillConsumeEnergyArr) then begin
+            FrmMain.WriteLogInfo ('Init\ConsumeEnergy.SDB: excess rows ignored (maximum 11)');
+            break;
+         end;
          iname := TempDb.GetIndexName (idx);
          sn := TempDb.GetFieldValueInteger (iname,'StartSkill');
          en := TempDb.GetFieldValueInteger (iname,'EndSkill');
@@ -3792,6 +3796,10 @@ begin
       TempDB := TUserStringDB.Create;
       TempDB.LoadFromFile ('.\Init\AM&WHRelation.SDB');
       for idx := 0 to TempDb.Count -1 do begin
+         if idx > High (AM_WHRelationTable) then begin
+            FrmMain.WriteLogInfo ('Init\AM&WHRelation.SDB: excess rows ignored (maximum 7)');
+            break;
+         end;
          iname := TempDb.GetIndexName (idx);
          AM_WHRelationTable[idx][0] := TempDb.GetFieldValueInteger (iname,'WindOfHand1');
          AM_WHRelationTable[idx][1] := TempDb.GetFieldValueInteger (iname,'WindOfHand2');
@@ -3813,7 +3821,10 @@ begin
          iName := TempDB.GetIndexName (idx);
          sn := _StrToInt (iName);
 
-         if (sn < 0) or (sn >= 100) then continue;
+         if (sn <= 0) or (sn >= 100) then begin
+            FrmMain.WriteLogInfo (Format ('Init\PowerLevel.SDB: invalid Name %s ignored (valid 1..99)', [iName]));
+            continue;
+         end;
 
          PowerLevelArr [sn - 1].Name         := TempDB.GetFieldValueString  (iName, 'ViewName');
          PowerLevelArr [sn - 1].PowerValue   := TempDB.GetFieldValueInteger (iName, 'PowerValue');
@@ -3874,7 +3885,11 @@ end;
 function  TMagicClass.GetValueFromRelationTable (aWH, aAM : Integer): Integer;
 begin
    Result := 0;
-   if ( ( aWH > 5) or ( aWH < 0 ) ) and ( ( aAM > 6 ) or ( aAM < 0) ) then exit;
+   // First index is protecting magic (0..6), second is palm magic (0..5).
+   if (aWH < Low (AM_WHRelationTable)) or
+      (aWH > High (AM_WHRelationTable)) then exit;
+   if (aAM < Low (AM_WHRelationTable[aWH])) or
+      (aAM > High (AM_WHRelationTable[aWH])) then exit;
    Result := AM_WHRelationTable[aWH,aAM];
 end;
 
@@ -9016,6 +9031,10 @@ begin
       DB.LoadFromFile ('.\Init\AddAttribGrade.SDB');
 
       for i := 1 to Db.Count do begin
+         if i > High (GradeData) then begin
+            FrmMain.WriteLogInfo ('Init\AddAttribGrade.SDB: excess rows ignored (maximum 10)');
+            break;
+         end;
          iName := DB.GetIndexName (i-1);
          if iName = '' then continue;
          GradeData[i].rMaxRange := DB.GetFieldValueInteger (iName, 'MaxRange');
@@ -9416,6 +9435,8 @@ var
    i : Integer;
    BattleMap : TBattleMap;
 begin
+   Position1 := nil;
+   Position2 := nil;
    for i := 0 to DataList.Count - 1 do begin
       BattleMap := DataList.Items [i];
       BattleMap.Free;
@@ -9465,6 +9486,8 @@ var
    BattleMap : TBattleMap;
    StrList : TStringList;
 begin
+   Position1 := nil;
+   Position2 := nil;
    StrList := TStringList.Create;
 
    for i := 0 to DataList.Count - 1 do begin
@@ -9474,11 +9497,13 @@ begin
       end;
    end;
 
-   if StrList.Count > 0 then begin
+   if StrList.Count >= 2 then begin
       Position1 := DataList.Items [_StrToInt (StrList.Strings [0])];
 //      Position1.JoinUserList := TList.Create;
       Position2 := DataList.Items [_StrToInt (StrList.Strings [1])];
 //      Position2.JoinUserList := TList.Create;
+   end else begin
+      FrmMain.WriteLogInfo (Format ('Event\BattleMap.SDB: MapID %d requires two teams', [aMapID]));
    end;
 
    StrList.Free;
@@ -9562,6 +9587,7 @@ end;
 }
 procedure TBattleMapList.GetDiePositionbyDynName (aDynName : String; var aX, aY : Word);
 begin
+   if (Position1 = nil) or (Position2 = nil) then exit;
    if Position1.FDynName = aDynName then begin
       aX := Position1.FDieX;
       aY := Position1.FDieY;
