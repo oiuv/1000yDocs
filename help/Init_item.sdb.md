@@ -381,142 +381,9 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 
 ### Kind（类型）
 
-```
-   ITEM_KIND_NONE          = 0;
-   ITEM_KIND_COLORDRUG     = 1;
-   ITEM_KIND_BOOK          = 2;
-   ITEM_KIND_WEARITEM      = 6;
-   ITEM_KIND_ARROW         = 7;
-   ITEM_KIND_FLYSWORD      = 8;
-   ITEM_KIND_GUILDSTONE    = 9;
-   ITEM_KIND_DUMMY         = 10;
-   ITEM_KIND_STATICITEM    = 11;
-   ITEM_KIND_DRUG          = 13;
-   ITEM_KIND_TICKET        = 18;
-   ITEM_KIND_HIDESKILL     = 19;
-   ITEM_KIND_CANTMOVE      = 20;
-   ITEM_KIND_ITEMLOG       = 21;
-   ITEM_KIND_CHANGER       = 22;
-   ITEM_KIND_SHOWSKILL     = 23;
-   ITEM_KIND_WEARITEM2     = 24;
-   ITEM_KIND_FOXMIRROR     = 25;
-   ITEM_KIND_GUILDLETTER   = 26;       // 문원추천서
-   ITEM_KIND_PICKAX        = 27;       // 곡괭이
-   ITEM_KIND_MINERAL       = 28;       // 광물들
-   ITEM_KIND_CAP           = 29;       // 갑박 머리 안나오게
-   ITEM_KIND_PROCESSDRUG   = 30;       // 기술가공시약
-   ITEM_KIND_HELPDRUG      = 31;       // 보조시약
-   ITEM_KIND_GROWTHHERB    = 32;       // 자라는 약초
-   ITEM_KIND_SKILLROLLPAPER = 33;      // 두루마리
-   ITEM_KIND_QUESTITEM     = 34;       // 제왕석굴에 사용되는 Quest용 ITEM들.
-   ITEM_KIND_WATERCASE     = 35;       // 물통(죽통,대형죽통)
-   ITEM_KIND_CHARM         = 36;       // 들고만 있어도 속성이 적용되는 아이템 (퀘스트용)
-   ITEM_KIND_QUESTLOG      = 37;       // e.g. 서한
-   ITEM_KIND_SUBITEM       = 38;       // 특별한 아이템을 장비하고 있을경우에만 반응해서 그효과가 더해진다
-   ITEM_KIND_NAMEDPOSQUEST = 39;       // ?? 이건 머지요?
-   ITEM_KIND_QUESTITEM2    = 40;       // Quest용 아이템이지만 중첩가능한 아이템들.
-   ITEM_KIND_FILL          = 41;       // 오색약수 (초보존에서 활력/내/외/무공 채워주는거)
-   ITEM_KIND_SPECIALEFFECT = 42;       // 아이템창에 있으면서 특별한 능력을 발휘하는것
-   ITEM_KIND_ADDATTRIBITEM = 43;       // 속성추가 아이템
-   ITEM_KIND_GOLDBAG       = 44;       // 우중객의금낭
-   ITEM_KIND_DAGGEROFOS    = 45;       // 옥선의무정쌍도
-   ITEM_KIND_DUBU          = 46;       // 유배지의 두부. 유배지를 벗어날경우 사라져야됨.
-   ITEM_KIND_DELATTRIBITEM = 47;       // 속성이 추가된 아이템의 속성을 없애주는 아이템
-   ITEM_KIND_TRANSMONSTER  = 48;       // 몬스터로 변신하게 함
-   ITEM_KIND_RECOVERYHUMAN = 49;       // 인간으로 다시 회복되게 함
-   ITEM_KIND_GRADEUPQUESTITEM = 50;
-   ITEM_KIND_DURABILITY    = 51;       // 내구성있는 모든 아이템
-   ITEM_KIND_TOPLETTER     = 52;       // 더블클릭해서 방송띄우는거
-   ITEM_KIND_GUILDLOTTERY  = 53;       // 문파대전 복권
-   ITEM_KIND_SET           = 54;       // 세트아이템
-   ITEM_KIND_DBLRANDOM     = 55;       // 더블클릭했을때 아이템 랜덤하게 주는것
-   ITEM_KIND_USESCRIPT     = 56;       // 스크립트 이용하는 아이템
-   ITEM_KIND_HIGHPICKAX    = 57;       // 고급곡괭이
-   ITEM_KIND_SEAL          = 58;       // 봉인부적
-   ITEM_KIND_EIGHTANGLES   = 59;       // 팔각괴
-   ITEM_KIND_DURAWEAPON    = 60;       // 내구성갖고있는 무기
+`Kind` 决定物品进入哪些使用、穿戴或加工分支；完整取值、示例及生效条件集中见[物品类型常量](constants/ITEM_KIND.md)。普通穿戴入口接受 6、24、27、29、57、60 类，具体位置和外观仍由穿戴字段决定。
 
-   ITEM_KIND_EVENT1     = 200;         // 이벤트용 아이템1, 가공창에서 가공할 경우 랜덤한 아이템을 획득가능함
-```
-
-类型3、4、5、12、14、15、16、17未实现，其中特别功能物品由game.ini配置如钱币、追魂索等，另外金元等根据名称由TGS指定特别功能。
-
-| Kind | Type      | 说明         | 示例   |
-|------|-----------|--------------|------|
-| 0    | NONE      | 无专用Kind处理；也用于制造工具，不能仅据此认定为空物品 | 无名火炉 |
-| 1    | COLORDRUG | 染色剂 | 紫色染剂 |
-| 2    | BOOK      | 书 | 太极拳 |
-| 3    |           | 钱币，游戏货币，实际由game.ini配置 | 钱币 |
-| 4    |           |              | 肉 |
-| 5    |           |              | 金元 |
-| 6    | WEARITEM  | 装备，包括可升级4段装备，炎黄端支持设定耐久度 | 长剑 |
-| 7    | ARROW     | 箭 | 箭 |
-| 8    | FLYSWORD  | 飞刀 | 仙鹤神针 |
-| 9    | GUILDSTONE| 门派石 | 门派石 |
-| 10   | DUMMY     | 门派娃娃 | 男子卒兵娃娃 |
-| 11   | STATICITEM| 静态物品 | |
-| 12   ||||
-| 13   | DRUG      | 药品 | 生药 |
-| 14   |||| 
-| 15   ||||
-| 16   ||||
-| 17   |           | INI_ROPE，由game.ini指定 | 追魂索 |
-| 18   | TICKET | 卷轴，可传送 | 回城卷轴 |
-| 19   | HIDESKILL | 隐身符，可隐身 | 隐身符 |
-| 20   | CANTMOVE | 无法交换的物品，同boNotExchange属性 | 青龙牌 |
-| 21   | ITEMLOG | 福袋，储物空间 | 福袋 |
-| 22   | CHANGER | | 玫瑰脱色药 |
-| 23   | SHOWSKILL | 透视符，可看穿隐身 | 透视符 |
-| 24   | WEARITEM2 | 除内衣内裤外的装备，可升级 | 女子梅花战袍 |
-| 25   | FOXMIRROR | | 妖华镜 |
-| 26   | GUILDLETTER | 门派推荐书；拖到门派香炉，内部 Name 必须等于目标门派名，成功消耗一本并入门 | 显示名以实际配置为准 |
-| 27   | PICKAX | 挖矿工具 | 象牙十字镐 |
-| 28   | MINERAL | 矿石，职业技能材料，此类物品价格固定为0（右键不显示价格），单击信息显示`('%s 数量: %d')` | 黄金 |
-| 29   | CAP | 类似6，装备，可升级，帽子类 | 男子流星帽 |
-| 30   | PROCESSDRUG | 加工试剂 | 桂圆丹 |
-| 31   | HELPDRUG | 提升加工成功率的药品 | 生死梦幻丹 |
-| 32   | GROWTHHERB | 草药类材料 | 千年地黄 |
-| 33   | SKILLROLLPAPER | 内部Name为“技术密笈”，根据职业类型调用help目录对应文件 | ViewName为“卷轴” |
-| 34   | QUESTITEM | 任务物品，可被deletequestitem删除 | 小佛 |
-| 35   | WATERCASE | 沙漠用的水桶 | 竹筒 |
-| 36   | CHARM | 护符类；支持按cLife增加活力上限和可配置的耐久计时消耗，不保证每件物品都有加成或时限；可被deletequestitem删除 | 不灭、侠客指环、九转金丹 |
-| 37   | QUESTLOG | 双击查看任务，可被deletequestitem删除，可根据currentquest调用任务详情 | 书函 |
-| 38   | SUBITEM | 子物品（装备特殊物品时才生效） | 太极牌 |
-| 39   | NAMEDPOSQUEST | 四大宝石 | 翡翠 |
-| 40   | QUESTITEM2 | 任务物品2，可被deletequestitem删除；堆叠仍由boDouble等检查决定 | 石谷钥匙 |
-| 41   | FILL | 定时恢复活力/内/外/武功等属性，要求地图Attribute值为MAP_TYPE_FILL | 五色药水 |
-| 42   | SPECIALEFFECT | 背包属性加成；取第一个此Kind物品的rLifeData，不是画面特效 ||
-| 43   | ADDATTRIBITEM | 增加黄字属性的物品 | 霸王灵符 |
-| 44   | GOLDBAG | 背包计时耗尽删除；SpecialKind=5时按DelItem第一项名称触发关联清理 | 雨中客锦囊 |
-| 45   | DAGGEROFOS | 背包计时耗尽删除；SpecialKind=5时按DelItem第一项名称触发关联清理 | 玉仙的无情双刀 |
-| 46   | DUBU | 从流放地释放出来时会删除此类物品 ||
-| 47   | DELATTRIBITEM | 清除物品黄字属性 | 北海冰玉 |
-| 48   | TRANSMONSTER | 变身成怪物，未实现功能 ||
-| 49   | RECOVERYHUMAN | 恢复成人类，未实现功能 ||
-| 50   | GRADEUPQUESTITEM | 升级神功任务物品，可指定QuestNum，可由gethavegradequestitem判断 | 侠客任务卷轴 |
-| 51   | DURABILITY | 普通耐久物品，背包计时耗尽删除；不被deletequestitem清理 | 万毒钥匙、血红色的玛瑙石 |
-| 52   | TOPLETTER | 双击打开广播输入窗口并消耗一个物品；不表示此时已发送广播 | |
-| 53   | GUILDLOTTERY | 门派奖券 | |
-| 54   | SET | 套装加成属性| 从代码看Name只能是SetValue，加成装备属性 |
-| 55   | DBLRANDOM | 双击随机掉落RandomEventItem0.sdb中的物品 | |
-| 56   | USESCRIPT | 可双击调用脚本OnDblClick过程的物品，脚本由Script字段指定 | 四大神功全集 |
-| 57   | HIGHPICKAX || 高级象牙十字镐 |
-| 58   | SEAL | 封印符咒，可封印Kind为4的Monster，并触发Event.sdb中同名Mop死亡事件 | 封印符 |
-| 59   | EIGHTANGLES | 类似SUBITEM和SPECIALEFFECT类型，增加玩家属性 | 八卦牌 |
-| 60   | DURAWEAPON（WEARITEM_GUILD） | 耐久武器；近身攻击按次消耗，穿戴时也可按配置计时消耗 | 不羁浪人剑 |
-| 200  | EVENT1 | 活动道具，加工窗口中加工时有几率获得随机物品 | |
-| --   | -- | -以下无效- | -- |
-| 61   | ScripterSay | 脚本物品 ||
-| 100  | WEARITEM_FD| 时装 ||
-| 120  | GuildAddLife | 门派加血石头 ||
-| 121  | 121 | 宝石 镶嵌，SpecialKind 表示等级 ||
-| 130  | 130 | 精炼 石头 ||
-| 131  | LifeData_item | 可以吃的附加属性 ||
-| 132  | 132 | 精炼 辅助石 rSpecialKind 类型 ||
-| 133  | QUEST | 任务物品 ||
-| 134  | GOLD_D | 代币 | |
-
-> kind非常重要，ITEM_KIND_WEARITEM, ITEM_KIND_WEARITEM2, ITEM_KIND_CAP, ITEM_KIND_PICKAX, ITEM_KIND_HIGHPICKAX, ITEM_KIND_DURAWEAPON 都是可装备物品
+3、4、5、17 等无命名常量的表值，应按[预留类型与数据分类约定](constants/ITEM_KIND.md#预留类型与数据分类约定)核对用途；钱币、追魂索等还依赖配置或内部名称。其它版本资料中的 61、100、120、121、130～134 等编号不在本版 `ITEM_KIND_*` 定义表内，不应照抄为可用功能。
 
 `CHARM` 译为“护符类”，不等于“必定增加活力的物品”。例如九转金丹的 `cLife` 为空，不提供活力加成；具体条件见[护符类说明](constants/ITEM_KIND.md#护符类kind36)。血红色的玛瑙石采用普通耐久物品 `Kind=51`，保留任务脚本按名称发放、交付和耐久到期清除的用途。
 
@@ -526,43 +393,13 @@ ExtJobExp| int | 物品的扩展职业经验(采集技能经验) | 1000
 
 ### Attribute（属性）
 
-```
-   ITEM_ATTRIBUTE_NONE              = 0;  # 物品属性：无
-   ITEM_ATTRIBUTE_FIRE              = 1;  # 物品属性：火属性
-   ITEM_ATTRIBUTE_WATER             = 2;  # 物品属性：水属性（无效）
-   ITEM_ATTRIBUTE_ICE               = 3;  # 物品属性：冰属性
-   ITEM_ATTRIBUTE_FILL              = 4;  # 物品属性：恢复（增加活力、内功、外功、武功）
-   ITEM_ATTRIBUTE_SET               = 5;  # 物品属性：套装，装备4件套加成SetValue物品的装备属性
-   ITEM_ATTRIBUTE_DIRECT            = 6;  # 物品属性：直接放入物品栏（不会掉落地上） 040422 saset
-   ITEM_ATTRIBUTE_PAPERBESTPROTECT  = 7;  # 随包物品“招式全集”的属性标记
-   ITEM_ATTRIBUTE_PAPERBESTSPECIAL  = 8;  # 随包物品“四大神功全集”的属性标记
-   ITEM_ATTRIBUTE_QUESTSIGN         = 9;  # 物品属性：任务标志（无效）
-   ITEM_ATTRIBUTE_TAEGUK            = 199;  # 物品属性：太极
-   ITEM_ATTRIBUTE_LOWEST            = 201;  # 低级属性材料
-   ITEM_ATTRIBUTE_LOWEER            = 202;  # 中级属性材料（保留源码拼写）
-   ITEM_ATTRIBUTE_NORMAL            = 203;  # 高级属性材料
-   ITEM_ATTRIBUTE_HIGHER            = 204;  # 最高级属性材料
-   ITEM_ATTRIBUTE_HIGHEST           = 205;  # 极品属性材料
-```
+全部枚举值及材料档次见[物品属性常量](constants/ITEM_ATTRIBUTE.md)。
 
 `Attribute` 不仅表示元素属性，也用于套装、直接获取和“废弃”按钮等功能。随包“招式全集”的 `Name`、`ViewName` 均为“招式全集”，配置 `Kind=4、Attribute=7`；“四大神功全集”配置 `Kind=56、Attribute=8、Script=103`。这两个中文名称以实际物品表为准，不从英文常量名推译；`Attribute=7/8` 在物品说明窗口中分别对应“废弃”按钮键 `0/1`。完整说明见[物品属性常量](constants/ITEM_ATTRIBUTE.md)。
 
 ### SpecialKind（特殊类型）
 
-```
-   ITEM_SPKIND_NONE           = 0;   # 物品特殊种类：无
-   ITEM_SPKIND_MUNJANG        = 1;   # 物品特殊种类：属性灵符（工匠）
-   ITEM_SPKIND_ZANGSIK        = 2;   # 物品特殊种类：属性饰品（裁缝）
-   ITEM_SPKIND_JUMOON         = 3;   # 物品特殊种类：属性卷轴（铸造）
-   ITEM_SPKIND_GOLBANG        = 4;   # 普通玩家@item制造许可标记
-   ITEM_SPKIND_DELALLBYDURA   = 5;   # Kind=44/45背包计时耗尽时，按DelItem第一项名称触发关联清理
-   ITEM_SPKIND_DONTDRUG       = 6;   # 地图boUseChemistDrug=false时禁止服用的药品标记
-   ITEM_SPKIND_ADDALLLIFE     = 7;   # Kind=36时，将cLife同时加到头、手臂、腿部活力上限
-   ITEM_SPKIND_1              = 8;   # 物品特殊种类：珍珠
-   ITEM_SPKIND_2              = 9;   # 物品特殊种类：翡翠
-   ITEM_SPKIND_3              = 10;  # 物品特殊种类：水晶
-   ITEM_SPKIND_4              = 11;  # 物品特殊种类：琥珀
-```
+附加属性材料、地图药品限制、耐久关联清理及四大宝石标记，集中见[物品特殊类型常量](constants/ITEM_SPKIND.md)。
 
 `Kind`、`Attribute`、`SpecialKind` 是三个独立字段。名称与条件不能仅按英文常量推测，详见[物品类型](constants/ITEM_KIND.md)、[物品属性](constants/ITEM_ATTRIBUTE.md)和[特殊类型](constants/ITEM_SPKIND.md)。
 

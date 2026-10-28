@@ -22,10 +22,17 @@
 - [game.ini 游戏参数](game.ini.md)
 - [常量索引](constants/README.md)
 - [特殊物品内部名称与专用机制](SpecialItems.md)：固定名称、配置指定名称、触发条件、消耗和未启用分支。
-- [Pascal 脚本说明](Pascal.md)、[Script.SDB 与脚本入口](Script.md)
 - [事件配置](Event.md)、[任务公告](QuestNotice.md)、[ITEMLOG 福袋数据](ITEMLOG.md)
 - [制造配置](manufacture.md)、[材料配置](Material.md)
 - [怪物掉落机制](Init_monster.sdb.md#掉落持有与任务物品)：`HaveItem` 周期计数、`FallItem` 整组触发、参数区别与共享范围。
+
+## 脚本开发
+
+- [开发入门](../Script.md)：阅读顺序、首次登录和双击物品示例。
+- [脚本语法](Pascal.md)、[Script.SDB 与脚本绑定](Script.md)：语言规则和加载规则分开查阅。
+- [新增交易 NPC 完整示例](demo.md)：配套数据、菜单、商品和场景投放。
+- [过程事件](../procedure/README.md)、[返回值事件](../function/README.md)、[print 命令](../print/README.md)、[callfunc 查询](../callfunc/README.md)。
+- [历史脚本归档与迁移检查](../Script/README.md)。
 
 ## 运行资源与扩展数据
 
@@ -76,6 +83,6 @@
 
 公开源码入口为 [Cl1000](https://github.com/oiuv/Cl1000) 和 [TGS1000](https://github.com/oiuv/TGS1000)；模块路径与独立仓库路径的对应关系见 [源码引用说明](source-reference.md)。仓库首页用于导航，具体规则的证据应固定到已核实的提交与函数。
 
-`TGS核心源码/` 和本目录的 `deftype.pas` 是便于独立查阅的公开源码镜像。公开范围内的通用修正应同步核对；部署定制的通信版本、倍率和视野数值不覆盖公开基线。文档引用以对应公开实现和实际配置为准，不把文件整体相同作为必要条件。`readme.chm`、`TGS2011.chm` 属于历史帮助文件，只能作为辅助线索，不能覆盖源码与实际配置。版本脚本的比较结论和迁移检查见 [Script 归档说明](../Script/README.md)。
+`TGS核心源码/` 和本目录的 `deftype.pas` 是便于独立查阅的公开源码镜像。公开范围内的通用修正应同步核对；部署定制的通信版本、倍率和视野数值不覆盖公开基线。文档引用以对应公开实现和实际配置为准，不把文件整体相同作为必要条件。`readme.chm`、`TGS2011.chm` 属于历史帮助文件，只能作为辅助线索，不能覆盖源码与实际配置。归档版本边界和迁移检查见 [Script 归档说明](../Script/README.md)。
 
 原始炎黄文本使用 CP936/GBK；技术 Markdown 统一使用 UTF-8。

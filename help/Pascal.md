@@ -94,7 +94,7 @@ end;
 |---|---|
 | `callfunc(Text)` | 调用当前 `TScriptManager.CallFunction` 注册的查询接口 |
 | `print(Text)` | 把文本作为游戏命令交给 `CommandScript`，不是普通输出 |
-| `GetToken` | 按分隔符取出第一个分段并返回剩余字符串 |
+| `GetToken(Source, Token, Sep)` | 按分隔符取出第一个分段写入 `Token`，返回剩余字符串 |
 | `CompareStr` | 比较两个字符串是否相等 |
 | `IntToStr` / `StrToInt` | 整数与字符串转换 |
 | `Length` | 字符串长度 |
@@ -119,4 +119,4 @@ end;
 
 ## 版本兼容
 
-[`../Script/`](../Script/README.md) 是云端千年神武奇章线上优化版归档；`tgs1000/bin/Script` 是当前炎黄运行脚本基线，包含仓库后续修复。当前炎黄 `龙师父.txt` 已使用有效接口 `getsenderjobgrade`；云端归档仍保留未注册的 `getjobgrade`，不能直接照搬。炎黄脚本的 `say` 分隔符和 `绣球.txt` 普通文本分派错误也已修复，详见 [归档与迁移说明](../Script/README.md)。
+脚本注册、对象绑定和调试见[Script.SDB 与脚本绑定](Script.md)。参考历史实例时须按[归档与迁移说明](../Script/README.md)核对接口；云端神武脚本不代表目标炎黄版本的全部语法和功能。

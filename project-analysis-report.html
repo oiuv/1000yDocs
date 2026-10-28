@@ -163,7 +163,7 @@
   <h2>通信、状态与数据加载</h2>
   <ul>
     <li>整数按 Delphi packed record 的小端布局解析，固定字符串保留字段宽度、零填充与 GBK/CP936。</li>
-    <li>客户端 TCP 使用自定义加密及帧边界，不是 TLS；收发必须处理拆包和粘包。连接版本取启用的 <code>PROGRAM_VERSION</code>，当前共享源码为 40，其他部署仍须核对实际 Gate。</li>
+    <li>客户端 TCP 使用自定义加密及帧边界，不是 TLS；收发必须处理拆包和粘包。连接版本取启用的 <code>PROGRAM_VERSION</code>，具体值须核对目标客户端与 Gate；布局与版本约束见<a href="help/protocol.md">协议说明</a>。</li>
     <li>客户端与 Gate、以及 Gate 的 Login/DB/Paid 后端路径须按各自封包实现核对；Gate 与 Game 的路径不能机械套用客户端加密层。</li>
     <li>移动具有客户端预测与服务端校正；本地位置不等于每一步均有服务端确认。客户端状态校验应依据 <code>SM_NETSTATE</code>、<code>CM_NETSTATE</code> 的实际结构和 CRC。</li>
     <li>保存队列每 10 个 tick（100ms）尝试发送一项，成功后移除；周期保存 <code>rEnd=1</code> 对应 <code>DB_UPDATE_END</code>。</li>
@@ -176,9 +176,9 @@
   <ul>
     <li>公网仅开放 Balance 与 Gateway；Login、DB、Game、付费后端、管理接口和 UDP 接收端必须限制来源。</li>
     <li>SDB Login 不调用 IP 检查器，DB/SQL Login 缺少 <code>IPList.txt</code> 时放行全部来源；不能用配置文件代替网络隔离。</li>
-    <li>Gate 心跳计时未更新、限包环形槽覆盖过快，不能将现行实现描述成严格三秒心跳或可靠一秒限包。</li>
+    <li>Gate 心跳及包率检查依赖实际计时与连接轮询；计算条件和边界见<a href="help/architecture.md#45-包频率限制">包频率限制</a>与<a href="help/AuditReport.md">运行注意事项</a>。</li>
     <li>加密发送临时缓冲区限制、随机事件编号越界、婚姻记录、名单加载路径及矿物结构清零等已确认风险见源码校核页；说明风险不代表修复程序。</li>
-    <li>原始 SDB/TXT、脚本与 Delphi 源文件保留 GBK/CP936 和 CRLF。Markdown/HTML 使用 UTF-8，不改写作为证据保留的原始资料。</li>
+    <li>本文档仓库的所有文本使用 LF 换行；SDB/TXT、脚本与 Delphi 源文件保留 GBK/CP936 等既有编码，Markdown/HTML 使用 UTF-8。此约定不改变实际部署资源的换行要求。</li>
     <li>公开资料不包含凭据、玩家记录、运行日志、数据库和未经授权新增的源码；示例使用脱敏地址和账号。</li>
   </ul>
 </section>

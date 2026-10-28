@@ -201,7 +201,7 @@ end;
 1. 杀死妖华（动态物品类型）触发同名EVENTKIND_DIE_DYNOBJ
 2. 事件调用RunDynObjDieEvent在地图上召唤九尾狐变身（MONSTER类型）
 3. 杀死九尾狐变身（MONSTER类型）触发同名EVENTKIND_DIE_MOP
-4. 事件调用RunMopDieEvent在地图上召唤九尾狐酒母（NPC类型）并指定了NPC功能脚本
+4. 事件调用 `RunMopDieEvent`，将已存在且处于隐藏状态的九尾狐酒母（NPC 类型）恢复为出场状态；此分支不为 NPC 重新指定脚本。
 
 ### Kind（类型）
 
@@ -211,15 +211,8 @@ end;
    EVENTKIND_DIE_MOP    = 2;
 ```
 
-# EventParam.sdb（事件参数）
+## EventParam.sdb（事件参数）
 
-参数|说明
--|-
-Code|对应Event.sdb中的ParamCode
-NameParam1|Mop或NPC名称Name1
-NameParam2|Mop或NPC名称Name2
-NameParam3|MOP或NPC说话内容sayStr（DYNOBJ死亡）或说话的sdb文件（MOP死亡）
-NameParam4|事件触发时播放的声音Sound（DYNOBJ死亡）
-NumberParam1|Name1的种族类型（RACE_MONSTER或RACE_NPC）
-NumberParam2|Name2的种族类型（RACE_MONSTER或RACE_NPC）
-NumberParam3|事件脚本编号（MOP死亡）
+`Event.sdb.ParamCode` 对应 `EventParam.sdb.Code`。各参数在动态物件死亡和怪物死亡两条路径中含义不同，字段表和使用限制统一见[EventParam.sdb](Init_EventParam.sdb.md)。
+
+特别注意：怪物死亡路径的 `NameParam3` 虽读入 `BookName`，后续未使用；`NumberParam3` 只传给新生成怪物的脚本参数，不为已有 NPC 设置脚本。

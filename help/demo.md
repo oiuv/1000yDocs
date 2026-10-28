@@ -1,4 +1,4 @@
-## 千年脚本开发演示
+# 新增交易 NPC 完整示例
 
 在游戏中增加一个杂货商，需要怎么做？具体需要做的工作如下：
 
@@ -9,16 +9,19 @@
 5. 需要设置NPC自动说话提醒玩家
 6. 需要把这个NPC放到地图指定坐标
 
-相关配置文件列表：
+相关配置各司其职，不能只增加脚本文件：
 
-- Init\Npc.sdb            
-- Script\杂货商.txt        
-- Script\Script.sdb       
-- Help\杂货商.txt  
-- NpcSetting\杂货商.txt   
-- NpcSetting\杂货商.sdb
-- Setting\CreateNpc88.sdb
+| 文件 | 用途 |
+|---|---|
+| `Init/Npc.sdb` | NPC 名称、属性、外形与交易文件设置 |
+| `Help/杂货商.txt` | 交互菜单内容 |
+| `NpcSetting/杂货商.txt` | 买卖物品列表 |
+| `NpcSetting/杂货商.sdb` | 自动说话内容，可选 |
+| `Script/杂货商.txt` | 点击、说话和菜单事件脚本 |
+| `Script/Script.sdb` | 脚本登记表 |
+| `Setting/CreateNpc88.sdb` | 在编号 88 的地图投放 NPC |
 
+示例中的物品、地图和脚本编号须按目标配置核对。尤其不能直接照用示例脚本编号，应遵循[登记顺序与绑定规则](Script.md#scriptsdb)。语法基础见[脚本开发入门](../Script.md)。
 
 ### 初始化NPC设置
 

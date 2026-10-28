@@ -26,7 +26,7 @@
 | Gate 计费 | 账号验证成功后，`PaidSender=nil` 或关闭计费检查会直接设置有效类型；`CHECKPAIDINFO=TRUE` 不保证计费后端不可用时拒绝登录。见[计费校验条件](architecture.md#55-计费校验条件)。 |
 | 矿物加载 | `TMineObjectClass.LoadFromFile` 清零 `TMineObjectAvailData` 时错误使用 `SizeOf(TMineObjectShapeData)`。 |
 | 后端接入检查 | SDB Login 接入不调用 IP 检查器；DB/SQL Login 在缺少 `IPList.txt` 时放行全部来源。后端必须隔离。 |
-| 脚本编号 | `Script.SDB` 按成功加载顺序绑定，而不是按 `Name` 建立映射。乱序、跳号或中间文件缺失可能导致后续脚本错绑，见[索引约束](Script.md#scriptsdb)。 |
+| 脚本编号 | `Script.SDB` 按有效登记行顺序绑定，不按 `Name` 建立映射；乱序、跳号会错绑。当前公开加载器对缺文件保留空槽，不会使后续脚本前移，但该脚本事件无法执行，见[索引约束](Script.md#scriptsdb)。 |
 | 物品数量门槛 | `MaxCount` 的拾取检查只统计已有背包及技术窗数量，不包括本次新增数量和全部容器，不能作为通用最终持有量上限，见[物品限制](Init_item.sdb.md#物品限制的实际边界)。 |
 | 传送扣物品 | `DelItem` 数量 0 表示删除同名全部物品；扣除可能先于后续任务检查，传送失败不保证没有扣除，见[传送门](CreateGate.SDB.md)。 |
 
