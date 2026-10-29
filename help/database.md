@@ -387,7 +387,7 @@ TUserStringDB
 
 ### 4.4 SDB 在账号系统中的应用
 
-`loginsdb/uDBAdapter.pas` 中的 `TSDBAdapter` 使用 `TUserStringDB` 存储账号数据。运行时读取工作目录下的 `Data/Login.sdb`；随源码提供的模板为 `loginsdb/bin/Data/_Login.sdb`，表头为：
+`loginsdb/uDBAdapter.pas` 中的 `TSDBAdapter` 使用 `TUserStringDB` 存储账号数据。运行时读取工作目录下的 `Data/Login.sdb`。首次部署可从 `Data/Login.sdb.example` 创建仅含表头的空库，已有账号库必须保留，不用示例覆盖。表头为：
 
 ```
 PrimaryKey,Password,CharInfo0,CharInfo1,CharInfo2,CharInfo3,CharInfo4,IpAddr,UserName,Birth,Telephone,MakeDate,LastDate,Address,Email,NativeNumber,MasterKey,PtName,PtNativeNumber,

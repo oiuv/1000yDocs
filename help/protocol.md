@@ -718,7 +718,7 @@ Client ──3054──> Gate
                               └──3020──> Notice
 ```
 
-箭头表示 TCP 主动连接方向，建立后可双向收发。Gate 另通过 UDP 3030 向 Balance 上报；Balance 保留的 TCP 3000 管理监听不由本版 Gate 使用。
+箭头表示 TCP 主动连接方向，建立后可双向收发。Gate 另通过 UDP 3030 向 Balance 上报；Balance 的可选 TCP 上报监听由 `TCPGATEPORT` 控制，默认关闭，不由本版 Gate 使用。
 
 ### 5.2 端口分配
 
@@ -843,7 +843,10 @@ DB → Game 内部 FGate
 [BALANCE]
 TCPLOCALPORT=3053
 UDPLOCALPORT=3030
+TCPGATEPORT=0
 ```
+
+`TCPGATEPORT` 为可选 Gate TCP 上报入口：缺省或 `0` 关闭，`1～65535` 启用；不能与其它 TCP 监听冲突。该键须配合支持它的 Balance 程序使用，当前 Gate 通过 `UDPLOCALPORT` 对应的 UDP 端口上报，无需启用此项。
 
 **GATE.INI**:
 ```ini

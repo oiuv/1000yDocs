@@ -23,7 +23,7 @@ Client ── TCP 3054 ──> Gate
                                         └── UDP ──> 七路日志目标
 ```
 
-以上箭头表示主动连接或发送方向；TCP 建立后可双向传输。公网入口是 Balance 与 Gate，其余服务与日志目标应位于受信内网。UDP 日志配置示例为 ITEM 6001、MOUSEEVENT 6010、MONITER 6011、CONNECT 6022、PAY 6000、OBJECT 3003、RELATION 3005。Balance 另保留 TCP 3000 监听，本版本 `gate` 不使用该注册通道。
+以上箭头表示主动连接或发送方向；TCP 建立后可双向传输。公网入口是 Balance 与 Gate，其余服务与日志目标应位于受信内网。UDP 日志配置示例为 ITEM 6001、MOUSEEVENT 6010、MONITER 6011、CONNECT 6022、PAY 6000、OBJECT 3003、RELATION 3005。Balance 的可选 Gate TCP 上报入口由 `TCPGATEPORT` 控制，默认 `0`（关闭）；本版本 `gate` 使用 UDP 上报，不依赖该 TCP 入口。
 
 ### 1.2 各服务职责
 
@@ -72,7 +72,7 @@ Gate 的 `[GATE_SERVER] LOCALIP` 用于向 Balance 公布连接地址；`FMain.F
 | **3051** | DB | 监听 | Gate/TGS → DB 连接 | 内网 |
 | **3052** | Game | 监听 | Gate → Game 连接 | 内网 |
 | **配置决定** | Paid | 监听 | Gate → Paid；新建 Gate 配置写入 5999，缺项读取回退到 3049 | 内网 |
-| **3000** | Balance | 监听 | 保留的 Gate 管理 TCP 通道；本版 Gate 不使用 | 内网 |
+| **TCPGATEPORT** | Balance | 可选监听 | Gate 状态上报 TCP 通道；默认 0 关闭，本版 Gate 不使用 | 内网 |
 | **1021** | SDB Login | 监听 | `REMOTEACCEPTPORT` 远程连接 | 内网 |
 | **6060** | SQL Login 的远端服务 | 连接目标 | SQL Login 读取 `[REMOTE_SERVER]` 后主动连接的缺省端口 | 内网 |
 | **1024** | DB | 远程管理 | DB 远程同步端口 | 内网 |
@@ -173,7 +173,7 @@ end;
 
 但当前源码没有任何位置更新 `BalanceSendTick`，该全局变量初值为 0。`CurTick` 来自 `timeGetTime`，是系统启动后的毫秒计数，不是 Gate 程序运行时长。因此正常运行时上述条件在每次定时器回调中成立；`timerDisplay` 的间隔是 1000 毫秒，实际约为**每秒发送一次**，并没有实现每三秒一次的节流。这是源码缺陷，不能根据条件字面推导发送周期或认定 Gate 启动后要先等待三秒。
 
-Balance 源码还监听 TCP 3000，并包含处理 `BM_GATEINFO` 的 `TGateConnector`；但当前仓库的 `gate` 没有对应 TCP 客户端连接代码，因此不能把它描述为本版本 Gate 的有效注册通道。
+Balance 包含处理 `BM_GATEINFO` 的 `TGateConnector`，其 TCP 监听端口由 `BALANCE.INI` 的 `[BALANCE] TCPGATEPORT` 指定：缺省或设为 `0` 时关闭，设为 `1～65535` 时启用该端口。当前仓库的 `gate` 没有对应 TCP 客户端连接代码，保持关闭不影响其 UDP 上报。使用该配置需要支持此字段的 Balance 程序；若另有 TCP 上报端，双方须使用相同端口，并限制在可信内网访问。
 
 **超时判定**：Balance 每秒检查，如果 5 秒未收到某 Gate 的心跳，标记为不可用：
 
@@ -600,7 +600,7 @@ SQL Login    ──6060──> REMOTE_SERVER（配置目标）
 **连接方向说明**：
 
 - Gate 作为**客户端**主动连接到 Game/Login/DB/Paid
-- Balance 的 `sckGate` 保留 TCP 3000 监听；当前 Gate 实现只通过 UDP 3030 上报状态
+- Balance 的 `sckGate` 由 `TCPGATEPORT` 控制，默认关闭；当前 Gate 实现只通过 UDP 3030 上报状态
 - Game 的 `GateConnectorList` 作为**服务端**接受 Gate 的连接
 - DB 的 `sckAccept` 作为**服务端**接受 Gate 和 TGS 的连接
 - Game 自身作为**客户端**主动连接 DB/Battle/Notice
