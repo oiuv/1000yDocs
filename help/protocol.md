@@ -842,11 +842,13 @@ DB → Game 内部 FGate
 ```ini
 [BALANCE]
 TCPLOCALPORT=3053
-UDPLOCALPORT=3030
+UDPGATEPORT=3030
 TCPGATEPORT=0
 ```
 
-`TCPGATEPORT` 为可选 Gate TCP 上报入口：缺省或 `0` 关闭，`1～65535` 启用；不能与其它 TCP 监听冲突。该键须配合支持它的 Balance 程序使用，当前 Gate 通过 `UDPLOCALPORT` 对应的 UDP 端口上报，无需启用此项。
+`TCPLOCALPORT` 接收玩家连接；`UDPGATEPORT` 接收 Gate 的 UDP 状态上报，须与 Gate 配置中的 `BALANCEPORT` 一致。Balance 优先读取 `UDPGATEPORT`，缺少时兼容旧键 `UDPLOCALPORT`，两者都缺少时使用 `3030`；两者同时存在时不受书写顺序影响。新键须配合支持它的 Balance 程序使用，已有旧配置可以继续使用。
+
+`TCPGATEPORT` 为可选 Gate TCP 上报入口：缺省或 `0` 关闭，`1～65535` 启用；不能与其它 TCP 监听冲突。该键须配合支持它的 Balance 程序使用，当前 Gate 通过 `UDPGATEPORT` 对应的 UDP 端口上报，无需启用此项。
 
 **GATE.INI**:
 ```ini
