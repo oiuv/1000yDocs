@@ -49,6 +49,34 @@
 
 ---
 
+## 穿戴冰火属性的检查顺序
+
+冰火属性的环境防护不只对武器有效，防具也可提供。必须实际穿戴，仅放在背包中不会参与这项判断。
+
+`TWearItemClass.SetLifeData` 先将 `SpecialItemType` 清为 `0`，再按穿戴数组槽位 `1～9` 依次检查。遇到火（`Attribute=1`）或冰（`Attribute=3`）就覆盖当前结果；空槽、无属性及其它属性不会清除已有的冰火结果。
+
+| 检查顺序／槽位 | 常量 | 部位或用途 |
+| ---: | --- | --- |
+| 1 | `ARR_GLOVES` | 护腕、手臂防具；不是武器栏的拳套 |
+| 2 | `ARR_UPUNDERWEAR` | 内层上衣 |
+| 3 | `ARR_SHOES` | 鞋子 |
+| 4 | `ARR_DOWNUNDERWEAR` | 裤子、裙子 |
+| 5 | 无独立常量 | 手臂外观映射位，不是独立装备槽；`GetFeature` 将槽 1 的外观映射到此层 |
+| 6 | `ARR_UPOVERWEAR` | 外衣、道袍、战甲 |
+| 7 | `ARR_HAIR` | 头发 |
+| 8 | `ARR_CAP` | 帽子、头盔 |
+| 9 | `ARR_WEAPON` | 武器 |
+
+槽位 `0` 是身体基础外观，不在上述循环内。槽位与外观层的完整说明见[装备部位](RACE_CLASS.md#装备部位-arr_)；不能因为循环经过某个编号，就把它当作可新增装备的独立位置。
+
+**最后检查到的冰火属性生效，与玩家穿戴先后、装备品级和同属性装备数量无关。**常见战斗装备的覆盖优先级为：武器 ＞ 帽子 ＞ 外衣 ＞ 鞋子 ＞ 护腕；前提是该件装备确实带有冰火属性。角色只记录一种穿戴性质，不累加免疫强度，也不能靠混穿同时保留冰、火两种穿戴性质。
+
+例如：火防具与冰武器同时穿戴，最终为冰；冰防具与火武器同时穿戴，最终为火；冰防具与无属性武器同时穿戴，仍为冰。
+
+地图启用属性变化时，最终火性质可免除冰地图的严寒扣血，最终冰性质可免除火地图的炎热扣血。背包中尚有耐久的水容器提供炎热防护是独立条件，不受上述穿戴属性覆盖影响；这不等于同时取得两种穿戴性质。地图类型、伤害参数见[属性地图与天气](../Init_map.sdb.md#属性地图与天气)。装备与地图的 `Attribute` 使用不同枚举，不可混用。
+
+源码依据：[uUserSub.pas](../TGS核心源码/uUserSub.pas) 的 `TWearItemClass.SetLifeData`、`GetFeature`，以及 [UUser.pas](../TGS核心源码/UUser.pas) 的 `MAP_TYPE_ICE`、`MAP_TYPE_FIRE` 环境伤害分支。
+
 ## 属性相克关系
 
 本页常量定义不能证明火、冰、水之间存在循环相克。`AM_WHRelationTable` 读取 `AM&WHRelation.SDB`，调用处使用护体武功与掌法的 `rMagicRelation`，不是这里的 `ITEM_ATTRIBUTE_*`。
@@ -61,3 +89,5 @@
 
 - [ITEM_KIND.md](ITEM_KIND.md) — 物品类型常量
 - [Init_item.sdb.md](../Init_item.sdb.md) — 物品数据库结构
+- [RACE_CLASS.md](RACE_CLASS.md#装备部位-arr_) — 装备槽位与外观层
+- [Init_map.sdb.md](../Init_map.sdb.md#属性地图与天气) — 环境伤害与防护条件
