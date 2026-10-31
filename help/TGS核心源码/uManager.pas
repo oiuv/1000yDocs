@@ -782,6 +782,8 @@ begin
                   tmpUser.GuildGrade := '';
                   StrPCopy(@tmpUser.BasicData.Guild, '');
                   tmpUser.BocChangeProperty;
+                  tmpUser.SendClass.SendGuildEnergy(0);
+                  UserList.RefreshGuildEnergy(GuildName);
                   tmpUser.SendClass.SendChatMessage(GuildName + Conv('你已经脱离门派了。'), SAY_COLOR_NORMAL);
                   Result := PROC_TRUE;
                end;

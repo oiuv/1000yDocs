@@ -293,6 +293,7 @@ type
      FSendClass : TSendClass;
      FAttribClass : TAttribClass;
      
+     procedure SetCurPowerLevel(aLevel: Integer);
      function  boKeepingMagic (pMagicData: PTMagicData): Boolean;
      function  boKeepingBestMagic (pMagicData: PTMagicData): Boolean; //2003-10
      procedure DecBreathngAttrib (pMagicData: PTMagicData);
@@ -447,7 +448,7 @@ type
      property  SetAddExpFlag : Boolean write boAddExp;
 
      property  PowerLevel : Integer read FPowerLevel;
-     property  CurPowerLevel : Integer read FCurPowerLevel write FCurPowerLevel;
+     property  CurPowerLevel : Integer read FCurPowerLevel write SetCurPowerLevel;
      property  PowerLevelName : String read FPowerLevelName;
      property  CurShield : Integer read FCurrentShield write FCurrentShield;
      property  MaxShield : Integer read FMaxShield;
@@ -4034,6 +4035,7 @@ begin
    aUser.InviteGuildMaster := '';
    Guild.Login(aUser.Name);
    aUser.BocChangeProperty;
+   UserList.RefreshGuildEnergy(Guild.GuildName);
    aUser.SendClass.SendChatMessage(Format(Conv('已加入%s门派。'), [GuildData^.Name]), SAY_COLOR_SYSTEM);
    UserList.GuildSay(Guild.GuildName, Format(Conv('%s通过推荐书加入了本门派。'), [aUser.Name]));
    Result := True;
@@ -6416,7 +6418,7 @@ begin
    FAttribClass.SetEnergyValue (PowerValue);
 
    FPowerLevel := MagicClass.CalcPowerLevel (PowerValue);
-   FCurPowerLevel := FPowerLevel;
+   CurPowerLevel := FPowerLevel;
 
    MaxShieldCalculate;
    FCurrentShield := FMaxShield;
@@ -9557,12 +9559,21 @@ begin
    end;  
 end;
 
+procedure THaveMagicClass.SetCurPowerLevel(aLevel: Integer);
+begin
+   if FCurPowerLevel = aLevel then Exit;
+   FCurPowerLevel := aLevel;
+   // 登录载入尚未加入在线列表，由上线流程统一广播。
+   if UserList.GetUserPointer(TUserObject(FBasicObject).Name) = FBasicObject then
+      UserList.RefreshGuildEnergy(TUserObject(FBasicObject).GuildName);
+end;
+
 function  THaveMagicClass.PowerLevelUP : Boolean;
 begin
    Result := false;
 
    if FCurPowerLevel = FPowerLevel then exit;
-   Inc (FCurPowerLevel);
+   CurPowerLevel := FCurPowerLevel + 1;
    FPowerLevelName := MagicClass.GetPowerLevelName (FCurPowerLevel);
    MaxShieldCalculate;
    
@@ -9580,7 +9591,7 @@ begin
 
    if FCurPowerLevel = 0 then exit;
 
-   Dec (FCurPowerLevel);
+   CurPowerLevel := FCurPowerLevel - 1;
    FPowerLevelName := MagicClass.GetPowerLevelName (FCurPowerLevel);
    MaxShieldCalculate;
    
@@ -15658,6 +15669,7 @@ begin
         StrPCopy (@TUser(FUser).BasicData.Guild, aUser.GuildName);
         aGuildObject.AddUser (TUser(FUser).Name);
         TUser(FUser).BocChangeProperty;
+        UserList.RefreshGuildEnergy(aGuildObject.GuildName);
         aGuildObject.BocSay(format (Conv('加入了%s'),[TUser(FUser).Name]));
    end else begin
         aGuildObject.BocSay(format (Conv('%s拒绝了你的加入门派邀请'),[TUser(FUser).Name]));

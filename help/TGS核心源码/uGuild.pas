@@ -109,8 +109,6 @@ type
       function    GetGuildSysop : String;
       function    SetGuildSysop (aName:String):String;
       function    GetGuildEnergyLevel:Byte;
-      function    AddGuildEnergy(aEnergyLevel:Byte):Byte;
-      function    DelGuildEnergy(aEnergyLevel:Byte):Byte;
 
       function    GetSelfData : PTCreateGuildData;
       function    GetGuildMagicString : String;
@@ -131,6 +129,7 @@ type
       procedure   Login (aName : String);
       procedure   Logout (aName : String);
       procedure   AddUser (aName : String);
+      function    LeaveGuild(aUser: TUser): Boolean;
       function    MakeGuildLetterFile (aName : String) : String;
 
       property    GuildName : String read FGuildName;
@@ -197,6 +196,8 @@ type
 var
    GuildList : TGuildList;
    ExitGuildList : TExitGuildList;
+
+function GuildMemberEnergy(aEnergyLevel: Integer): Integer;
 
 implementation
 
@@ -279,7 +280,7 @@ begin
     GuildInfo.rSubSysop0 := SelfData.SubSysop[0];
     GuildInfo.rSubSysop1 := SelfData.SubSysop[1];
     GuildInfo.rSubSysop2 := SelfData.SubSysop[2];
-    GuildInfo.rGuildEnergy := GuildEnergy;
+     GuildEnergy := UserList.GetGuildEnergy(GuildName);
     GuildInfo.rGuildEnergy := GuildEnergy;
     GuildInfo.rGuildMember := GuildUserList.GetGuildCount;
     Result := GuildInfo;
@@ -397,57 +398,32 @@ begin
     end;
 end;
 
+function GuildMemberEnergy(aEnergyLevel: Integer): Integer;
+const Weights: array[1..13] of Integer = (0,1,2,4,8,12,16,20,24,30,36,48,72);
+begin
+   Result := 0;
+   if (aEnergyLevel >= Low(Weights)) and (aEnergyLevel <= High(Weights)) then
+      Result := Weights[aEnergyLevel];
+end;
+
 function TGuildObject.GetGuildEnergyLevel:Byte;
 begin
-    case GuildEnergy of
-      0..400 : result := 1;
-      401..800 : result := 2;
-      801..1200: result := 3;
-      1201..1800: result := 4;
-      1801..2600: result := 5;
-      2601..3600: result := 6;
-      3601..4800: result := 7;
-      4801..6200: result := 8;
-      6201..7800: result := 9;
-      7801..9600: result := 10;
-    end;
+   GuildEnergy := UserList.GetGuildEnergy(GuildName);
+   case GuildEnergy of
+      0..400: Result := 1;
+      401..800: Result := 2;
+      801..1200: Result := 3;
+      1201..1800: Result := 4;
+      1801..2600: Result := 5;
+      2601..3600: Result := 6;
+      3601..4800: Result := 7;
+      4801..6200: Result := 8;
+      6201..7800: Result := 9;
+   else
+      Result := 10;
+   end;
 end;
 
-function TGuildObject.AddGuildEnergy(aEnergyLevel:Byte):Byte;
-begin
-            Case aEnergyLevel of
-                2: Inc(aEnergyLevel , 1);
-                3: Inc(aEnergyLevel , 2);
-                4: Inc(aEnergyLevel , 4);
-                5: Inc(aEnergyLevel , 8);
-                6: Inc(aEnergyLevel , 12);
-                7: Inc(aEnergyLevel , 16);
-                8: Inc(aEnergyLevel , 20);
-                9: Inc(aEnergyLevel , 24);
-                10: Inc(aEnergyLevel , 30);
-                11: Inc(aEnergyLevel , 36);
-                12: Inc(aEnergyLevel , 48);
-                13: Inc(aEnergyLevel , 72);
-            end;
-end;
-
-function TGuildObject.DelGuildEnergy(aEnergyLevel:Byte):Byte;
-begin
-            Case aEnergyLevel of
-                2: Dec(aEnergyLevel , 1);
-                3: Dec(aEnergyLevel , 2);
-                4: Dec(aEnergyLevel , 4);
-                5: Dec(aEnergyLevel , 8);
-                6: Dec(aEnergyLevel , 12);
-                7: Dec(aEnergyLevel , 16);
-                8: Dec(aEnergyLevel , 20);
-                9: Dec(aEnergyLevel , 24);
-                10: Dec(aEnergyLevel , 30);
-                11: Dec(aEnergyLevel , 36);
-                12: Dec(aEnergyLevel , 48);
-                13: Dec(aEnergyLevel , 72);
-            end;
-end;
 
 
 function TGuildObject.IsGuildNpc (aName : String) : Boolean;
@@ -908,30 +884,7 @@ begin
                Bo := GetViewObjectByName (sayer, RACE_HUMAN);
                if Bo = nil then exit;
                if not (Bo is TUser) then exit;
-               if SelfData.Sysop = TUser(Bo).Name then begin
-                   BocSay (Conv('门主退出门派前，请先让位。'));
-                   exit;
-               end;
-               ItemClass.GetItemData(Conv('钱币'),ItemData);
-               ItemData.rCount := 10000;
-               Inc(Bank,10000);
-               if Not TUser(Bo).DeleteItem(@ItemData) then begin
-                    BocSay (Conv('没有足够的钱币，退门失败'));
-                    Exit;
-               end;
-               for i := 0 to 3-1 do begin
-                    if SelfData.SubSysop[i] = TUser(Bo).Name then begin
-                        SelfData.SubSysop[i] := '';
-                        Break;
-                    end;
-               end;
-               ExitGuildList.AddExitUser(TUser(Bo).Name ,GuildName);
-               Logout (sayer);
-               TUser(Bo).GuildName := '';
-               TUser(Bo).GuildGrade := '';
-               StrPCopy(@TUser(Bo).BasicData.Guild, '');
-               TUser(Bo).BocChangeProperty;
-               BocSay (TUser(Bo).Name + Conv('已经逃脱了。'));
+               LeaveGuild(TUser(Bo));
                exit;
             end;
 
@@ -1005,6 +958,7 @@ begin
                  StrPCopy (@TUser(Bo).BasicData.Guild, SelfData.Name);
                  GuildUserList.AddUser (objectname);
                  TUser(Bo).BocChangeProperty;
+                 UserList.RefreshGuildEnergy(GuildName);
                  BocSay (format (Conv('加入了%s'),[objectname]));
                end;
             end;
@@ -1557,6 +1511,41 @@ end;
 procedure TGuildObject.AddUser (aName : String);
 begin
     GuildUserList.AddUser(aName);
+end;
+
+function TGuildObject.LeaveGuild(aUser: TUser): Boolean;
+var
+   ItemData: TItemData;
+   i: Integer;
+begin
+   Result := False;
+   if aUser = nil then Exit;
+   // 防止重复退派或在其它门派石旁误扣费用。
+   if (SelfData.Name = '') or (aUser.GuildName <> SelfData.Name) then Exit;
+   if SelfData.Sysop = aUser.Name then begin
+      BocSay(Conv('门主退出门派前，请先让位。'));
+      Exit;
+   end;
+   ItemClass.GetItemData(Conv('钱币'), ItemData);
+   ItemData.rCount := 10000;
+   if not aUser.DeleteItem(@ItemData) then begin
+      BocSay(Conv('没有足够的钱币，退门失败'));
+      Exit;
+   end;
+   Inc(Bank, 10000);
+   GuildUserList.DelUser(aUser.Name);
+   for i := 0 to MAX_SUBSYSOP_COUNT - 1 do
+      if SelfData.SubSysop[i] = aUser.Name then SelfData.SubSysop[i] := '';
+   ExitGuildList.AddExitUser(aUser.Name, GuildName);
+   Logout(aUser.Name);
+   aUser.GuildName := '';
+   aUser.GuildGrade := '';
+   StrPCopy(@aUser.BasicData.Guild, '');
+   aUser.BocChangeProperty;
+   aUser.SendClass.SendGuildEnergy(0);
+   UserList.RefreshGuildEnergy(GuildName);
+   BocSay(aUser.Name + Conv('已经逃脱了。'));
+   Result := True;
 end;
 
 function TGuildObject.MakeGuildLetterFile (aName : String) : String;

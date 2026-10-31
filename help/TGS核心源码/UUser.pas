@@ -593,6 +593,8 @@ type
      // add by Orber at 2005-01-12 04:31:10
      procedure   SendGuildInfo (GuildInfo : TSGuildListInfo);
      procedure   SendGuildEnergy(aGuildName : String; aGuildEnergyLevel : Byte);
+     procedure   RefreshGuildEnergy(const aGuildName: string);
+     function    GetGuildEnergy(const aGuildName: string): Integer;
      procedure   SendShowDynamicObject(SenderInfo : TBasicData);
      procedure   SendHideDynamicObject(SenderInfo : TBasicData);
 
@@ -4708,10 +4710,6 @@ begin
         GuildObject := GuildList.GetObjectByID(i);
         Move(GuildObject.BasicData.Name,GuildInfo.rGuildName[GuildObject.GuildType - 50],SizeOf(GuildObject.BasicData.Name));
         GuildInfo.rGuildID[GuildObject.GuildType - 50] := GuildObject.GuildType;
-        if GuildObject.GuildName = GuildName then begin
-            GuildObject.AddGuildEnergy(HaveMagicClass.CurPowerLevel);
-            SendClass.SendGuildEnergy(GuildObject.GetGuildEnergyLevel);
-        end;
    end;
    SendClass.SendGuildInfo(GuildInfo);
 
@@ -10803,6 +10801,10 @@ begin
 
    NameKey.Insert (aCharName, User);
    DataList.Add (User);
+   if GuildList.GetGuildObject(User.GuildName) <> nil then
+      RefreshGuildEnergy(User.GuildName)
+   else
+      User.SendClass.SendGuildEnergy(0);
 
    Result := true;
 end;
@@ -10825,11 +10827,13 @@ var
    i : integer;
    Name : String;
    User : TUser;
+   GuildObject: TGuildObject;
 begin
    for i := 0 to DataList.Count - 1 do begin
       User := DataList.Items [i];
       if User.Connector = aConnector then begin
          Name := User.Name;
+         GuildObject := GuildList.GetGuildObject(User.GuildName);
          if User.Manager <> nil then
             User.Manager.UserCount := User.Manager.UserCount - 1;
          User.FinalLayer;
@@ -10837,10 +10841,13 @@ begin
          User.Free;
          DataList.Delete (i);
          NameKey.Delete (Name);
+         if GuildObject <> nil then
+            SendGuildEnergy(GuildObject.GuildName, GuildObject.GetGuildEnergyLevel);
          exit;
       end;
       if User.Name = aConnector.CharacterName then begin
          Name := User.Name;
+         GuildObject := GuildList.GetGuildObject(User.GuildName);
          if User.Manager <> nil then
             User.Manager.UserCount := User.Manager.UserCount - 1;
          User.FinalLayer;
@@ -10848,6 +10855,8 @@ begin
          User.Free;
          DataList.Delete (i);
          NameKey.Delete (Name);
+         if GuildObject <> nil then
+            SendGuildEnergy(GuildObject.GuildName, GuildObject.GetGuildEnergyLevel);
          exit;
       end;
    end;
@@ -11046,6 +11055,19 @@ begin
    Result := NameKey.Select (aCharName);
 end;
 
+function TUserList.GetGuildEnergy (const aGuildName: string): Integer;
+var i: Integer;
+    User: TUser;
+begin
+   Result := 0;
+   if aGuildName = '' then Exit;
+   for i := 0 to DataList.Count - 1 do begin
+      User := DataList.Items[i];
+      if User.GuildName = aGuildName then
+         Inc(Result, GuildMemberEnergy(User.GetCurPowerLevel));
+   end;
+end;
+
 function TUserList.GetUserPointerById (aId: LongInt): TUser;
 var
    i : integer;
@@ -11212,6 +11234,15 @@ begin
       User := DataList.Items [i];
       User.SendClass.SendGuildInfo(GuildInfo);
    end;
+end;
+
+procedure TUserList.RefreshGuildEnergy(const aGuildName: string);
+var GuildObject: TGuildObject;
+begin
+   if aGuildName = '' then Exit;
+   GuildObject := GuildList.GetGuildObject(aGuildName);
+   if GuildObject <> nil then
+      SendGuildEnergy(aGuildName, GuildObject.GetGuildEnergyLevel);
 end;
 
 procedure TUserList.SendGuildEnergy (aGuildName : String; aGuildEnergyLevel : Byte);
