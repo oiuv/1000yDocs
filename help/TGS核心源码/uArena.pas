@@ -35,6 +35,7 @@ type
         WaitArenaCount : Word;
         LastSecond : Integer;
         PassSecond : Integer;
+        UpdateItemTick : Integer;
         MemberAmount : Integer;
    protected
    public
@@ -75,7 +76,6 @@ type
 
 var
    ArenaObjList : TArenaObjList;
-   UpdateItemTick :integer;
 
 implementation
 

@@ -1650,8 +1650,8 @@ begin
       //흡수치만큼 활력을 더 깍는다
       tmpLife := AttribClass.CurLife - aHitData.LifeStealValue;
       if tmpLife < 0 then begin
-         AttribClass.CurLife := 0;
          SubData.LifeStealValue := AttribClass.CurLife;
+         AttribClass.CurLife := 0;
       end else begin
          AttribClass.CurLife := tmpLife;
          SubData.LifeStealValue := aHitData.LifeStealValue;
@@ -1671,8 +1671,8 @@ begin
       tmpEnergy := AttribClass.CurEnergy - (decenergy * aHitData.EnergyStealValue div 100);
 
       if tmpEnergy < 0 then begin
-         AttribClass.CurEnergy := 0;
          SubData.EnergyStealValue := AttribClass.CurEnergy;
+         AttribClass.CurEnergy := 0;
       end else begin
          AttribClass.CurEnergy := tmpEnergy;
          SubData.EnergyStealValue := aHitData.EnergyStealValue;
