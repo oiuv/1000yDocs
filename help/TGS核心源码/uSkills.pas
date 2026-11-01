@@ -400,6 +400,7 @@ type
       function GetBuyItemString : String;
 
       procedure AddItembyName (aName : String; aCount : Integer);
+      function CheckItembyName (aName : String; aCount : Integer) : Boolean;
       function DelItembyName (aName : String; aCount : Integer) : Boolean;
    end;
 
@@ -4173,6 +4174,21 @@ begin
       pSaleData := SaleItemList.Items [i];
       if StrPas (@pSaleData^.rItem.rName) = aName then begin
          pSaleData^.rCount := pSaleData^.rCount + aCount;
+         exit;
+      end;
+   end;
+end;
+
+function TSaleSkill.CheckItembyName (aName : String; aCount : Integer) : Boolean;
+var
+   i : Integer;
+   pSaleData : PTSaleData;
+begin
+   Result := false;
+   for i := 0 to SaleItemList.Count - 1 do begin
+      pSaleData := SaleItemList.Items [i];
+      if StrPas (@pSaleData^.rItem.rName) = aName then begin
+         Result := (pSaleData^.rCount >= aCount) and (pSaleData^.rCount > 0);
          exit;
       end;
    end;

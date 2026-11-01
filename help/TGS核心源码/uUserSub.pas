@@ -2346,7 +2346,7 @@ begin
                   end;
                end;
             end;
-            ITEM_KIND_FILL : begin // 坷祸距荐
+            ITEM_KIND_FILL : begin // 五色药水
                if HaveItemArr[i].rDecTick + HaveItemArr[i].rDecDelay <= CurTick then begin
                   Dec (HaveItemArr[i].rCurDurability, HaveItemArr[i].rDecSize);
                   HaveItemArr[i].rDecTick := CurTick;
@@ -2357,7 +2357,7 @@ begin
                   end;
                end;
             end;
-            ITEM_KIND_GOLDBAG : begin       // 快吝按狼陛扯
+            ITEM_KIND_GOLDBAG : begin       // 雨中客锦囊
                if HaveItemArr[i].rDecTick + HaveItemArr[i].rDecDelay <= CurTick then begin
                   Dec (HaveItemArr[i].rCurDurability, HaveItemArr[i].rDecSize);
                   HaveItemArr[i].rDecTick := CurTick;
@@ -2370,7 +2370,7 @@ begin
                   end;
                end;
             end;
-            ITEM_KIND_DAGGEROFOS : begin    // 苛急狼公沥街档
+            ITEM_KIND_DAGGEROFOS : begin    // 玉仙的无情双刀
                if HaveItemArr[i].rDecTick + HaveItemArr[i].rDecDelay <= CurTick then begin
                   Dec (HaveItemArr[i].rCurDurability, HaveItemArr[i].rDecSize);
                   HaveItemArr[i].rDecTick := CurTick;
@@ -2383,7 +2383,7 @@ begin
                   end;
                end;
             end;
-            ITEM_KIND_DURABILITY : begin    // 郴备己乐绰 酒捞袍
+            ITEM_KIND_DURABILITY : begin    // Kind=51 耐久计时物品
                if HaveItemArr[i].rDecTick + HaveItemArr[i].rDecDelay <= CurTick then begin
                   Dec (HaveItemArr[i].rCurDurability, HaveItemArr[i].rDecSize);
                   HaveItemArr[i].rDecTick := CurTick;
@@ -2394,14 +2394,18 @@ begin
                   end;
                end;
             end;
-            ITEM_KIND_EIGHTANGLES : begin    // 迫阿鲍
+            ITEM_KIND_EIGHTANGLES : begin    // 八卦牌
                if HaveItemArr [i].rDecSize = 0 then exit;
                if HaveItemArr[i].rDecTick + HaveItemArr[i].rDecDelay <= CurTick then begin
                   Dec (HaveItemArr[i].rCurDurability, HaveItemArr[i].rDecSize);
                   HaveItemArr[i].rDecTick := CurTick;
                   if HaveItemArr[i].rCurDurability <= 0 then begin
                      FSendClass.SendChatMessage (format(Conv('%S已经磨损的再不能用了'), [StrPas (@HaveItemArr[i].rViewName)]), SAY_COLOR_SYSTEM);
-                     // 促 粹酒档 绝局柳 臼绰促.
+                     // 耐久耗尽也不删除，但停止提供属性加成。
+                     HaveItemArr[i].rCurDurability := 0;
+                     FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);
+                     SetEffectItemLifeData;
+                     SetLifeData;
                   end;
                end;
             end;
@@ -2416,7 +2420,7 @@ begin
                end;
             end;
             {
-            ITEM_KIND_SPECIALEFFECT : begin  // 酒捞袍芒俊 乐栏搁辑 漂喊茄 瓷仿阑 惯戎窍绰巴
+            ITEM_KIND_SPECIALEFFECT : begin  // 放在物品栏即可发挥特殊能力的物品
                if HaveItemArr [i].rDecSize = 0 then exit;
                if HaveItemArr[i].rDecTick + HaveItemArr[i].rDecDelay <= CurTick then begin
                   Dec (HaveItemArr[i].rCurDurability, HaveItemArr[i].rDecSize);
@@ -3265,7 +3269,7 @@ end;
 
 function  THaveItemClass.DeleteKeyItem (akey, aCount: integer; aItemData : PTItemData): Boolean;
 var
-   nCount, LimitCount : Integer;
+   ItemKind, LimitCount : Integer;
 begin
    Result := FALSE;
 
@@ -3289,37 +3293,29 @@ begin
 
    HaveItemArr[akey].rCount := HaveItemArr[akey].rCount - aCount;
    if HaveItemArr [aKey].rCount <= 0 then begin
+      ItemKind := HaveItemArr[aKey].rKind;
+      FillChar (HaveItemArr [aKey], SizeOf (TItemData), 0);
       if FAttribClass <> nil then begin
-         Case HaveItemArr [akey].rKind of
+         Case ItemKind of
             ITEM_KIND_CHARM : FboAttribData := true;
             ITEM_KIND_SUBITEM : begin
-               nCount := FindAllItembyKind (ITEM_KIND_SUBITEM);
-               if nCount = 1 then begin
-                  FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                  //SetEffectItemLifeData;
-                  SetLifeData;
-               end;
+               SetEffectItemLifeData;
+               SetLifeData;
             end;
             ITEM_KIND_WATERCASE : WaterCaseItemCount := 0;
             ITEM_KIND_FILL : FillItemCount := 0;
             ITEM_KIND_SPECIALEFFECT : begin
-               nCount := FindAllItembyKind (ITEM_KIND_SPECIALEFFECT);
-               if nCount = 1 then begin
-                  FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                  //SetEffectItemLifeData;
-                  SetLifeData;
-               end;
+               SetEffectItemLifeData;
+               SetLifeData;
             end;
             ITEM_KIND_EIGHTANGLES : begin
-               FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 迫阿鲍
-               FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-               //SetEffectItemLifeData;
+               FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 八卦牌
+               SetEffectItemLifeData;
                SetLifeData;
             end;
          end;
       end;
 
-      FillChar (HaveItemArr [aKey], SizeOf (TItemData), 0);
    end;
 
    FSendClass.SendHaveItem (aKey, HaveItemArr[akey]);
@@ -3330,7 +3326,7 @@ end;
 function THaveItemClass.DeleteItem (aIndex : integer) :Boolean;
 var
    aItemData : PTItemData;
-   nCount, LimitCount : Integer;
+   ItemKind, LimitCount : Integer;
 begin
    Result := false;
    if ( aIndex > HAVEITEMSIZE - 1 ) or ( aIndex < 0 ) then exit;
@@ -3352,36 +3348,28 @@ begin
       end;
    end;
 
+   ItemKind := HaveItemArr[aIndex].rKind;
+   FillChar (HaveItemArr[aIndex], sizeof(TItemData), 0);
    if FAttribClass <> nil then begin
-      Case HaveItemArr [aIndex].rKind of
+      Case ItemKind of
          ITEM_KIND_CHARM : FboAttribData := true;
          ITEM_KIND_SUBITEM : begin
-            nCount := FindAllItembyKind (ITEM_KIND_SUBITEM);
-            if nCount = 1 then begin
-               FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-               //SetEffectItemLifeData;
-               SetLifeData;
-            end;
+            SetEffectItemLifeData;
+            SetLifeData;
          end;
          ITEM_KIND_WATERCASE : WaterCaseItemCount := 0;
          ITEM_KIND_FILL : FillItemCount := 0;
          ITEM_KIND_SPECIALEFFECT : begin
-            nCount := FindAllItembyKind (ITEM_KIND_SPECIALEFFECT);
-            if nCount = 1 then begin
-               FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-               //SetEffectItemLifeData;
-               SetLifeData;
-            end;
+            SetEffectItemLifeData;
+            SetLifeData;
          end;
          ITEM_KIND_EIGHTANGLES : begin
-            FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 迫阿鲍
-            FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-            //SetEffectItemLifeData;
+            FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 八卦牌
+            SetEffectItemLifeData;
             SetLifeData;
          end;
       end;
    end;
-   FillChar (HaveItemArr[aIndex], sizeof(TItemData), 0);
    FSendClass.SendHaveItem (aIndex, HaveItemArr[aIndex]);
 end;
 
@@ -3460,7 +3448,7 @@ end;
 
 function  THaveItemClass.DeleteItem (aItemData: PTItemData): Boolean;
 var
-   i, LimitCount : integer;
+   i, ItemKind, LimitCount : integer;
 begin
    Result := FALSE;
 
@@ -3484,31 +3472,29 @@ begin
                      end;
                   end;
 
-                  Case HaveItemArr [i].rKind of
+                  ItemKind := HaveItemArr[i].rKind;
+                  HaveItemArr[i].rCount := HaveItemArr[i].rCount - aItemData.rCount;
+                  if HaveItemArr[i].rCount = 0 then begin
+                     FillChar (HaveItemArr[i], sizeof(TItemData), 0);
+                  end;
+
+                  Case ItemKind of
                      ITEM_KIND_CHARM : FboAttribData := true;
                      ITEM_KIND_SUBITEM : begin
-                        FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                        //SetEffectItemLifeData;
+                        SetEffectItemLifeData;
                         SetLifeData;
                      end;
                      ITEM_KIND_WATERCASE : WaterCaseItemCount := 0;
                      ITEM_KIND_FILL : FillItemCount := 0;
                      ITEM_KIND_SPECIALEFFECT : begin
-                        FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                        //SetEffectItemLifeData;
+                        SetEffectItemLifeData;
                         SetLifeData;
                      end;
                      ITEM_KIND_EIGHTANGLES : begin
-                        FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 迫阿鲍
-                        FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                        //SetEffectItemLifeData;
+                        FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 八卦牌
+                        SetEffectItemLifeData;
                         SetLifeData;
                      end;
-                  end;
-               
-                  HaveItemArr[i].rCount := HaveItemArr[i].rCount - aItemData.rCount;
-                  if HaveItemArr[i].rCount = 0 then begin
-                     FillChar (HaveItemArr[i], sizeof(TItemData), 0);
                   end;
 
                   FSendClass.SendHaveItem (i, HaveItemArr[i]);
@@ -3523,7 +3509,7 @@ end;
 
 function THaveItemClass.DeleteItembyName (aItemData : PTItemData) : Boolean;
 var
-   i, LimitCount : integer;
+   i, ItemKind, LimitCount : integer;
 begin
    Result := FALSE;
 
@@ -3544,30 +3530,29 @@ begin
                end;
             end;
 
-            Case HaveItemArr [i].rKind of
+            ItemKind := HaveItemArr[i].rKind;
+            HaveItemArr[i].rCount := HaveItemArr[i].rCount - aItemData.rCount;
+            if HaveItemArr[i].rCount = 0 then begin
+               FillChar (HaveItemArr[i], sizeof(TItemData), 0);
+            end;
+
+            Case ItemKind of
                ITEM_KIND_CHARM : FboAttribData := true;
                ITEM_KIND_SUBITEM : begin
-                  FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                  //SetEffectItemLifeData;
+                  SetEffectItemLifeData;
                   SetLifeData;
                end;
                ITEM_KIND_WATERCASE : WaterCaseItemCount := 0;
                ITEM_KIND_FILL : FillItemCount := 0;
                ITEM_KIND_SPECIALEFFECT : begin
-                  FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-                  //SetEffectItemLifeData;
-                  SetLifeData;
-               end;
-               ITEM_KIND_EIGHTANGLES : begin
-                  FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 迫阿鲍
                   SetEffectItemLifeData;
                   SetLifeData;
                end;
-            end;
-
-            HaveItemArr[i].rCount := HaveItemArr[i].rCount - aItemData.rCount;
-            if HaveItemArr[i].rCount = 0 then begin
-               FillChar (HaveItemArr[i], sizeof(TItemData), 0);
+               ITEM_KIND_EIGHTANGLES : begin
+                  FillChar (AddAttribLifeData, sizeof(TRealAddAttribData), 0);   // 八卦牌
+                  SetEffectItemLifeData;
+                  SetLifeData;
+               end;
             end;
 
             FSendClass.SendHaveItem (i, HaveItemArr[i]);
@@ -5820,14 +5805,8 @@ begin
       FSendClass.SendWearItem (ARR_HAIR, WearItemArr[ARR_HAIR]);
    end;
 
-   if akey = ARR_WEAPON then begin
-      if WearitemArr [aKey].rAttribute = ITEM_ATTRIBUTE_TAEGUK then begin
-         FillChar (FAttribClass.HaveItemLifeData, SizeOf (TLifeData), 0);
-         //FHaveItemClass.SetEffectItemLifeData;
-      end;
-   end;
-
    FillChar (WearItemArr[akey], sizeof(TItemData), 0);
+   if aKey = ARR_WEAPON then FHaveItemClass.SetEffectItemLifeData;
    FSendClass.SendWearItem (akey, WearItemArr[akey]);
    FBasicObject.BasicData.Feature := GetFeature;
    FBasicObject.SendLocalMessage (NOTARGETPHONE, FM_CHANGEFEATURE, FBasicObject.BasicData, SubData);
@@ -7768,7 +7747,7 @@ begin
       FSendClass.SendChatMessage (StrPas (@FpCurProtectingMagic^.rName) + ' ' + Conv ('终止'), SAY_COLOR_SYSTEM);
       ReQuestPlaySoundNumber := FpCurProtectingMagic.rSoundEnd.rWavNumber;
 
-      if aMagic = FpCurProtectingMagic then begin
+      if (aMagic = FpCurProtectingMagic) or (aMagic = nil) then begin
          if (FpCurProtectingMagic^.rMagicClass = MAGICCLASS_BESTMAGIC) and
             (FpCurEctMagic <> nil) and (FpCurEctMagic^.rMagicClass = MAGICCLASS_BESTMAGIC) then begin
                if FpCurEctMagic^.rRelationMagic = TYPE_MAGICRELATION_BESTPROTECT then SetEctMagic(nil);
@@ -13431,7 +13410,7 @@ begin
             if tmpItemData.rName [0] = 0 then exit;
             tmpItemData.rCount := Price;
 
-            if (tmpItemData.rLockState <> 0) then begin
+            if (ItemData.rLockState <> 0) then begin
                FSendClass.SendChatMessage (Conv('物品锁定中,无法交易.'), SAY_COLOR_SYSTEM);
                exit;
             end;
@@ -13538,7 +13517,7 @@ begin
             if tmpItemData.rName [0] = 0 then exit;
             tmpItemData.rCount := Price;
 
-            if (tmpItemData.rLockState <> 0) then begin
+            if (ItemData.rLockState <> 0) then begin
                FSendClass.SendChatMessage (Conv('物品锁定中,无法交易.'), SAY_COLOR_SYSTEM);
                exit;
             end;
@@ -14707,7 +14686,7 @@ begin
                   if SaleItemList <> nil then begin
                      for i := 0 to SaleItemList.Count - 1 do begin
                         pCheckItem := SaleItemList.Items [i];
-                        if TNpc (SaleNpc).SaleSkill.DelItembyName (StrPas (@pCheckItem^.rName), pCheckItem^.rCount) = false then begin
+                        if TNpc (SaleNpc).SaleSkill.CheckItembyName (StrPas (@pCheckItem^.rName), pCheckItem^.rCount) = false then begin
                            FSendClass.SendChatMessage (Conv('数量不足'), SAY_COLOR_SYSTEM); 
                            FhaveItemClass.Refresh;
                            CopyHaveItem.Free;
@@ -14719,6 +14698,11 @@ begin
                            SaleNpc := nil;
                            exit;
                         end;
+                     end;
+                     // Check the whole order before changing shared NPC stock.
+                     for i := 0 to SaleItemList.Count - 1 do begin
+                        pCheckItem := SaleItemList.Items [i];
+                        TNpc (SaleNpc).SaleSkill.DelItembyName (StrPas (@pCheckItem^.rName), pCheckItem^.rCount);
                      end;
                   end;
                end;
@@ -15791,36 +15775,37 @@ end;
 
 procedure TShowWindowClass.SelectInputGuildSubSysopWindow (aData : PChar);
 var
-  pcSelectHelpWindow : PTCSelectHelpWindow;
-  Selectkey : String;
-  GuildSysop : String;
-  GuildObject : TGuildObject;
-  aUser : TUser;
+   SelectKey, GuildName, GuildSysop: String;
+   GuildObject: TGuildObject;
+   aUser: TUser;
 begin
-   pcSelectHelpWindow := PTCSelectHelpWindow (aData);
-
-   SelectKey := GetWordString (pCSelectHelpWindow^.rSelectKey);
-
-   if ( FCurrentWindow <> swk_none ) and ( FCurrentWindow <> swk_guildsubsysop ) then exit;
+   if FCurrentWindow <> swk_guildsubsysop then Exit;
+   SelectKey := GetWordString(PTCSelectHelpWindow(aData)^.rSelectKey);
+   GuildName := TUser(FUser).PreGuildTransferGuild;
+   GuildSysop := TUser(FUser).PreGuildTransferChief;
+   TUser(FUser).PreGuildTransferGuild := '';
+   TUser(FUser).PreGuildTransferChief := '';
    FCurrentWindow := swk_none;
    FCurrentSubType := sst_none;
+
+   if (GuildName = '') or (GuildSysop = '') then Exit;
+   if TUser(FUser).GuildName <> GuildName then Exit;
+   GuildObject := GuildList.GetGuildObject(GuildName);
+   if GuildObject = nil then Exit;
+   if GuildObject.GetGuildSysop <> GuildSysop then Exit;
+   if not GuildObject.IsGuildSubSysop(TUser(FUser).Name) then Exit;
+   if not GuildObject.IsGuildUser(TUser(FUser).Name) then Exit;
+   aUser := UserList.GetUserPointer(GuildSysop);
    if SelectKey = 'no' then begin
-        GuildObject := GuildList.GetGuildObject(TUser(FUser).GuildName);
-        GuildSysop := GuildObject.GetGuildSysop;
-        aUser := UserList.GetUserPointer(GuildSysop);
-        if aUser =  nil then exit;
-        aUser.SSendChatMessage (Conv('副门主拒绝了你的让位要求'), SAY_COLOR_SYSTEM);
-        exit;
+      if aUser <> nil then
+         aUser.SSendChatMessage(Conv('副门主拒绝了你的让位要求'), SAY_COLOR_SYSTEM);
+      Exit;
    end;
-   if SelectKey = 'yes' then begin
-        GuildObject := GuildList.GetGuildObject(TUser(FUser).GuildName);
-        GuildSysop := GuildObject.GetGuildSysop;
-        GuildObject.SetGuildSysop(TUser(FUser).Name);
-        aUser := UserList.GetUserPointer(GuildSysop);
-        if aUser <>  nil then aUser.SSendChatMessage (Conv('副门主接受了你的让位要求'), SAY_COLOR_SYSTEM);
-        UserList.GuildSay(TUser(FUser).GuildName,format(Conv('%s门主改为%s'),[TUser(FUser).GuildName,TUser(FUser).Name]));
-        exit;
-   end;
+   if SelectKey <> 'yes' then Exit;
+   GuildObject.SetGuildSysop(TUser(FUser).Name);
+   if aUser <> nil then
+      aUser.SSendChatMessage(Conv('副门主接受了你的让位要求'), SAY_COLOR_SYSTEM);
+   UserList.GuildSay(GuildName, Format(Conv('%s门主改为%s'), [GuildName, TUser(FUser).Name]));
 end;
 
 procedure TShowWindowClass.SelectInputArenaWindow (aData : PChar);
@@ -15881,36 +15866,40 @@ end;
 procedure TShowWindowClass.SelectInputGuildMoneyApplyWindow (aData : PChar);
 var
    pcSelectHelpWindow : PTCSelectHelpWindow;
-   Selectkey : String;
+   Selectkey, ApplicantName : String;
     GuildObject : TGuildObject;
     GuildUser : PTGuildUserData;
-    ItemData : TItemData;
+    ItemData, MoneyChip : TItemData;
     aUser : TUser;
 begin
    pcSelectHelpWindow := PTCSelectHelpWindow (aData);
 
    SelectKey := GetWordString (pCSelectHelpWindow^.rSelectKey);
 
-   if ( FCurrentWindow <> swk_none ) and ( FCurrentWindow <> swk_guildinfo ) then exit;
+   if FCurrentWindow <> swk_guildinfo then Exit;
+   ApplicantName := TUser(FUser).PreGuildMoneyApplyer;
+   TUser(FUser).PreGuildMoneyApplyer := '';
    FCurrentWindow := swk_none;
    FCurrentSubType := sst_none;
+   if ApplicantName = '' then Exit;
    if SelectKey = 'no' then begin
-        aUser := UserList.GetUserPointer(TUser(FUser).PreGuildMoneyApplyer);
-        aUser.SSendChatMessage (Conv('门主拒绝了你的提款要求'), SAY_COLOR_SYSTEM);
-        TUser(FUser).PreGuildMoneyApplyer := '';
+        aUser := UserList.GetUserPointer(ApplicantName);
+        if aUser <> nil then
+            aUser.SSendChatMessage (Conv('门主拒绝了你的提款要求'), SAY_COLOR_SYSTEM);
         exit;
    end;
    if SelectKey = 'yes' then begin
-        aUser := UserList.GetUserPointer(TUser(FUser).PreGuildMoneyApplyer);
+        aUser := UserList.GetUserPointer(ApplicantName);
         if aUser = nil then begin
             TUser(FUser).SSendChatMessage(Conv('对方已经下线，无法完成提款'), SAY_COLOR_SYSTEM);
-            TUser(FUser).PreGuildMoneyApplyer := '';
             Exit;
         end;
-        TUser(FUser).PreGuildMoneyApplyer := '';
         GuildObject := GuildList.GetGuildObject(TUser(FUser).GuildName);
+        if GuildObject = nil then Exit;
+        if not GuildObject.IsGuildSysop(TUser(FUser).Name) then Exit;
+        if aUser.GuildName <> TUser(FUser).GuildName then Exit;
         GuildUser := GuildObject.GetUser(aUser.Name);
-        if  GuildUser^.rName = '' then begin
+        if GuildUser = nil then begin
             aUser.SSendChatMessage (Conv('你可能还没有加入该门派'), SAY_COLOR_SYSTEM);
             Exit;
         end;
@@ -15928,10 +15917,16 @@ begin
         end;
         ItemClass.GetItemData(Conv('门派钱令'),ItemData);
         ItemData.rCount := 1;
+        MoneyChip := ItemData;
         if aUser.DeleteItem(@ItemData) then begin
             ItemClass.GetItemData(Conv('钱币'),ItemData);
             ItemData.rCount := GuildUser^.rMoneyChip;
-            aUser.AddItem(ItemData);
+            if not aUser.AddItem(ItemData) then begin
+                // 钱令已腾出一个背包格，发钱失败时原路退回。
+                aUser.AddItem(MoneyChip);
+                aUser.SSendChatMessage(Conv('无法携带更多钱币，钱令已退回。'), SAY_COLOR_SYSTEM);
+                Exit;
+            end;
             Inc(GuildUser^.rLoadMoney,GuildUser^.rMoneyChip);
             Dec(GuildObject.Bank,GuildUser^.rMoneyChip);
             aUser.SSendChatMessage(Conv('你已经被获准提取门派银行的') +

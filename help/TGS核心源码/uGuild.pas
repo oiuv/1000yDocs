@@ -202,7 +202,7 @@ function GuildMemberEnergy(aEnergyLevel: Integer): Integer;
 implementation
 
 uses
-   SVMain, FSockets, uCharCheck;
+   SVMain, FSockets, uCharCheck, uUserSub;
 
 ////////////////////////////////////////////////////
 //
@@ -868,6 +868,13 @@ begin
                         Exit;
                     end;
 
+                    if aUser.GetCurrentWindow <> swk_none then begin
+                        BocSay(Conv('对方正在使用其它窗口，请稍后再试。'));
+                        Exit;
+                    end;
+                    aUser.PreGuildTransferGuild := GuildName;
+                    aUser.PreGuildTransferChief := SelfData.Sysop;
+                    aUser.SetCurrentWindow(swk_guildsubsysop, sst_none);
                     aUser.SendClass.SendShowGuildSubSysopWindow(Conv('门主希望将门主之位让位给你'));
                     BocSay ( format (Conv('正在向%s发送让位消息'),[Str2]));
                     exit;
@@ -907,8 +914,10 @@ begin
 
             str := GetwordString (aSubData.SayString);
             if ReverseFormat (str, '%s: ', sayer, str2, str3, 1) then begin
-               if (sayer <> SelfData.Sysop) and (sayer <> SelfData.SubSysop[0])
-                  and (sayer <> SelfData.SubSysop[1]) and (sayer <> SelfData.SubSysop[2]) then exit;
+               if (sayer <> SelfData.Sysop) and
+                  ((not IsGuildSubSysop(sayer)) or
+                   (StrPas(@SenderInfo.Guild) <> SelfData.Name) or
+                   (not GuildUserList.IsGuildUser(sayer))) then Exit;
             end;
 
             if ReverseFormat (str, Conv('%s: 攻击%s'), sayer, objectname, str3, 2) then begin
@@ -968,7 +977,9 @@ begin
                     Exit;
                end;
                if GuildUserList.DelUser (objectname) then begin
-                   ExitGuildList.AddExitUser(TUser(Bo).Name ,GuildName);
+                  for i := 0 to MAX_SUBSYSOP_COUNT - 1 do
+                     if SelfData.SubSysop[i] = objectname then SelfData.SubSysop[i] := '';
+                  ExitGuildList.AddExitUser(objectname, GuildName);
                   Logout (objectname);
                   BocSay (format (Conv('脱离%s'),[objectname]));
                   SubData.ServerId := Manager.ServerId;

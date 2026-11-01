@@ -350,6 +350,7 @@ type
 
   // add by Orber at 2005-01-12 00:23:31
      PreGuildMoneyApplyer : String;
+     PreGuildTransferGuild, PreGuildTransferChief : String;
   // add by Orber at 2005-02-28 16:07:44
      aSetGuildStoneName : String[20];
      InviteGuildMaster : String;
@@ -6042,6 +6043,7 @@ begin
               end
               else
               begin
+                FillChar(TeamMemberList, SizeOf(TeamMemberList), 0);
                 for i := 0 to 7 do
                 begin
                   if i > MAX_TEAM_MEMBER then
@@ -9800,16 +9802,14 @@ begin
     ShowWindowClass.ShowInputMoneyChip(Conv('请输入希望从门派银行提取的金额'));
 end;
 
-function  TUser.GuildApplyMoney (aUser:String;aMoneyChip:integer):Boolean;
+function TUser.GuildApplyMoney(aUser: String; aMoneyChip: Integer): Boolean;
 begin
-
-    if PreGuildMoneyApplyer <> '' then begin
-        Result := False;
-        Exit;
-    end;
-    PreGuildMoneyApplyer := aUser;
-    ShowWindowClass.ShowGuildApplyMoney(Conv('门员')+aUser+Conv('申请')+IntToStr(aMoneyChip)+Conv('钱币，是否同意？'),aUser);
-    Result := True;
+   Result := False;
+   if ShowWindowClass.CurrentWindow <> swk_none then Exit;
+   ShowWindowClass.ShowGuildApplyMoney(Conv('门员') + aUser + Conv('申请') +
+      IntToStr(aMoneyChip) + Conv('钱币，是否同意？'), aUser);
+   Result := (ShowWindowClass.CurrentWindow = swk_guildinfo) and
+      (PreGuildMoneyApplyer = aUser);
 end;
 
 procedure TUser.ShowUnMarry(aHelpText:String);
@@ -11585,20 +11585,19 @@ end;
 function TGameTeam.GetMemberPosStr(AName: String): String;
 var
   i: Integer;
-  Str: String;
+  Requester, Member: TUser;
 begin
-  Str := '';
+  Result := '';
+  Requester := FindMember(AName);
+  if Requester = nil then Exit;
   for i := 0 to MemberCount - 1 do
   begin
-    if Str <> '' then
-      Str := Str + ',';
-    if AName <> FindMember(i).Name then
-    begin
-    Str := Str + format('%s:%d:%d:%d', [FindMember(i).Name,
-        FindMember(i).BasicData.X, FindMember(i).BasicData.Y, 34512]);
-    end;
+    Member := FindMember(i);
+    if (Member = Requester) or (Member.Manager <> Requester.Manager) then Continue;
+    if Result <> '' then Result := Result + ',';
+    Result := Result + Format('%s:%d:%d:%d', [Member.Name,
+      Member.BasicData.X, Member.BasicData.Y, 34512]);
   end;
-  Result := Str;
 end;
 
 procedure TGameTeam.InsideInfomation(AInfo: string);
