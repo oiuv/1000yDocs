@@ -34,6 +34,8 @@
 
 ## 物品与拒绝条件
 
+年龄值使用界面岁数的 100 倍，例如 `NeedAge=4000` 表示 40.00 岁。普通门的[年龄与物品条件](CreateGate.SDB.md#年龄与物品条件)可用于对照概念；本表不加载 `OverAge`、`LimitAge`、`DelItem` 或 `boRemainItem`，不能照搬普通门的配置组合。
+
 - 门未激活时先弹回，不进入物品检查。
 - `NeedAge>0` 且年龄不足、达到 `AgeNeedItem>0` 时，按配置数量检查有效的 `NeedItem`，全部通过后立即逐项删除；扩展门没有普通门的 `boRemainItem` 保留开关。配置中不存在的物品名会被跳过，应使用有效名称和正数量。
 - 达到 `NeedAge` 的玩家不需要这些物品；`NeedAge=0` 时也不会单独检查 `NeedItem`。不能照搬普通门“只填 NeedItem”的用法。

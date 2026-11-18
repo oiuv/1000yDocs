@@ -18,14 +18,14 @@
 | MapId | Integer | 门所属 Manager/地图服务器编号，用于查找对象管理器 |
 | ServerId | Integer | 目标服务器/地图编号 |
 | Width | Integer | 门作用范围 |
-| LimitAge / OverAge | Integer | 年龄上限 / 年龄下限 |
+| LimitAge / OverAge | Integer | 年龄上限 / 年龄下限，边界包含在内；单位与用法见[年龄与物品条件](#年龄与物品条件) |
 | LimitPowerLevel | Integer | 进入后允许的最高境界 |
-| NeedAge / AgeNeedItem | Integer | 直接进入年龄 / 可凭 `NeedItem` 补充判断的最低年龄 |
+| NeedAge / AgeNeedItem | Integer | 免除 `NeedItem` 要求的年龄 / 不足该年龄时可凭物品进入的最低年龄 |
 | BelowEnergy / OverEnergy | Integer | 元气上限 / 下限，数值为界面元气的 100 倍：`Power >= BelowEnergy` 或 `Power < OverEnergy` 时拒绝进入；0 不启用对应限制 |
 | NeedItem | String | 进入所需物品，`物品:数量`，最多 5 组 |
 | DelItem | String | 进入时尝试删除的物品，最多 5 组 |
 | AddItem | String | `GATE_KIND_ORDERADDITEM` 奖励，最多 5 组 |
-| boRemainItem | Boolean | 年龄不足而凭物品进入时是否保留 `NeedItem` |
+| boRemainItem | Boolean | 仅控制年龄不足而凭物品进入时是否保留 `NeedItem`，不控制 `DelItem` |
 | Quest / QuestNOtice | Integer / String | 特殊任务条件及失败提示 |
 | RegenInterval / ActiveInterval | Integer | 重新激活间隔 / 激活持续时间，单位见下文 |
 | EjectNotice | String | 弹回时的提示文字 |
@@ -41,14 +41,7 @@
 - Shape 为item.atz中的形状，主要是8、69和70，也可以使用其它值
 - X、Y 均为 0 时使用 `RandomPos`；周期换点的适用类型和间隔组合见下文“随机入口位置”
 - LimitPowerLevel为境界限制，超过境界的玩家进入后境界被限制到该值
-- NeedAge 为直接进入年龄，年龄大于或等于该值即通过此项；否则进一步判断 AgeNeedItem 条件，并由 boRemainItem 决定是否删除物品
-- 如果没有设置NeedAge，只设置了AgeNeedItem是无效的
-- 符合NeedAge条件还会继续判断以下年龄限制
-  - LimitAge为年龄上限，超过该年龄无法进入
-  - OverAge为年龄下限，低于该年龄无法进入
-- NeedAge 为 0 时，NeedItem 逐项按名称检查是否存在，不核对配置数量，也不在此分支扣除物品；AgeNeedItem 不参与此分支
 - NeedItem、DelItem、AddItem最多可设置5种
-- DelItem 为通过前置检查后尝试删除的物品：数量大于 0 时按数量删除，数量为 0 时删除全部同名物品；删除返回值不作为进入条件
 - AddItem为GATE_KIND_ORDERADDITEM的奖励设置
 - Quest 值为 3 种：1=本地图存活怪物和 NPC 数均为 0，2=当前使用的步法修炼值至少 8501，3=年龄小于 20 岁。依据：[svClass.pas](TGS核心源码/svClass.pas) 的 `TQuestClass.CheckQuest1`、`CheckQuest2`、`CheckQuest3`
 - RegenInterval为传送门重新激活间隔，数值直接与 `mmAnsTick` 比较；`mmAnsTick` 每 10 ms 增加 1
@@ -130,6 +123,56 @@ ActiveInterval = 9000
 `Initial` 的随机选点不限定 `Kind`，但 `Update` 中上述周期换点路径仅位于 `Kind=0/1/2/6` 分支。不要将它直接套用到所有门类型。若同时设置正数 `RegenInterval`，到达重新激活条件时会先更新时间戳并跳过本轮换点；不能简单理解为“关闭多少秒，再随机开放多少秒”。
 
 依据：[BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateList.LoadFromFile`、`TGateObject.Initial/Update/StartProcess/EndProcess`。
+
+## 年龄与物品条件
+
+以下规则适用于本表的普通进入处理。扩展门使用另一套实现，见 [CreateGateEx.SDB 的物品与拒绝条件](CreateGateEx.SDB.md#物品与拒绝条件)。
+
+### 年龄字段与边界
+
+年龄字段使用**界面岁数的 100 倍**：`4000` 为 40.00 岁，`3999` 为 39.99 岁。年龄上下限填非负整数；空值或 0 不启用对应限制。
+
+| 字段 | 作用 | 边界与示例 |
+| --- | --- | --- |
+| `OverAge` | 硬性最低年龄 | 仅当角色年龄低于该值时拒绝；`4000` 允许 40.00 岁及以上 |
+| `LimitAge` | 硬性最高年龄 | 仅当角色年龄超过该值时拒绝；`6000` 允许 60.00 岁及以下 |
+| `NeedAge` | 达到后跳过该组 `NeedItem` 检查与自动扣除的年龄 | `4000` 表示满 40 岁免除这组物品要求，仍须通过其它条件 |
+| `AgeNeedItem` | 未达到 `NeedAge` 时，可凭物品进入的最低年龄 | 仅在 `NeedAge>0` 时参与判断；`2000` 配合 `NeedAge=4000` 表示 20.00～39.99 岁可凭物品进入 |
+
+单填 `NeedAge` 也会挡住未达龄角色，但达龄后会跳过 `NeedItem`，因此它不能代替“达到最低年龄后仍需持有门票”的普通年龄下限。只设置 `AgeNeedItem`、不启用 `NeedAge` 时，`AgeNeedItem` 不生效。
+
+### NeedItem 何时检查
+
+| 年龄配置与条件 | `NeedItem` 检查 | 本分支是否扣除 `NeedItem` |
+| --- | --- | --- |
+| `NeedAge=0` 或留空 | 通过普通年龄限制后，按名称检查是否持有，不核对配置数量 | 不扣；需要消耗时另配置 `DelItem` |
+| `NeedAge>0`，且 `AgeNeedItem>0`、`AgeNeedItem ≤ 角色年龄 < NeedAge` | 检查全部有效物品；正数量按配置检查，非正数量按 1 检查 | 全部通过且 `boRemainItem=FALSE` 时，扣除其中正数量项 |
+| `NeedAge>0`，且角色年龄 ≥ `NeedAge` | 跳过这组物品检查 | 不扣这组物品 |
+| 未达 `NeedAge`，且 `AgeNeedItem` 未启用或角色年龄低于它 | 不检查物品，直接拒绝进入 | 不扣 |
+
+`boRemainItem=TRUE` 表示在上述年龄凭物品分支中保留所需物品；空值按 `FALSE` 处理。它不改变检查是否执行，也不控制独立的 `DelItem`。
+
+`DelItem` 在其处理位置独立尝试删除：正数量调用指定数量删除，返回值不作为是否进入的判断。普通模式若需要至少 N 份物品（N>1），不能仅把 `NeedItem` 写成 `物品:N` 再依赖 `DelItem` 删除；应在具备明确数量校验的脚本等入口中检查并处理。
+
+**`DelItem` 数量 0 不是“扣 0 个”。**它调用 `DeleteAllItembyName`：在该函数支持的容器中，分别清理首个同名槽位的全部数量，不保证遍历所有同名槽位。容器范围、国家版本限制及多槽位示例见 [同名物品清理](../print/物品交易命令/getsenderallitem.md)。只消耗一张门票应使用明确的 `物品:1`。
+
+### 常用配置组合
+
+以下只列年龄与物品字段，仍须正确配置地图、坐标、门类型等其它字段。表中的“空”表示留空，不要将“空”字写入配置。
+
+| 字段 | 仅允许 40～60 岁，不收门票 | 满 40 岁，每次消耗一张传送符 | 满 20 岁可耗符进入，满 40 岁免该物品要求 |
+| --- | --- | --- | --- |
+| `OverAge` | `4000` | `4000` | 空 |
+| `LimitAge` | `6000` | 空 | 空 |
+| `NeedAge` | 空 | 空 | `4000` |
+| `AgeNeedItem` | 空 | 空 | `2000` |
+| `NeedItem` | 空 | `传送符:1` | `传送符:1` |
+| `DelItem` | 空 | `传送符:1` | 空 |
+| `boRemainItem` | 空 | 空 | `FALSE` |
+
+第二种组合中，`NeedItem` 只检查持有，`DelItem` 扣一张，不会重复扣除。第三种组合中，20.00～39.99 岁由年龄分支自动扣一张，40.00 岁起跳过该组物品要求；不要再填写相同的 `DelItem`，否则低龄分支可能扣两次，达龄角色也仍会执行独立删除。
+
+通过本节年龄与物品判断不等于一定传送成功，还须结合下列实际执行顺序。依据：[BasicObj.pas](TGS核心源码/BasicObj.pas) 的 `TGateObject.FieldProc`。
 
 ## 物品检查与扣除顺序
 

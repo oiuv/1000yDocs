@@ -21,6 +21,8 @@
 
 普通门、扩展门和多人投物物件分别从 `Setting/CreateGate.SDB`、`Setting/CreateGateEx.SDB`、`Setting/CreateGroupMove.SDB` 加载；TGS 启动时分别创建对应列表。三个表的字段和对象类不能互换，也不是给普通门换一个 `Kind` 就能启用所有机制。
 
+配置年龄和门票时，查阅普通门的[年龄字段、物品检查条件与配置示例](CreateGate.SDB.md#年龄与物品条件)、[实际扣除顺序](CreateGate.SDB.md#物品检查与扣除顺序)，以及扩展门的[物品与拒绝条件](CreateGateEx.SDB.md#物品与拒绝条件)。同名字段在两类门中的检查与扣除行为有区别。
+
 ## 三种容易混淆的机制
 
 ### 随机入口位置
